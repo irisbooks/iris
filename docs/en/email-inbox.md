@@ -67,14 +67,14 @@ iris api inbox disallow '*@amazon.co.jp' <book-id>  # remove again
 
 Adding and removing require write access to the book (OWNER or BOOKKEEPER).
 Full flag listings are in the [CLI command reference](cli-reference.md).
-On a paid plan you can also manage the address and allowlist in the
-[web app](web-app.md), under **Settings → Inbound email**.
+For a cloud-linked book you can also manage the address and allowlist in the
+[web app](web-app.md), under the book's **Settings → Inbound email**.
 
 ## Reviewing quarantined mail
 
-Rejected messages are listed with the reason — in the web app under
-**Settings → Inbound email** (where a quarantined sender can be allowed
-with one click), or from the CLI:
+Rejected messages are listed with the reason — in the web app under the
+book's **Settings → Inbound email** (where a quarantined sender can be
+allowed with one click), or from the CLI:
 
 ```bash
 iris api inbox quarantine <book-id>

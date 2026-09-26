@@ -13,9 +13,11 @@ Run `iris <command> -h` for the authoritative, up-to-date flags of any
 command. `iris -h` lists everything; `iris api -h` lists the cloud
 subcommands.
 
-> Keeping this page honest: the command list mirrors the `commands` table in
-> `iris/cmd/iris/main.go`. If you add or rename a command there, update this
-> page (and its Japanese mirror).
+Commands that emit JSON share one convention: **amounts are integers in the
+book currency's minor units** (¥1,200 is `1200` at scale 0; $12.00 is `1200` at
+scale 2), dates are `YYYY-MM-DD` strings, and the document is pretty-printed
+with a two-space indent. The output shapes below are written as key skeletons —
+`?` marks a key that is omitted when empty.
 
 ## Setup
 
@@ -120,6 +122,18 @@ Print a book's identity, fiscal-year start, archive flags, and how many
 iris status [--json] [path]
 ```
 
+**Output shape** (`--json`):
+
+```text
+{ name, bookId, region, language, currency, fiscalStartMonth,
+  archived, archive?{ sourceBookId, fiscalYear },
+  draftCount?, remoteDeleted? }
+```
+
+`archive` appears only inside an archive folder, `draftCount` only when the
+drafts could be counted, and `remoteDeleted` only when the server reports the
+book gone.
+
 ### iris validate
 
 Validate a book's structure and entries: YAML, double-entry balance, account
@@ -127,11 +141,28 @@ existence, date consistency, status values, and (JP taxable books) tax
 classification.
 
 ```bash
-iris validate [--v] [--json] [path]
+iris validate [--v] [--json] [--fix] [path]
 ```
+
+`--fix` records the values the region overlay derives for you — reported as
+hints, such as the consumption tax inside a line on a 税抜経理 book — into the
+files, then validates again.
 
 `--v` prints every file scanned; `--json` emits issues + counts and exits 1
 on errors.
+
+**Output shape** (`--json`):
+
+```text
+{ book, bookOk, chartOk, journals, assets, notes,
+  errors, warnings, hints, ok,
+  issues[{ severity, file, code?, message }] }
+```
+
+`code` is a stable catalogue key — `journal.date-required`,
+`chart.alias-shadow-path`, `asset.ikkatsu-cost-range`, and so on. Branch on it
+rather than on `message`, which is translated. `ok` is `errors == 0`; warnings
+and hints affect neither `ok` nor the exit code.
 
 ### iris hash
 
@@ -150,6 +181,15 @@ Bring a book's layout into canonical shape. Dry-run by default.
 iris organize [--apply] [--fix fy-folders,extensions,empty-raw,config-typos] [--json] [path]
 ```
 
+**Output shape** (`--json`) — the plan, which is exactly what `--apply` executes:
+
+```text
+[ { family, code, path, new_path?, delete?, reason } ]
+```
+
+`family` is one of the `--fix` categories. A move carries `new_path`; a removal
+carries `delete: true`.
+
 ## Reports & search
 
 ### iris balance
@@ -159,6 +199,8 @@ Trial balance as of a date (posted entries only).
 ```bash
 iris balance [--as-of YYYY-MM-DD] [path]
 ```
+
+Output is the same trial-balance document as `iris report tb` (see below).
 
 ### iris report
 
@@ -187,6 +229,45 @@ missing a key form an explicit empty-keys group, so unclassified lines are
 visible rather than dropped. `--year` uses the fiscal year (begins-in
 convention); `--from/--to` take arbitrary inclusive dates.
 
+**Default dates.** A date you leave out comes from the book's **working
+fiscal year**: the fiscal year of your latest journal dated on or before
+today, where today is the date where the book is kept (Japan time for a JP
+book). Balances (`balance`, `tb`, `bs`, `ledger`) are as of today, or as of
+the year's last day once that year is over; `pl` and `sum` run from the
+year's first day to the same date. So while you are still entering last
+year after it ended, reports show last year in full, and your first entry of
+the new year moves them forward. Give only `--to` and the range starts on
+the first day of that date's fiscal year; give only `--from` and it runs
+through today. An entry dated after today stays out until its date arrives.
+The JSON always states the dates it used, and the web app, the MCP tools and
+the remote connector use the same defaults. For filing figures, name the
+period (`--year`, or `--from`/`--to`).
+
+**Output shapes.** All five build on one row type:
+
+```text
+Balance = { account, debits, credits, type?, net? }
+
+tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
+pl      { from?, to?, income[Balance], expenses[Balance],
+          totalIncome, totalExpense, net }
+bs      { asOf?, assets[Balance], liabilities[Balance], equity[Balance],
+          totalAssets, totalLiabilities, totalEquity,
+          currentEarnings, balanced }
+ledger  { account, asOf?,
+          entries[{ date, file, payee, debit, credit, balance }],
+          totalDebits, totalCredits, balance }
+sum     { groupBy[], from?, to?,
+          rows[{ keys[], debit, credit, net, lines }],
+          totalDebit, totalCredit, totalNet, totalLines }
+```
+
+`type` and `net` on a `Balance` populate once the account is classified against
+the chart. `ledger.entries[].balance` is the running balance *after* that entry,
+and `file` is the journal it came from — that is the 帳簿間の相互関連性 trail.
+`sum.rows[].keys` is positional: one entry per `--by` key, in the order you gave
+them.
+
 ### iris search
 
 Find journals by any combination of filters (combined with AND). Deterministic
@@ -201,6 +282,14 @@ The status column shows the **effective** status: a journal dated inside a
 sealed fiscal year displays as `closed` regardless of what its file says, and
 `--status closed` filters on exactly those.
 
+**Output shape** (`--json`):
+
+```text
+[ { path, date, payee, status, amount, lines } ]
+```
+
+`amount` is the entry's debit total in minor units; `lines` is its line count.
+
 ### iris show
 
 Cross-references for a path: for a document, the journals that cite it; for a
@@ -209,6 +298,19 @@ journal, the documents it cites plus siblings.
 ```bash
 iris show [--json] <path> [path]
 ```
+
+**Output shape** (`--json`):
+
+```text
+{ ref, mode,
+  citedBy[{ path, date, payee, status }],
+  cites[{ path, type?, locator?, alsoCitedBy[] }] }
+```
+
+`mode` says whether `ref` was read as a document or as a journal. `type` is the
+attachment's provenance (`receipt`, `invoice`, `bank_statement`) and is absent
+on supporting material. `alsoCitedBy` lists the *other* journals citing the same
+document — how you spot a receipt booked twice.
 
 ### iris export
 
@@ -234,6 +336,26 @@ iris asset depreciate --year YYYY [path]      # one FY-total entry per asset, da
 Pick one cadence per fiscal year: `depreciate` refuses to write annual entries
 into a year that already has monthly ones, and vice versa (mixing them would
 double-count).
+
+## Region overlay
+
+### iris overlay
+
+The region overlay is the versioned set of country-specific rules, recipes and
+derivations the book validates and computes with — pinned by `overlay:` in
+`config/book.yaml`, extended by the book's own `config/overlays/` when present.
+
+```bash
+iris overlay list [--json] [path]                                   # the overlay in effect: pin, layers, rules, recipes, derivations
+iris overlay recipe <id> --set name=value ... [--write <path>] [path]  # run a recipe; --write records it with provenance
+iris overlay test [--json] [path]                                   # run the golden tests of every layer in effect
+iris overlay test --dir <overlay-dir> [--json]                      # run one published overlay's golden tests, outside any book
+iris overlay trust [path]                                           # trust this book's config/overlays/ on this machine
+```
+
+`recipe` prints the proposal; with `--write` a schedule recipe rewrites the
+asset file (`schedule:` + `schedule_source:`) and a figures recipe writes a
+filing under `filings/`. Map-valued params are passed as `--set name='{"1": 90}'`.
 
 ## Editing & promoting
 
@@ -268,7 +390,7 @@ iris diff <relpath>      # line-level diff for one file
 iris diff --paths        # names + kind only
 ```
 
-## Sync & conflicts (paid)
+## Sync & conflicts (cloud)
 
 ### iris sync
 
@@ -285,6 +407,29 @@ terminal disconnect (book deleted, access revoked, session expired).
 If a sync would delete most of the book's cloud files at once, the server
 refuses those deletions (`BULK_DELETE_REFUSED`) as a safety net. When the mass
 deletion is really what you want, re-run with `--allow-bulk-delete`.
+
+**Output shape** (`--json`) — one document that replaces all of the above, and
+the one your AI reads after every edit:
+
+```text
+{ status, counts{ pushed, pulled, deleted, conflicts }, queueLeft,
+  disconnected, disconnectReason?,
+  newRejections[], allRejections[], applyErrors[], blockedByConflicts[],
+  error? }
+```
+
+- `status` — `ok` | `rejected` | `conflicts` | `disconnected` | `error`
+- `disconnectReason` — `deleted` | `forbidden` | `auth_expired`
+- `newRejections` / `allRejections` — attention records, the same shape
+  `iris attention list --json` returns
+- `blockedByConflicts` — canonical paths with an unresolved `.conflicted`
+  sidecar. **Non-empty means the whole pass was a no-op**: nothing was pushed
+  or pulled, so merge or resolve first.
+- `applyErrors` — remote changes that failed to land locally. The working tree
+  may be incomplete; re-run rather than trusting the files as they stand.
+
+This is why an edit → sync → read loop needs no second call: the per-file accept
+*and* reject are both in this one response.
 
 ### iris conflicts
 
@@ -309,6 +454,16 @@ iris attention list [path]              # show path + code + issues
 iris attention retry [path]             # drop suppression and ask the engine to re-push
 iris attention retry [path] --path <relpath>   # just one file
 ```
+
+**Output shape** (`list --json`):
+
+```text
+{ records[ { path, local_fs, local_sha, code?,
+             issues[{ field, message }], detected_at, reason? } ] }
+```
+
+`code` is the server invariant that refused the file — `UNBALANCED_JOURNAL`,
+`UNKNOWN_ACCOUNT`, `PERIOD_SEALED`, `BULK_DELETE_REFUSED`, and so on.
 
 ### iris yearend
 
@@ -360,6 +515,16 @@ iris price list [--unit BTC] [--json]
 iris price sync
 ```
 
+**Output shapes.** `list --json`:
+
+```text
+[ { unit, currency, date, valueMicro, source?, origin, recordedAt } ]
+```
+
+`valueMicro` is the value of **one whole unit** × 1,000,000, so a ¥9,850,000
+bitcoin is `9850000000000`. `origin` is `local` (captured on this machine) or
+`server`. `sync --json` returns `{ pushed, pulled }`.
+
 ## MCP server
 
 ### iris mcp
@@ -371,8 +536,14 @@ agent, pinned to one book.
 iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
 ```
 
-Local tools: `validate`, `diff`, `balance`, `report`, `status`. Cloud tools
-(when authenticated): `sync`, `seal`, `export_from_cloud`.
+Local tools: `validate`, `diff`, `balance`, `report`, `status`. Asset tools:
+`asset_schedule` (the engine's per-asset figures) plus three depreciation
+calculators — `declining_table`, `flat_table`, `straight_line_table` — your AI
+composes into a recorded `schedule:` for methods no recipe covers. Recipe
+tools: one per recipe of the book's overlay (`jp_teiritsu`,
+`jp_shouhizei-general`, `jp_shouhizei-simplified`), each recording its result
+with provenance when given a `write` path. Cloud tools (when authenticated):
+`sync`, `seal`, `export_from_cloud`.
 
 ### iris version
 
@@ -393,7 +564,7 @@ These operate on a **book ID** and require authentication.
 Browser-assisted sign-in. This device gets its own CLI session:
 signing out of the web app does not affect it, it expires only after
 90 days unused (each use renews it), and you can revoke it in the web
-app under Settings → API tokens.
+app under your Settings (avatar menu) → API tokens.
 
 ```bash
 iris api login
@@ -411,10 +582,16 @@ iris api books new [flags] [--json]
 iris api books link <book-id> [path]
 ```
 
+Run `new` from inside a local book that has no cloud id yet and the new book
+is linked to that folder automatically — the same effect as `books link`, so
+the next `iris sync` just works. `--no-link` skips it. Run `new` from inside a
+book that is *already* linked and it refuses: a second cloud book there would
+sit empty while `iris sync` keeps pushing to the first.
+
 ### iris api token
 
 List or revoke your Personal Access Tokens. Minting a new PAT is
-web-only (Settings → API tokens); revocation is available here too so an
+web-only (your Settings → API tokens); revocation is available here too so an
 automated run can revoke the PAT it used when it finishes. Requires a
 signed-in session or a Full-access PAT.
 
@@ -493,6 +670,30 @@ iris api holdings [--as-of YYYY-MM-DD] [--json] <book-id>    # per-unit net posi
 iris api history [--path PATH] [--limit N] [--json] <book-id> # durable correction/deletion record
 ```
 
+**Output shapes:**
+
+```text
+balance   [ { account, debits, credits, type?, net? } ]
+holdings  [ { account, unit, quantity } ]
+history   [ { id, path, op, sha?, version_id?, size_bytes,
+              actor, actor_display?, source?, reason?,
+              post_seal_period?, moved_from_path?, ts } ]
+```
+
+`holdings` counts only unit-tagged lines, and positions that net to zero are
+omitted server-side.
+
+In `history` — the durable correction/deletion record — `actor` is the stable
+account identifier (the audit identity) and `actor_display` is the server's
+read-time resolution of it to a name or email, for human readers.
+`post_seal_period` is set when the change landed *after* that fiscal year was
+sealed; that is the flag an auditor looks for. `moved_from_path` records a
+rename rather than a delete plus a create.
+
+The other cloud commands' `--json` (`books list`, `grants list`, `token list`,
+`inbox show`, `inbox quarantine`) passes the server's response through
+unchanged.
+
 ### iris api export
 
 ```bash
@@ -510,7 +711,7 @@ year.
 iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S]
 iris api price list [--unit BTC] [--json]
 
-iris api networth [--as-of YYYY-MM-DD] [--json]              # cross-book total (paid)
+iris api networth [--as-of YYYY-MM-DD] [--json]              # cross-book total
 iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
 iris api networth settings [--include|--exclude|--reset <id>]
 iris api networth history [--months N] [--refresh] [--json]

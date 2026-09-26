@@ -101,12 +101,13 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
 `disconnectReason` field of `iris sync --json`) says which kind:
 
 - **deleted** — the owner deleted the book on the server (web app →
-  Settings → Danger zone). **Your local files are intact** — nothing was
+  the book's Settings → Danger zone). **Your local files are intact** — nothing was
   removed from your folder, and `iris status` shows
   `Remote: deleted on the server`. To keep working locally, edit
   `config/book.yaml` and set `book_id` back to your local id (`iris status`
   prints it). To reconnect to the cloud, create a new book
-  (`iris api books new`) and link it (`iris api books link <id> --force`).
+  (`iris api books new --no-link` — the folder still points at the deleted id,
+  so plain `new` refuses) and link it (`iris api books link <id> --force`).
 - **forbidden** — your access was revoked (your credential is valid but you
   no longer hold a grant). Ask the book's owner to re-invite you. If access
   was intentionally revoked, that's expected.
@@ -132,6 +133,12 @@ The server records the corrections as **post-seal edits** — visible in the
 Activity log and badged in the web app. That's by design: the correction is
 allowed and auditable, not hidden. Re-sealing supersedes the old seal in the
 audit chain.
+
+**Changing an entry's date is changing the year it belongs to.** If an entry
+currently sits in a sealed year, re-dating it into an open year is refused
+too — the rejection names the *sealed* year, not the new one. Moving an
+amount out of a closed year changes that year's totals just as much as
+editing it in place would. Reopen the sealed year first, then re-date.
 
 ## "The web app shows different numbers than my CLI"
 

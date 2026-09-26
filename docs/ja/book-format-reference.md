@@ -4,10 +4,6 @@
 リファレンスです。これらを手書きする場面はほとんどありません（AI が書き、
 `iris validate` がチェックします）が、形を理解しておくと役立ちます。
 
-> このページを正しく保つために: スキーマは `iris/book/schema.go` をミラーして
-> います。そこでフィールドが変わったら、このページ（と日本語版）も更新して
-> ください。
-
 ## フォルダ構成
 
 ```text
@@ -15,13 +11,16 @@ your-book/
 ├── config/
 │   ├── book.yaml                 # 識別情報・地域・会計年度・通貨
 │   ├── chart-of-accounts.yaml    # 勘定科目
-│   └── rules.yaml                # 任意の分類ヒント（空でも可）
+│   ├── rules.yaml                # 任意の分類ヒント（空でも可）
+│   └── overlays/                 # 任意: この帳簿独自のオーバーレイ層（ルール・レシピ）
 ├── raw/                          # 元資料。構造は自由、種類は中身から判別
 ├── journals/
 │   └── <fy>/<mm>/
 │       └── YYYY-MM-DD-<取引先>-NN.md
 ├── assets/
 │   └── YYYY/<asset-name>.md       # 固定資産（取得年別）
+├── filings/
+│   └── <fy>/<recipe>.md           # 申告用の集計値の記録（オーバーレイのレシピが書く）
 ├── notes/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<raw/ のミラー>.md      # パースキャッシュ
@@ -54,6 +53,7 @@ schema_version: 1
 book_id: lb_...                 # init 時に発行。不変
 name: "Acme Design"
 region: JP                      # ISO 3166-1。税・ロケールのルールを選択
+overlay: jp@2026.09.1           # 地域ルールのバージョン。init 時に固定（下記参照）
 language: ja                    # ISO 639-1。勘定科目の言語はこれに従う
 currency: JPY                   # ISO 4217
 scale: 0                        # 補助単位の指数 — 不変（JPY 0, USD 2, BHD 3）
@@ -81,6 +81,14 @@ consumption_tax:                # JP のみ — 日本の税務ページ参照
 `scale` は通貨が使う小数桁数で、**不変**です。JPY は `0`（円単位、小数なし）、
 USD/EUR は `2`、湾岸ディナールは `3`。`consumption_tax` のような地域固有ブロックは
 不透明に同伴します。普遍エンジンは無視し、JP オーバーレイが読み取ります。
+
+`overlay` は**地域オーバーレイ**、つまり `iris validate` とサーバーがこの帳簿に
+適用する日本固有のチェック（`toku_rei` の特例区分の制約、少額減価償却の年 300 万円
+上限、消費税の税区分・税率ルール）のバージョン付きセットを指します。`iris init`
+の時点でお使いの `iris` に組み込まれているバージョンが一度だけ書き込まれるため、
+帳簿の検証ルールが黙って変わることはありません。新しい `iris` が別のバージョンを
+組み込んでいる場合、`iris validate` は警告としてその旨と実際に使ったバージョンを
+表示します。固定を変えるにはこの行を編集してください。
 
 ## 仕訳ファイル — `journals/<fy>/<mm>/*.md`
 
@@ -116,11 +124,16 @@ lines:
 | `status` | はい | `draft` / `posted` |
 | `tags` | いいえ | 小文字・自由形式、グルーピング用 |
 | `attachments` | いいえ | `{path, type?, locator?}`。`type` 付きは因果的な出所 |
-| `lines` | はい | 2行以上。各行に `account` + `debit`/`credit` のどちらか一方 |
+| `lines` | はい | 2〜999行。各行に `account` + `debit`/`credit` のどちらか一方 |
 | `lines[].memo` | いいえ | 行ごとのメモ |
 | `lines[].quantity` + `unit` | いいえ | `book.yaml` の `units` の単位の数量（常に正。向きは借方/貸方から） |
 | `lines[].tax` | いいえ | 日本の消費税 — 下記参照 |
 | 本文 | いいえ | 閉じ `---` の後の自由 Markdown |
+
+**明細行数**。1つの仕訳は最大 **999行**です。200行から警告が出ます。給与や
+減価償却の仕訳が数百行になるのは正常ですが、4桁は何かが誤って生成した数です。
+本当にそれ以上必要な場合は仕訳を分割してください。日付とタグを揃えた複数の
+仕訳は、1つの長い仕訳と同じように集計されます。
 
 **金額**は通貨の自然な表記で、`scale` の桁数まで書きます。`scale: 0`（JPY）なら
 円単位（`1000` = ¥1000、小数不可）、`scale: 2` なら ドルとセント（`12.34` = $12.34、
@@ -128,7 +141,7 @@ lines:
 
 **検証:** 借方=貸方、各科目が勘定科目表に存在（またはエイリアス一致）、日付が
 ファイル名と一致、ステータスが正当、YAML が解析できる。レポートに載るのは
-**`posted`** のみ。
+**記帳済み**の仕訳だけ。
 
 **行ごとの `tax`（日本の課税事業者のみ）:**
 
@@ -172,11 +185,20 @@ acquisition_cost: 480000
 salvage_value: 1
 useful_life_months: 48
 method: straight_line              # straight_line | declining_balance | expensed
-declining_rate: 417                # 月あたりベーシスポイント。定率法のみ
 asset_account: "資産:工具器具備品"
 depreciation_expense_account: "費用:減価償却費"
 accumulated_depreciation_account: "資産:減価償却累計額"
 acquisition_journal: "[[2026-04-15-apple-01]]"   # 任意の wikilink
+schedule:                          # 任意。記録済みの償却表（下記参照）
+  - period: 2027-03                # YYYY-MM。その償却額を計上する月
+    amount: 250000
+  - period: 2028-03
+    amount: 187500
+schedule_source:                   # オーバーレイのレシピが表を書いたときに付く根拠（下記参照）
+  overlay: jp@2026.09.1
+  recipe: jp.teiritsu
+  bindings: 1
+  params: {cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
 disposal:                          # 任意。処分まで無し
   date: 2029-05-10
   proceeds: 50000
@@ -186,6 +208,133 @@ disposal:                          # 任意。処分まで無し
 
 JP 固有フィールド（用途区分、特例、償却資産税フラグ）は不透明に同伴し、JP
 オーバーレイが読み取ります。
+
+ここに記述した資産の購入は、`expensed` のものも含めて `asset_account` に
+計上し、償却は `iris asset depreciate` に計上させてください。`expensed` の
+資産では、取得月に取得価額の全額を 1 回で償却します。購入をそのまま経費の
+科目にも計上すると、二重に計上されます。
+
+### `schedule:` — 計算させるか、表を記録するか
+
+定額法と即時費用化なら `schedule` は省略できます。`useful_life_months` から
+iris が償却額を計算します（即時費用化の資産は、取得月に全額）。それ以外 — 改定償却率に切り替わる日本の定率法、
+定額法へ移行する米国 MACRS など — は償却表をファイルに記録し（`method:
+declining_balance` には必須です）、iris はその値をそのまま使います。
+
+各行は `period`（`YYYY-MM`）と `amount` の 2 つです。年 1 回計上する帳簿なら
+年度ごとに 1 行、期末の月の日付で書きます。月次で計上する帳簿なら月ごとに
+1 行です。どちらでも動きます。
+
+表は AI アシスタントが組み立てます。帳簿の地域オーバーレイにその方式の
+**レシピ**があれば — 日本の定率法は `jp.teiritsu` — 公表されている率を入力として
+それを実行し、レシピが表を組み立ててファイルに根拠付きで書き込みます
+（`iris overlay recipe`、または対応する MCP ツール）。レシピのない方式は、
+計算ツールを組み合わせて表を作ります（[CLI と AI](cli-and-llm.md) 参照）。
+書き込んだあとは、帳簿・レポート・CSV 出力のすべてがこの表を使います。
+
+iris は表の形を検査します。行が昇順で重複がないこと、マイナスがないこと、
+取得月より前・耐用年数より後・除却後の行がないこと、そして合計が
+`acquisition_cost` − `salvage_value` と一致すること（除却した資産では、それを
+超えないこと。[資産を除却する](#資産を除却する)参照）です。行だけを見ても切替の年が
+正しいかは検査できません — それは `schedule_source` の役目です（次節）。手で
+組み立てた表では、使った償却率をファイルに残しておいてください（未知のキーは
+そのまま保持されます）。税理士が公表されている率と突き合わせられます。
+
+### `schedule_source:` — 表の出どころを記録し、再計算で照合する
+
+レシピが表を書いたときは、その根拠も一緒に記録されます。オーバーレイのバージョン
+（`jp@2026.09.1`。帳簿独自の `config/overlays/` のレシピなら `book:<ハッシュ>`）、
+レシピ、実行時のエンジンのバージョン、そして渡した入力 — 公表表の率、耐用年数、
+最初の行の月です。`iris validate` はその入力でレシピを**再計算**し、記録された行と
+違えばファイルを受け付けません。合計さえ合えば通ってしまう「1 年遅れの切替」は
+もう通りません。入力はファイルに残るので、税理士が公表表と突き合わせられます。
+`schedule_source` のない表は形式のみを検査します。お使いの `iris` に組み込まれた
+オーバーレイのバージョンが記録と違う場合は、警告を出して形式のみを検査します。
+
+### 資産を除却する
+
+`disposal:` に除却日と売却代金（`proceeds`）を書きます。減価償却は除却月まで
+（除却月を含む）、それまでと同じ月額で続きます。除却は償却を打ち切るだけで、
+前倒しにはしません。その時点で残っている取得価額が**除却時の帳簿価額**です。
+`iris asset schedule` では `DISPOSAL_NBV`、`iris export assets` では
+`disposal_nbv` として、実際に償却した額 `accumulated` と並べて表示します。
+除却の仕訳では、資産の取得価額とこの償却累計額を消し、売却代金を計上し、
+売却代金と除却時の帳簿価額の差額を売却益または売却損・除却損として計上します。
+
+計算で求める定額法の償却表は、除却月で自動的に止まります。記録した償却表は
+iris が書き換えることはありません。除却月より後の行を削除し、除却した年度の行は
+保有していた期間分の償却額（日本では月割）に書き換えてください。こうすると表の
+合計は `acquisition_cost` − `salvage_value` を下回ってかまいませんが、上回っては
+いけません。レシピが書いた表なら、`iris validate` は除却月より前の行を引き続き
+再計算で照合します。除却した年度の行はあなたが決める行です。
+
+例外は日本の一括償却資産（`toku_rei: ikkatsu_3yr`）です。物がなくなっても、
+3 分の 1 ずつの損金（必要経費）算入は続きます。この資産には `disposal:` を書かず、
+除却したことはファイル本文に書き残してください。`disposal:` を書くと、iris は
+除却月で償却表を止めてしまいます。
+
+## 申告記録 — `filings/<fy>/<recipe>.md`
+
+申告に使った集計値を、記録済みのファイルとして持ちます。地域オーバーレイの集計
+レシピ（日本では消費税申告の `jp.shouhizei-general` と `jp.shouhizei-simplified`）
+が記帳済みの仕訳を集計し、申告書に必要な形に組み合わせます。`iris overlay recipe
+… --write filings/2026/jp.shouhizei-general.md` で、償却表と同じ根拠付きで記録
+されます。
+
+```yaml
+---
+schema_version: 1
+filing: jp.shouhizei-general
+period: {from: 2026-01-01, to: 2026-12-31}
+source:
+  overlay: jp@2026.09.1
+  recipe: jp.shouhizei-general
+  bindings: 1
+  params: {from: 2026-01-01, to: 2026-12-31, non_invoice_pct: 80}
+figures:
+  sales_10: 11000000
+  sales_tax_10: 1000000
+  deductible_tax: 620000
+  net_tax: 380000
+  payable: 380000
+  # …
+---
+（同じ数値の読みやすい表）
+```
+
+`iris validate` は仕訳に対してレシピを再計算し、数値が仕訳から導けなくなった
+申告記録を受け付けません。申告後に訂正を記帳すると、レシピを再実行する（または
+訂正を戻す）までエラーになります。AI は `figures` から様式に転記します。明細を
+手で足し直すことはありません。申告記録は `compiled/` と違って同期され、帳簿と
+一緒に封印されます。
+
+## 帳簿独自のオーバーレイ層 — `config/overlays/`（任意）
+
+地域オーバーレイ — 帳簿の地域に付いてくるルール・レシピ・派生 — は iris と一緒に
+公開され、`book.yaml` の `overlay:` で固定されます。帳簿はその上に独自の層を
+追加できます。
+
+```text
+config/overlays/
+├── overlay.yaml        # id: book / extends: jp@2026.09.1
+├── functions.yaml      # 任意: 共有する式
+├── rules/*.yaml        # 追加のチェック（公開ルールと同じ id なら上書き）
+├── recipes/*.yaml      # 追加の計算
+├── derive/*.yaml       # 追加の派生値の提案
+└── tests/*.yaml        # ゴールデンケース — `iris overlay test` が実行
+```
+
+ルールとレシピは帳簿のレコードに対する [CEL](https://cel.dev) の式で書きます。
+ファイルにもネットワークにも触れず、計算量に上限のある言語なので、AI に書かせて
+も安全です。`iris validate` は公開オーバーレイと並べてこの層を適用し、クラウドは
+すべてのメンバーの書き込みに適用します。これらのファイルを変更できるのは帳簿の
+オーナーだけです。このマシンが初めてこの層のあるバージョンに出会うと、ファイルを
+表示して一度だけ確認します（`iris overlay trust` が回答を記録します）。それまでは
+公開オーバーレイのみを適用します。この層のレシピは出どころとして
+`book:<ハッシュ>` を記録するので、レビュアーは帳簿固有のレシピから生まれた償却表だと
+分かります。公開オーバーレイはオープンソース（Apache-2.0）で、公開リポジトリ
+[`irisbooks/overlays`](https://github.com/irisbooks/overlays) にあります。ひとつの
+帳簿を超えて役立つ層は、そこにプルリクエストとして提案できます。
 
 ## `config/rules.yaml`（任意）
 
@@ -224,11 +373,11 @@ counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 
 ## 同期されるもの・されないもの
 
-有料プランでは、`iris sync` が**同期対象**のファイルをクラウドにミラーします。
+クラウド同期では、`iris sync` が**同期対象**のファイルをクラウドにミラーします。
 
-- **同期される:** `journals/`、`assets/`、`notes/`（パースキャッシュ含む）、
-  `raw/`（バイト列そのまま）、`config/book.yaml`、
-  `config/chart-of-accounts.yaml`、`config/rules.yaml`。
+- **同期される:** `journals/`、`assets/`、`filings/`、`notes/`（パースキャッシュ
+  含む）、`raw/`（バイト列そのまま）、`config/book.yaml`、
+  `config/chart-of-accounts.yaml`、`config/rules.yaml`、`config/overlays/`。
 - **同期されない:** `.iris/`（実行時状態）、`README.md` / `LLM-GUIDE.md` /
   `CLAUDE.md`（ガイド）、`compiled/`（再生成可能）。
 

@@ -1,6 +1,6 @@
 # Bookkeeping with the CLI and your own LLM
 
-This is the free-plan, file-first way to keep your books: you bring your own
+This is the file-first way to keep your books: you bring your own
 AI assistant (Claude, Cursor, Copilot, or any MCP-capable agent), it reads and
 writes the Markdown/YAML files, and the `iris` CLI checks the work and answers
 questions about the books. Everything here works offline.
@@ -35,8 +35,8 @@ for your AI). Re-running `iris onboard` is always safe — registrations update
 in place. To undo everything, `iris offboard` removes the registrations and
 the skill without touching your books or sign-in.
 
-This wiring is for the machine the book folder lives on. On a paid plan you
-can also talk to your books away from that machine — see
+This wiring is for the machine the book folder lives on. With a cloud-linked
+book you can also talk to it away from that machine — see
 [Your AI on the go (remote connector)](remote-connector.md).
 
 Every book also ships an `LLM-GUIDE.md` at its root: a complete working
@@ -113,7 +113,7 @@ and — if the book is linked to the cloud — syncs it. Use `--dry-run` to chec
 without changing anything. You can also just edit the `status:` field by hand;
 `post` is the convenience that also balances-checks and syncs.
 
-## Going online (paid plans)
+## Going online (cloud)
 
 Linking a local book to the cloud unlocks the web app, multi-device access,
 collaboration, period seals, and the durable history. The local
@@ -144,12 +144,41 @@ If you own depreciable assets, describe each one in `assets/YYYY/<name>.md`
 
 ```bash
 iris asset schedule                       # see each asset's depreciation plan
-iris asset depreciate --month 2026-05     # generate that month's depreciation entries
+iris asset depreciate --year 2026         # one year-end entry per asset
+iris asset depreciate --month 2026-05     # or that month's entries, if you close monthly
 ```
 
 `iris asset depreciate` writes proposed entries (`status: draft`) you review
 and post like any other. Details and the Japan-specific rules are in
 [Japan tax & compliance](japan-tax-and-compliance.md#fixed-assets-and-depreciation).
+
+### Depreciation your AI can't get wrong
+
+Straight-line iris computes itself. Methods with a country-specific twist —
+Japan's 定率法, US MACRS — work differently: your AI looks up the rates and
+decides where the method switches, then hands the arithmetic to iris and records
+the finished table on the asset file under `schedule:`.
+
+Over the MCP connection your AI has four asset tools for this:
+
+| Tool | What it does |
+| --- | --- |
+| `asset_schedule` | the engine's per-asset figures — use these for filings verbatim |
+| `declining_table` | a declining-balance table at a rate you supply |
+| `flat_table` | a fixed charge per period until the asset is written down |
+| `straight_line_table` | a basis split evenly over N periods |
+| `jp_teiritsu` (one tool per overlay recipe) | the region overlay's ready-made composition — preferred whenever one exists |
+
+The point is that your AI never multiplies a balance forward by hand — that's
+where arithmetic slips happen, and a slip that still adds up to the right total
+is one iris cannot detect. It composes exact tables instead. Better still, when
+the book's region overlay has a **recipe** for the method — Japan's 定率法 is
+`jp_teiritsu` — it calls that: the recipe composes the tables in the prescribed
+order and records where the rows came from, so `iris validate` can replay them
+and catch a switch that landed a year late. Composing by hand is the fallback
+for a method no recipe covers. See
+[`schedule:`](book-format-reference.md#schedule--recording-the-table-instead-of-computing-it)
+for the file format and what iris checks.
 
 ## Exporting
 
@@ -159,8 +188,12 @@ iris export --year 2026     # restrict to a fiscal year
 iris export assets          # per-asset depreciation schedule
 ```
 
-CSVs are written UTF-8 with a BOM so Excel opens Japanese correctly. On a paid
-plan, `iris api export audit <book-id>` produces an auditor-facing bundle.
+CSVs are written UTF-8 with a BOM so Excel opens Japanese correctly. A text
+cell (payee, memo, tags, account or asset name) that starts with `=`, `+`,
+`-` or `@` is written with a leading `'`, so a spreadsheet shows it as text
+instead of running it as a formula; amounts are never changed. For a
+cloud-linked book, `iris api export audit <book-id>` produces an
+auditor-facing bundle.
 
 ## A note on what *not* to do
 

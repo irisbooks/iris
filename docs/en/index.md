@@ -21,7 +21,7 @@ machines, or keep it entirely offline.
 - **Business owners** — freelancers, sole proprietors (個人事業主), and SMBs
   who keep their own books and file 青色申告 / 確定申告. Start with the CLI +
   your own AI ([Bookkeeping with the CLI and your own LLM](cli-and-llm.md)),
-  add the web app if you're on a paid plan.
+  add the web app if you use the cloud.
 - **Accountants / 税理士** — firms managing many client books. The
   [web app](web-app.md) is your primary surface; the CLI and access tokens
   let you script across clients.
@@ -31,15 +31,15 @@ machines, or keep it entirely offline.
 1. [Getting started](getting-started.md) — install, create your first book,
    record your first entry.
 2. [Core concepts](concepts.md) — books, journals, accounts, status,
-   reports, sync, seals, plans.
+   reports, sync, seals.
 3. [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) — the
-   file-first workflow (free plan).
+   file-first workflow (fully offline).
 4. [Using the web app](web-app.md) — journals, reports, raw documents,
-   activity, settings, collaboration (paid plans).
+   activity, settings, collaboration (cloud).
 5. [Receipts by email](email-inbox.md) — your book's receiving address,
    the sender allowlist, and the quarantine.
 6. [Your AI on the go (remote connector)](remote-connector.md) — figures,
-   drafts, and receipts from your phone (paid plans).
+   drafts, and receipts from your phone (cloud).
 7. [Japan tax & compliance](japan-tax-and-compliance.md) — 優良電子帳簿,
    consumption tax (消費税), fixed assets & depreciation, year-end close.
 8. [CLI command reference](cli-reference.md) — every command and flag.
@@ -61,5 +61,5 @@ your-book/
 
 You (or your AI) drop a bank statement into `raw/`, the AI proposes journal
 entries, you review them, `iris validate` checks the math, and `iris balance`
-shows your trial balance. On a paid plan, `iris sync` mirrors everything to
+shows your trial balance. With cloud sync, `iris sync` mirrors everything to
 the cloud where the web app, your accountant, and timestamped history live.

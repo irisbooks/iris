@@ -1,8 +1,8 @@
 # Getting started
 
 There are two ways into IrisBooks. Most owners begin with the **CLI** (works
-fully offline, free). If you're on a paid plan or you're an accountant, you'll
-also use the **web app**. This page walks both.
+fully offline, no account). If you use the cloud, or you're an accountant,
+you'll also use the **web app**. This page walks both.
 
 ## Path A — Create a book on your machine (CLI)
 
@@ -90,13 +90,13 @@ iris balance
 iris report pl --from 2026-04-01 --to 2026-06-30
 ```
 
-That's the whole free-plan loop: files in `raw/`, entries in `journals/`,
+That's the whole offline loop: files in `raw/`, entries in `journals/`,
 `iris validate` to check, `iris report` to read. No account, no network.
 
-## Path B — Use the web app (paid plans)
+## Path B — Use the web app (cloud)
 
 The web app gives you a graphical interface, cloud sync, multi-device access,
-collaboration, and the durable server history. It's part of any paid plan.
+collaboration, and the durable server history. It needs an IrisBooks account.
 
 ### 1. Sign in
 
@@ -107,9 +107,15 @@ email address and the book will already be waiting.
 ### 2. Create a book
 
 If you have no books yet, the app drops you into the **New book** wizard. Give
-the book a name, region, and fiscal year, and it's created in the cloud —
-already seeded with its `config/book.yaml` and a starter chart of accounts,
-so `iris clone <book-id>` gives you a working local folder right away.
+the book a name and region, say whether an individual or a company keeps it,
+and pick the month its fiscal year starts (a Japanese company defaults to
+April, everyone else to January). It's created in the cloud — already seeded
+with its `config/book.yaml` and a starter chart of accounts, so
+`iris clone <book-id>` gives you a working local folder right away.
+
+Region, individual-or-company and the fiscal-year start can't be changed once
+the first journal is posted. The review step shows the dates your first fiscal
+year covers, so check them there.
 
 ### 3. Link an existing local book (optional)
 
@@ -121,32 +127,31 @@ iris api books new             # or: iris api books link <book-id>
 iris sync                      # push your local files up
 ```
 
+Run inside your book folder, `iris api books new` links the new cloud book to
+that folder for you — that's why `iris sync` works on the next line. If you
+already created the book in the web app, use `iris api books link` with the id
+the app showed you instead; running `new` again would give you a second book.
+
 Now the same book is reachable from both the CLI and the web app. See
-[Core concepts → Sync and plans](concepts.md#sync-the-three-ways-to-work) for
+[Core concepts → Sync](concepts.md#sync-the-three-ways-to-work) for
 what syncing does and doesn't change.
 
 ### 4. Work in the app
 
-The left sidebar splits into **Across all books** (Dashboard, My Books, Net
-Worth) and **Current book** (Journals, Activity, Reports, Accounts, Raw
-documents, Notes, Settings). Full walk-through in
+The top bar holds the **Dashboard** tab and the book plate — pick a book
+there to enter it. Inside a book, the left sidebar lists the book's
+screens: Journals, Activity, the reports, and a Manage group (Accounts,
+Raw documents, Notes, Year-end, Settings). Your avatar (top right) opens
+your account settings. Full walk-through in
 [Using the web app](web-app.md).
 
-## Which plan do I need?
+## Do I need an account?
 
-You can do real, complete bookkeeping for free. Paid plans add sync, the web
-app, collaboration, and the durable correction/deletion history that Japan's
-(optional) 優良電子帳簿 status requires.
-
-| | Free | Personal | Pro | Pro (Accountant) |
-| --- | :---: | :---: | :---: | :---: |
-| Local book + AI | ✓ | ✓ | ✓ | ✓ |
-| Sync + web + period seals | | ✓ | ✓ | ✓ |
-| Books you own | 1 | 2 | unlimited | 2 |
-| Be invited to others' books | | up to 2 | up to 2 | up to 500 |
-| Invite others to your book | | 1 | unlimited | unlimited |
-
-More detail in [Core concepts → Plans](concepts.md#plans-what-each-tier-adds).
+Not for bookkeeping itself — the local files and CLI are complete on their
+own. An IrisBooks account adds sync, the web app, collaboration, and the
+durable correction/deletion history that Japan's (optional) 優良電子帳簿
+status requires. See
+[Core concepts → Sync](concepts.md#sync-the-three-ways-to-work).
 
 ## Next steps
 

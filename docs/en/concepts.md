@@ -122,12 +122,13 @@ status requires — see [Japan tax & compliance](japan-tax-and-compliance.md).
 The same book can live in three arrangements. You don't choose a "mode"; you
 just use more or fewer of the features:
 
-- **Offline (Free).** Files only, no server. You validate and report
+- **Offline.** Files only, no server, no account. You validate and report
   locally. Maximum privacy, zero network.
-- **Files + Cloud (paid).** Your local files plus a cloud mirror. You edit
-  locally and run `iris sync` to push and pull. The web app, multi-device
-  access, collaboration, and timestamped history all live on the cloud side.
-- **Cloud-only (paid, typical for accountants).** No local folder — you work
+- **Files + Cloud.** Your local files plus a cloud mirror (sign in with
+  `iris api login`). You edit locally and run `iris sync` to push and pull.
+  The web app, multi-device access, collaboration, and timestamped history
+  all live on the cloud side.
+- **Cloud-only (typical for accountants).** No local folder — you work
   entirely in the web app against the server.
 
 Sync is **explicit**: nothing uploads until you (or your AI) run `iris sync`,
@@ -154,46 +155,25 @@ See [Year-end close](japan-tax-and-compliance.md#year-end-close).
 
 ## The durable history (correction/deletion record)
 
-On a paid plan, the server keeps an append-only log of every change to every
+With cloud sync, the server keeps an append-only log of every change to every
 file — who changed it, when, and what it was before. This is the
 **訂正・削除の履歴** ("record of corrections and deletions") that Japanese law
 requires for 優良電子帳簿. View it with `iris api history` or in the web app's
 **Activity** timeline and per-journal **History** panel.
 
 Local git history does *not* count for this — only the server-side record is
-auditor-trustable, which is one of the reasons the durable history is a paid
-feature.
-
-## Plans — what each tier adds
-
-| | Free | Personal | Pro | Pro (Accountant) |
-| --- | :---: | :---: | :---: | :---: |
-| Local book + AI | ✓ | ✓ | ✓ | ✓ |
-| Sync + web + period seals | | ✓ | ✓ | ✓ |
-| Books you own | 1 | 2 | unlimited | 2 |
-| Be invited to others' books | | up to 2 | up to 2 | up to 500 |
-| Invite others to your book | | 1 | unlimited | unlimited |
-
-- **Free** is fully functional bookkeeping: double-entry, reports, the
-  offline compliance views (`iris search`, `iris show`). You skip sync, the
-  web app, collaboration, and period seals.
-- **Personal** suits a solo operator or household — own up to 2 books, be
-  invited to up to 2 others (e.g. a spouse's sole-proprietorship).
-- **Pro** scales to unlimited books and collaborators.
-- **Pro (Accountant)** is for 税理士 / firms: be invited to up to 500 client
-  books, each kept separate for confidentiality (no cross-book aggregation).
+auditor-trustable, which is why the durable history lives on the cloud side.
 
 ## The two lenses, side by side
 
 | | CLI + your AI | Web app |
 | --- | --- | --- |
-| Plan | Free and up | Paid |
 | Best for | File-first owners, automation | Owners who want a GUI, accountants |
 | Edits | Your AI writes files; you review | Forms in the browser |
 | Works offline | Yes | No (needs the server) |
 | Reports | `iris report …` (text/JSON) | Rendered + CSV export |
 
-They are not either/or — most paid owners use both: the CLI + AI to enter
+They are not either/or — most owners use both: the CLI + AI to enter
 data fast, the web app to review, report, and collaborate.
 
 Next: [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) or

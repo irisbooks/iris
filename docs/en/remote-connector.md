@@ -1,13 +1,18 @@
 # Your AI on the go (remote connector)
 
-Your books live on your computer — but on a paid plan the cloud keeps a
+Your books live on your computer — but with cloud sync the cloud keeps a
 synced copy, and the **remote connector** lets an AI app reach that copy when
 you're away from your machine: ask for figures from your phone, or capture an
 expense as a draft the moment it happens.
 
 The connector speaks MCP (Model Context Protocol), the same standard your
-local setup uses, so it works with Claude (mobile, web, desktop) and any
-other MCP-capable AI app that supports remote connectors.
+local setup uses. It works with **Claude** (mobile, web, desktop, and Claude
+Code) and **ChatGPT**.
+
+Other MCP-capable apps aren't supported yet. An AI app has to identify itself
+in the way the current MCP specification asks for, and IrisBooks only accepts
+apps whose identity it recognises — so if your app can't complete the
+sign-in, that is usually why, rather than anything wrong with your account.
 
 ## Set it up
 
@@ -34,6 +39,9 @@ draft into a book where you are only a Reviewer.
   Numbers come from the cloud copy and include posted entries only; the AI is
   told when they were last synced from your machine and will say so.
 - **Browse and search entries** — by date, payee, amount, status.
+- **Check the fiscal years** — which years exist, which are closed or
+  reopened, and how many drafts still block a year's close. (Closing and
+  reopening themselves stay in the web app's Year-end screen and the CLI.)
 - **Capture expenses as drafts** — "I just paid ¥3,400 for a taxi" becomes a
   `draft`-status draft with proper accounts and balanced lines. It appears
   in your local book folder at your next `iris sync`, ready for review.
@@ -79,11 +87,11 @@ Two ways; either works:
 
 - **In your AI app** — remove the connector in the app's settings; the app
   tells IrisBooks to revoke its access.
-- **In the web app** — Settings → Connected apps lists every AI app you have
+- **In the web app** — your Settings (avatar menu) → Connected apps lists every AI app you have
   connected, with its access level and when it was last used. **Disconnect**
   revokes its access server-side — useful when you no longer have the device
   or app at hand.
 
 Revocation takes effect within a few minutes. A collaborator's underlying
-book role is separate — owners can change or revoke it any time in the web
-app's Settings → Grants.
+book role is separate — owners can change or revoke it any time in the
+book's Settings → Grants.

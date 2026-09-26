@@ -10,6 +10,9 @@
 | [`llms-key-facts.md`](llms-key-facts.md) | The overview + key-facts block spliced into the `llms.txt` index | <https://irisbooks.jp/llms.txt> |
 | [`en/`](en/) · [`ja/`](ja/) | The user manual (English / Japanese) | <https://irisbooks.jp/manual/> |
 
+The region overlays a book pins by `overlay:` (YAML + CEL rules, recipes,
+derivations) are open source in <https://github.com/irisbooks/overlays>.
+
 Docs are mirrored before each release is published, so a release tag pins the
 documentation that shipped with that binary:
 `https://raw.githubusercontent.com/irisbooks/iris/<tag>/docs/llm.md`.

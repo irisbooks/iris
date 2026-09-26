@@ -1,7 +1,7 @@
 # Using the web app
 
-The web app is the graphical interface to IrisBooks, available on any paid
-plan. It's the primary surface for accountants and a comfortable second lens
+The web app is the graphical interface to IrisBooks, available to any
+signed-in account. It's the primary surface for accountants and a comfortable second lens
 for owners who'd rather click than type. It works against the cloud copy of
 your book, so it needs you to be signed in and online.
 
@@ -15,6 +15,12 @@ Accounts are email + password. From the sign-in screen you can:
 - **Reset a password** via "Forgot password" — request a code, then set a new
   password.
 
+These screens have a language switch in the top-right corner (labeled
+"日本語" / "English") in case your browser's language was guessed wrong.
+The emails behind these flows (verification codes, reset codes, invitations)
+arrive in the app's language — the switch here, your browser on first
+visit, or whatever you chose later in Settings → Language.
+
 If your accountant invited you to a book, sign up (or log in) with the exact
 email they invited, and the book is already there.
 
@@ -24,16 +30,41 @@ and the expected tool, then approve.
 
 ## Layout
 
-The left sidebar has two zones:
+The top bar carries your location:
 
-- **Across all books** — Dashboard, My Books (shown when you have 2+), Net
-  Worth. These don't depend on which book is active.
-- **Current book** — a book switcher, then Journals, Activity, Reports
-  (General Ledger / Trial Balance / P&L / Balance Sheet), and a Manage group
-  (Accounts, Raw documents, Notes, Settings).
+- **Dashboard** — the one always-visible tab, for the screens that span
+  your whole account.
+- **The book plate** — the current book's name and fiscal year, side by
+  side with the book's color dot. Click the name to switch books, open
+  **My Books**, or create a new book. Inside a book, clicking the year
+  opens the fiscal-year menu: every year the book spans with its close
+  status — pick one to see that year's journals, or jump to **Year-end**.
 
-Switch the active book from the switcher at the top of the "Current book"
-zone; each book gets its own accent color so you always know where you are.
+Whichever of the two is your current place is gently recessed into the
+bar — carved in, like a nameplate. Inside a book the plate is carved and
+tinted with the book's color; on screens outside a book it sits flat and
+dimmed (Dashboard is carved instead) — clicking the book's name takes you
+back inside.
+
+Inside a book, the left sidebar lists that book's screens: Journals and
+Activity, a Reports group (General Ledger / Trial Balance / P&L / Balance
+Sheet — all four always visible), and a Manage group (Accounts, Raw
+documents, Notes, Year-end, Settings). Outside a book there is no sidebar —
+the Dashboard and its related screens use the full width. On a phone, the
+book plate sits on its own row under the top bar, with the menu button for
+the book's screens at its right edge.
+
+Your **avatar** (top right) opens the account menu from anywhere: your
+**Settings** (see below), a language switch, and log out. The language
+item is always labeled in the *other* language ("日本語" / "English"),
+so if the interface ever ends up in a language you can't read, the way
+back stays readable. Everything else — including the color theme —
+lives in Settings.
+
+Each book gets its own accent color — the plate and the sidebar rail wear
+it — so you always know where you are. **Net Worth** opens from its card on
+the Dashboard, and **My Books** from the book plate's menu; both have a
+"‹ Dashboard" link to step back.
 
 ## Dashboard
 
@@ -42,6 +73,18 @@ revenue, expenses, net income, a P&L flow chart and balance-sheet treemap, and
 a banner if any entries are still incomplete. With two or more books it adds a
 cross-book view: a net-worth tile, an action queue (what needs attention
 across books), a consolidated P&L, and your top movers.
+
+If your books don't all use the same currency, set a base currency
+(`iris api config set --base-currency JPY`). The consolidated P&L then shows
+**Conversion rates** — one row per other currency, with the rate it used and
+the date you recorded it. Each rate is editable: type a different one and the
+total recalculates immediately. That edit changes the view only and is not
+saved; to keep a rate, record it with `iris price add --unit USD --price 155`,
+the same price store Net Worth values your holdings from.
+
+A currency with no recorded rate shows an empty box, and books in that
+currency are listed separately rather than folded into the total — a missing
+rate stays visible instead of quietly changing the number.
 
 ## Journals
 
@@ -74,7 +117,8 @@ the durable correction/deletion record.
 
 An entry whose date falls in a **sealed** fiscal year displays as `closed`
 (in the list, the Closed filter, and the detail page) and cannot be edited,
-deleted, or posted — the year has to be reopened first (`iris reopen`).
+deleted, or posted — the year has to be reopened first (from the
+[**Year-end**](#year-end) screen, or `iris reopen`).
 
 The **Deleted** view (from the Journals list) lists soft-deleted entries with
 who deleted them and when — deletions are recorded, not erased. Each row has
@@ -91,6 +135,12 @@ and CSV export:
 - **P&L** — revenue and expenses with subtotals and net income for a period.
 - **Balance Sheet** — assets, liabilities, and equity as of a date.
 
+Reports open on the fiscal year you are working in — the one holding your
+latest entry dated on or before today — from its first day to today, or to
+its last day once that year is over. The **Journals** list opens on the same
+year, whole, so an entry dated later in the year is still in view. Change
+the dates to see any other period.
+
 Reports show only **posted** entries. A "freshness" note tells you when the
 underlying figures were last computed, and an "incompletes" banner warns when
 draft entries exist that aren't counted yet.
@@ -99,8 +149,8 @@ draft entries exist that aren't counted yet.
 
 The **Accounts** page shows your chart of accounts grouped by type (asset /
 liability / equity / income / expense). Click any account to open its ledger
-for the current fiscal year (or a custom range), with opening balance when a
-date filter is applied.
+for the fiscal year you are working in, up to today (or a custom range), with
+opening balance when a date filter is applied.
 
 ## Raw documents
 
@@ -108,7 +158,8 @@ The **Raw documents** browser is a two-pane view of everything under `raw/`.
 Select a file and it renders inline — images, PDFs, parsed CSV tables, or text.
 The **Cited by** panel shows which journals reference the document, so you can
 jump from a receipt straight to the entry that booked it. This reverse
-drill-down is part of Japan's 帳簿間相互関連性 (cross-reference) requirement.
+drill-down is the book's journal ↔ evidence audit trail: an auditor can walk
+from any receipt to the entries that booked it, and back.
 
 ## Notes
 
@@ -124,12 +175,53 @@ operation. Each row can expand to show a content **diff**, and — if a prior
 version exists — a **Recover** button. Post-seal changes are badged. This is
 the book-level view of the durable history.
 
-## Settings — language, collaboration, and tokens
+## Year-end
 
-The **Settings** page holds:
+The **Year-end** screen lists every fiscal year the book spans — how many
+journal entries it holds, its close state (**Open** / **Closed** /
+**Reopened**), and who closed it, when. It's where a book **owner** runs
+the period close:
+
+- **Close a year.** A preview shows what the year's archive snapshot will
+  capture and lists any remaining drafts. A year cannot close while
+  drafts remain — post, delete, or redate them first (each listed draft
+  links to its entry). Closing **locks** the year: every change to it is
+  refused, on every surface, until the year is reopened.
+- **Reopen a year.** Unlocks it for amendments. Every change made while
+  reopened is permanently flagged "after seal" in the audit trail, and
+  the screen counts the files amended. Close the year again when you're
+  done — the **History** panel keeps every close and reopen on record.
+- **Download the archive (zip).** The closed year's snapshot bundle, for
+  handing to your accountant or an auditor. It's built on first request;
+  the download starts as soon as it's ready.
+
+The same flow works from the CLI (`iris api seal`, `iris reopen`,
+`iris api archive download`) — see
+[Japan tax & compliance](japan-tax-and-compliance.md). Members who aren't
+the owner see the same year list read-only.
+
+## Settings — your settings and book settings
+
+Settings are split by what they affect, and everything is reachable from
+one door: your **avatar menu (top right) → Settings**.
+
+**Your settings** (avatar menu → Settings — available everywhere, even
+outside any book) hold what belongs to you, not to a book:
 
 - **Language** — switch the interface between English and 日本語.
-- **Active book** info — its ID and fiscal year.
+- **Appearance** — light, dark, or follow the system.
+- **Books** — every book you're a member of, with your role; each row opens
+  that book's own settings page.
+- **Personal Access Tokens** — create tokens for the CLI and integrations.
+- **Connect your AI** — the remote connector URL and setup steps. See
+  [Your AI on the go](remote-connector.md).
+- **Connected apps** — the AI apps connected through the remote connector,
+  with a **Disconnect** button to revoke one's access.
+
+**Book settings** (sidebar → Settings, inside the book — or one click from
+the Books list above) hold what belongs to that book:
+
+- The book's **ID and fiscal year**.
 - **Posting approval** (book owners only) — when on, posting an entry — and
   editing, deleting, or demoting an already-posted entry — can only be done
   here in the web app. Your AI assistant and the CLI keep preparing and
@@ -143,17 +235,13 @@ The **Settings** page holds:
   [Receipts by email](email-inbox.md).
 - **Grants** (book owners only) — manage who can access the book and at what
   role; invite new members by email. See below.
-- **Personal Access Tokens** — create tokens for the CLI and integrations.
-- **Connect your AI** — the remote connector URL and setup steps. See
-  [Your AI on the go](remote-connector.md).
-- **Connected apps** — the AI apps connected through the remote connector,
-  with a **Disconnect** button to revoke one's access.
 - **Danger zone** (book owners only) — delete the book from the cloud. See
   below.
 
 ### Deleting a book
 
-A book's **owner** can delete its cloud copy from Settings → **Danger zone**.
+A book's **owner** can delete its cloud copy from the book's Settings →
+**Danger zone**.
 Deletion is deliberately a web-only ceremony: it requires your browser
 session and typing the book's exact name — no CLI command, token, or AI
 assistant can do it, whatever its access level.
@@ -189,13 +277,14 @@ anytime. (Owners can also manage grants from the CLI — see
 [`iris api grants`](cli-reference.md#iris-api-grants).)
 
 This is how an **owner and an accountant** share a book: the owner invites the
-accountant (or vice versa, on the accountant's plan), and both work against the
+accountant (or the accountant invites the owner), and both work against the
 same cloud book — the owner often via CLI + AI, the accountant via the web app.
 
 ### Personal Access Tokens (PATs)
 
 A PAT is a long-lived credential for scripts and the CLI, scoped by role
-(**viewer / bookkeeper / full**). Create one in Settings, copy it **once** (it
+(**viewer / bookkeeper / full**). Create one in your settings (avatar menu →
+Settings), copy it **once** (it
 won't be shown again), and use it as `IRIS_API_TOKEN`. A token expires after
 90 days unused — each use renews it, up to one year from creation. Tokens show
 their last-used time and expiry, and you can revoke any token immediately — here in
@@ -205,26 +294,31 @@ Accountants use PATs to run `iris api …` across many client books from scripts
 
 ## Net Worth
 
-**Net Worth** (a paid feature) values your holdings across books — cash, plus
+**Net Worth** values your holdings across books — cash, plus
 non-currency units like foreign currency, crypto, or metals — and shows a
 total, the change versus last month, a trend line, the biggest movers, and a
 composition breakdown. The **Settings** tab there lets you choose which books
 count toward the consolidated total. It's a best-effort "how am I doing"
 number, not an audited figure; units without a recorded price are listed so you
-know what's missing.
+know what's missing. IrisBooks fetches no prices on your behalf — exchange
+rates included — so record them yourself with `iris price add`.
 
 ## For accountants — the daily shape
 
 If you manage many client books:
 
 - **My Books** is your client directory — each book with its draft count,
-  fiscal-year status, and last activity, so you can see at a glance which
-  clients need attention today.
+  fiscal-year status, last activity, and a **Year-end** column showing the
+  *previous* fiscal year's close state per client: closed, reopened,
+  **ready to close**, or "N drafts" still blocking it. At year-end this
+  column is your worklist — each badge links straight into that book's
+  Year-end screen.
 - Switch into a client book to review and approve entries, check the
   **Activity** log for what staff did, and run reports.
 - Use **PATs** + `iris api …` to script repetitive work across books.
-- At year-end, seal each client's fiscal year and produce an auditor bundle —
-  see [Japan tax & compliance](japan-tax-and-compliance.md).
+- At year-end, close each client's fiscal year and download the auditor
+  bundle from **Year-end** (or the CLI) — see
+  [Japan tax & compliance](japan-tax-and-compliance.md).
 
 Client books stay fully separate — there's no cross-client aggregation, which
 is the right default for confidentiality.

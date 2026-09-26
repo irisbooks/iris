@@ -9,8 +9,8 @@ Key facts for agents:
   journal entries only — `draft` entries are drafts and never appear in
   reports.
 - Sync is explicit (`iris sync`); nothing uploads in the background. The
-  free plan is fully offline; paid plans add sync, the web app,
-  collaboration, period seals, and the server-side correction/deletion
+  local workflow is fully offline; an IrisBooks account adds sync, the web
+  app, collaboration, period seals, and the server-side correction/deletion
   history (訂正・削除の履歴) required for 優良電子帳簿 区分①.
 - Working inside a book folder? Read `LLM-GUIDE.md` at the book root first —
   it is the binding working contract for AI assistants.
