@@ -175,7 +175,8 @@ just use more or fewer of the features:
   entirely in the web app against the server.
 
 Sync is **explicit**: nothing uploads until you (or your AI) run `iris sync`,
-`iris post`, or click Sync in the app. There is no background watcher silently
+or `iris post`. Web-app changes are written directly to the cloud.
+There is no background watcher silently
 shipping your files. An owner syncing from their laptop and an accountant
 working in the web app meet at the same server book.
 
@@ -199,19 +200,19 @@ need to keep can be deleted on its own.
 
 ## Seals — closing a year, visibly
 
-At year-end you **seal** a fiscal year: the server marks the period as closed
-— by whom, and when — and **locks** it. A sealed year refuses every write, on
-every surface: `iris post` refuses locally, sync pushes are rejected by the
-server, and the web app and remote connector refuse edits too. Its entries
-display as `closed` everywhere.
+At year-end you **seal** a fiscal year: the server records who closed it and
+when. The lock covers journals dated in that year and the book's `config/`,
+`assets/`, `filings/`, and `compiled/` files. `iris post` refuses sealed-year
+journals; the server rejects writes in this scope from sync, the web app,
+and the remote connector. Entries display as `closed` everywhere.
+`raw/` evidence and `notes/` remain writable. Local files can still be edited,
+but changes in the locked scope cannot be pushed until you reopen the year.
 
-To amend a sealed year you **reopen** it with
-[`iris reopen`](cli-reference.md#iris-reopen): the seal is unlocked (writes
-are accepted again) and every edit made while reopened is permanently flagged
-as a **post-seal edit** in the audit trail — so a closed year that was later
-touched can never look untouched. When you're done, re-seal; the new seal
-supersedes the old one in the audit chain. Sealing never removes anything —
-your files stay in the working tree untouched.
+To amend a sealed year, use [`iris reopen`](cli-reference.md#iris-reopen).
+Changes in the locked scope made after reopening are permanently flagged as
+**post-seal edits** in the server's audit trail. Changes to `raw/` and `notes/`
+have ordinary history, without that flag. When you're done, re-seal; the new
+seal supersedes the old one in the audit chain. Sealing never removes files.
 See [Year-end close](japan-tax-and-compliance.md#year-end-close).
 
 ## The durable history (correction/deletion record)

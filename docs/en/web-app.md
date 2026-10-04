@@ -70,9 +70,9 @@ the Dashboard, and **My Books** from the book plate's menu; both have a
 
 The home screen. With one book it shows that book's headline numbers —
 revenue, expenses, net income, a P&L flow chart and balance-sheet treemap, and
-a banner if any entries are still incomplete. With two or more books it adds a
-cross-book view: a net-worth tile, an action queue (what needs attention
-across books), a consolidated P&L, and your top movers.
+a banner if any entries are still incomplete. The net-worth tile also appears
+with one book. With two or more books it adds an action queue (what needs
+attention across books), a consolidated P&L, and your top movers.
 
 If your books don't all use the same currency, set a base currency
 (`iris api config set --base-currency JPY`). The consolidated P&L then shows
@@ -135,11 +135,11 @@ and CSV export:
 - **P&L** — revenue and expenses with subtotals and net income for a period.
 - **Balance Sheet** — assets, liabilities, and equity as of a date.
 
-Reports open on the fiscal year you are working in — the one holding your
-latest entry dated on or before today — from its first day to today, or to
-its last day once that year is over. The **Journals** list opens on the same
-year, whole, so an entry dated later in the year is still in view. Change
-the dates to see any other period.
+Reports open on the book's fiscal year (`fiscal_year` in `config/book.yaml`),
+from its first day to today, clamped to the year's first or last day when
+today is outside that year. The **Journals** list opens on the whole book year,
+so entries dated later in the year remain visible. Change the dates to see
+another period.
 
 Reports show only **posted** entries. A "freshness" note tells you when the
 underlying figures were last computed, and an "incompletes" banner warns when
@@ -185,12 +185,21 @@ the period close:
 - **Close a year.** A preview shows which files the close will lock and
   lists any remaining drafts. A year cannot close while
   drafts remain — post, delete, or redate them first (each listed draft
-  links to its entry). Closing **locks** the year: every change to it is
-  refused, on every surface, until the year is reopened.
-- **Reopen a year.** Unlocks it for amendments. Every change made while
+  links to its entry). Closing locks the year’s journals and accounting dependencies
+  (`config/`, `assets/`, `filings/`, `compiled/`) until reopening; `raw/` and
+  `notes/` remain writable.
+- **Reopen a year.** Unlocks it for amendments. Every change to the locked scope made while
   reopened is permanently flagged "after seal" in the audit trail, and
   the screen counts the files amended. Close the year again when you're
   done — the **History** panel keeps every close and reopen on record.
+
+Before previewing or closing, recorded filings must replay successfully against
+the cloud's current posted journals and recipe sources. A stale filing after a
+correction, or an unavailable recipe source, can block even the preview before
+it lists drafts. Re-run the filing recipe with the intended inputs, run
+`iris validate`, sync the filing and its inputs, and preview again. If the
+cloud still reports an unavailable replay projection after a successful sync,
+seek support from the [Discord community](https://discord.gg/wZDsv9gyb9); repeated close attempts will not repair it.
 
 Closing never removes anything: the year's files stay in the book.
 
@@ -253,7 +262,7 @@ What deletion means:
 - The book disappears **immediately for every member** — from the web app,
   the CLI, and connected AI apps.
 - For **30 days** the server keeps the data invisible in case of a mistake
-  (contact support to restore within the window). After that, everything on
+  (seek support from the [Discord community](https://discord.gg/wZDsv9gyb9) to restore within the window). After that, everything on
   the server — journals, files, and the correction/deletion history — is
   **permanently destroyed**. If the book has sealed fiscal years, the dialog
   warns you: deleting destroys those closed-period records and their audit
@@ -332,7 +341,10 @@ If you manage many client books:
   CLI) — see
   [Japan tax & compliance](japan-tax-and-compliance.md).
 
-Client books stay fully separate — there's no cross-client aggregation, which
-is the right default for confidentiality.
+Each client's files and permissions belong to a separate book. The dashboard's
+**Consolidated P&L** includes all books you can access by default, including
+client books; use its book picker to choose the totals you want to see.
+**Net Worth** defaults to owned books only; invited books require opt-in in
+its Settings tab.
 
 Next: [Japan tax & compliance](japan-tax-and-compliance.md).

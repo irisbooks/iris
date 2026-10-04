@@ -48,7 +48,7 @@ raw/email/2026-07/a1b2c3d4e5f6g7h8/
 
 `email.md` carries the envelope (sender, date, subject, attachment list) as
 frontmatter, so your LLM can read the context and journal the attachments
-with a `source_ref` pointing at the exact file (see
+with an `attachments` entry whose `path` points at the exact file (see
 [Core concepts](concepts.md)). The files arrive locally on your next
 `iris sync`, like any other server-side change.
 

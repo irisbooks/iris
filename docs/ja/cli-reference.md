@@ -48,11 +48,12 @@ Windows で使用中のファイルを置き換えられない場合は、MCP �
 
 ### iris init
 
-新しい帳簿を作ります。引数なしの `iris init` はガイド付きウィザード、フラグ指定で
+新しい帳簿を作ります。引数なしの `iris init` は現在のフォルダでガイド付きウィザードを開きます。
+フラグを指定する場合は、作成先のパス（現在のフォルダなら `.`）も指定すると、
 質問を飛ばせます。
 
 ```bash
-iris init [flags] [path]
+iris init [flags] <path>
 ```
 
 | フラグ | 意味 |
@@ -137,7 +138,7 @@ iris uninstall [--yes] [--dry-run]
 されないため、Web アプリで作った帳簿には最初は含まれていません。
 
 ```bash
-iris clone <book-id> [dest] [--force]
+iris clone [--force] <book-id> [dest]
 ```
 
 ## 確認・検証
@@ -244,7 +245,8 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
                                                          # 仕訳明細のグループ別集計
 ```
 
-レポートの出力は **JSON** です（金額は最小単位の整数 — Web API と同じ形）。
+レポートの出力は **JSON** です（金額は最小単位の整数）。クラウドのレスポンスには、
+リビジョンや鮮度などの追加情報が含まれる場合があります。
 テキスト表モードはありません: 日本語の勘定科目名では端末の列揃えが安定せず、
 AI はもともと JSON を読み、人間向けの整形表示は Web アプリが担います。
 互換性のため `--json` フラグは受け付けます（no-op）。
@@ -340,7 +342,7 @@ iris show [--json] <path> [path]
 
 ```bash
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
-iris export assets [--out DIR] [path]
+iris export assets [--year YYYY] [--out FILE] [path]
 ```
 
 ## 固定資産
@@ -350,7 +352,7 @@ iris export assets [--out DIR] [path]
 固定資産の減価償却とレポート。
 
 ```bash
-iris asset schedule [path]                    # 各資産の償却スケジュール
+iris asset schedule [--year YYYY] [path]    # 各資産の償却スケジュール
 iris asset depreciate --month YYYY-MM [path]  # その月の仕訳を生成（status: draft）
 iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末日付で資産ごとに生成
 ```
@@ -483,7 +485,7 @@ iris conflicts resolve <path> --keep mine|cloud [path]
 ```bash
 iris attention list [path]              # パス + コード + 問題を表示
 iris attention retry [path]             # 抑制を外す。次の `iris sync` で再 push
-iris attention retry [path] --path <relpath>   # 1ファイルのみ
+iris attention retry --path <relpath> [path]   # 1ファイルのみ
 ```
 
 **出力形**（`list --json`）:
@@ -549,8 +551,9 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [
 ### iris reopen
 
 締め済み会計年度のロックを解除して修正できるようにします。サーバー上で締めの
-ロックが解除されます（締め済み期間はこれを実行するまですべての書き込みを拒否
-します。再オープン中の編集は締め後の編集として恒久的にフラグされます）。年度の
+ロックが解除されます。対象は年度内の仕訳と `config/`・`assets/`・`filings/`・
+`compiled/` で、再オープン後の対象ファイルの変更は締め後の編集として恒久的に
+記録されます。`raw/` と `notes/` は締めたままでも変更できます。年度の
 ファイルは作業ツリーから離れていません — 締めは年度をロックするだけで、
 ファイルを取り除きません — ので復元するものはありません。そのまま編集し、
 `iris sync` で編集を push し、`iris api seal` で年度を再度締めてください。
@@ -593,13 +596,20 @@ iris price sync
 iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
 ```
 
-ローカルツール: `validate`・`diff`・`balance`・`report`・`status`。資産ツール:
+ローカルツール: `validate`・`diff`・`balance`・`report`・`status`・`check_update`。資産ツール:
 `asset_schedule`（エンジンによる資産別の数値）と 3 つの償却計算ツール
 `declining_table`・`flat_table`・`straight_line_table` — レシピのない方法について、
 AI がこれらを組み合わせて `schedule:` に記録します。レシピツール: 帳簿の
 オーバーレイのレシピごとに 1 つ（`jp_teiritsu`・`jp_shouhizei-general`・
 `jp_shouhizei-simplified`）。`write` にパスを渡すと結果を根拠付きで記録します。
 クラウドツール（認証時）: `sync`・`seal`・`export_from_cloud`。
+
+`--http` を付けると、stdio の代わりに localhost のアドレスで待ち受け、
+`Authorization: Bearer <トークン>` ヘッダーの付いたリクエストだけを受け付けます。
+トークンは初回の起動時に `~/.config/irisbooks/mcp-http.token`（本人だけが読める
+ファイル）に作られ、再起動しても変わりません。MCP クライアントには、このトークンを
+ヘッダーとして設定しておいてください。ファイルを削除すると次の起動で新しい
+トークンが作られ、MCP クライアント側の設定も書き換えが必要になります。
 
 ### iris version
 
@@ -655,8 +665,8 @@ iris api whoami
 
 ```bash
 iris api books list [--json]
-iris api books new [flags] [--json]
-iris api books link <book-id> [path]
+iris api books new [flags]
+iris api books link [--force] <book-id> [path]
 ```
 
 クラウド ID をまだ持たないローカル帳簿の中で `new` を実行すると、作成した帳簿が
@@ -668,6 +678,18 @@ iris api books link <book-id> [path]
 `--no-link` を付けると、これらをすべて行いません。すでに link 済みの
 帳簿の中で `new` を実行した場合は拒否します。そこに2つ目のクラウド帳簿を作っても、
 `iris sync` は最初の帳簿に push し続けるため、空のまま残るだけだからです。
+
+帳簿フォルダの外で作成する場合は、少なくとも `--name` と `--fy` を指定します。
+
+```bash
+iris api books new --name "Acme Design" --fy 2026 --region JP
+```
+
+ほかに `--currency`・`--book-type PERSONAL|BUSINESS`・`--scale`・`--no-link`・
+`--idempotency-key` が使えます。作成時に表示される再試行キーを保存してください。
+成功したか分からない場合は、同じ `--idempotency-key <key>` で再試行すると、帳簿の
+重複作成を防げます。ローカル帳簿の中では、安定したローカル ID から既定のキーを
+作るため、同じ帳簿での再試行には同じキーが使われます。
 
 ### iris api token
 
@@ -720,9 +742,11 @@ iris api inbox quarantine [--json] <book-id>
 
 ### iris api seal
 
-会計年度を締めます（seal）。締め済み期間は**ロック**され、そこへの書き込みはどの作業面でもすべて拒否され
-ますが、年度のファイルは作業ツリーにそのまま残ります。締め済み年度を修正するには
-`iris reopen <fy>` を実行します — 再オープン中の編集は監査証跡（`iris api
+会計年度を締めます（seal）。サーバーが年度内の仕訳と `config/`・`assets/`・
+`filings/`・`compiled/` を**ロック**します。`raw/` と `notes/` は引き続き変更できます。
+ローカルのファイル自体は編集できますが、ロック対象の変更は同期できません。
+年度のファイルは作業ツリーにそのまま残ります。締め済み年度を修正するには
+`iris reopen <fy>` を実行します — 再オープン中のロック対象の変更は監査証跡（`iris api
 history`）にフラグ付きで記録されます — 修正が終わったらこのコマンドを再実行して
 年度を再度締めます（新しい締めが古い締めを引き継ぎます）。`--preview` は、
 締めでロックされるファイルの一覧を表示するだけで、何も締めません。
@@ -730,6 +754,13 @@ history`）にフラグ付きで記録されます — 修正が終わったら�
 締めた年度は完全に整理されていなければなりません。年度に属する仕訳なら先に
 記帳し、不要なら削除し、翌期のものなら日付を開いている年度へ変更してください。
 `--preview` がブロックしているドラフトを一覧表示します。
+
+プレビューと締めの前に、申告記録がクラウドの現在の記帳済み仕訳とレシピの元データから
+再計算できる必要があります。仕訳の修正後に申告記録が古くなった場合や、元データが
+使えない場合は、下書き一覧を表示する前にプレビューが失敗することもあります。
+申告レシピを正しい入力で再実行し、`iris validate` で検証してから、申告記録と入力を
+同期し、プレビューをやり直してください。同期が成功してもクラウドが再計算用データの
+不足を報告する場合は、[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。締めを繰り返しても解消しません。
 
 ```bash
 iris api seal --period YYYY [--type yearly] [--preview] <book-id>
@@ -778,8 +809,9 @@ history   [ { id, path, op, sha?, version_id?, size_bytes,
 iris api history --all --json <book-id> > history-2025.json
 ```
 
-他のクラウドコマンドの `--json`（`books list`、`grants list`、`token list`、
-`inbox show`、`inbox quarantine`）は、サーバーのレスポンスをそのまま通します。
+`books list --json` は `bookId`・`fiscalYear`・`role`・`name`・`region`・`currency`
+を持つ一覧を出力します。他のクラウドコマンドの `--json`（`grants list`・`token list`・
+`inbox show`・`inbox quarantine`）は、サーバーのレスポンスをそのまま通します。
 
 ### iris api export
 

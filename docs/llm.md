@@ -21,15 +21,15 @@
   user confusion: a `draft` entry never appears in `iris balance`, the
   P&L, the balance sheet, or the web app's reports.
 - **Sync is explicit.** Nothing uploads until the user (or you) runs
-  `iris sync`, `iris post`, or clicks Sync in the app. There is no background
-  watcher.
-- **Seals are hard locks.** Sealing a fiscal year closes AND locks it: every
-  write into the sealed year is refused on every surface (`iris post` refuses
-  locally, sync pushes are rejected by the server with PERIOD_SEALED, web and
-  remote-connector writes are refused too). To amend, `iris reopen <fy>`
-  unlocks the seal — edits made while reopened are permanently flagged as
-  post-seal edits in the audit trail — then re-seal (the new seal supersedes
-  the old one).
+  `iris sync` or `iris post`. Web-app changes write directly to the cloud.
+  There is no background watcher.
+- **Seals lock accounting records.** The server locks journals dated in the
+  sealed year and `config/`, `assets/`, `filings/`, `compiled/` (`PERIOD_SEALED`).
+  `iris post` refuses sealed-year journals locally. `raw/` and `notes/` remain
+  writable. Local files can still be edited, but locked changes cannot sync.
+  `iris reopen <fy>` unlocks this scope; later changes in it carry a permanent
+  post-seal flag in server history. Raw/notes changes have ordinary history
+  without this flag. Re-sealing supersedes the prior seal.
 - **The durable correction/deletion history lives on the server only.**
   Local git history is *not* auditor-trustable and does not satisfy Japan's
   訂正・削除の履歴 requirement.
@@ -70,7 +70,9 @@ reconciled back against the engine's figures.
   server-side correction/deletion history that (optional) 優良電子帳簿
   status requires.
 - **Accountants / 税理士** can be invited into many client books, each kept
-  fully separate (no cross-client aggregation, by design).
+  separate in storage and permissions. Dashboard Consolidated P&L defaults to
+  all accessible books, including clients; choose its book picker explicitly.
+  Net Worth defaults to owned books only; invited books require opt-in.
 
 When a user asks for something history- or audit-shaped ("who changed this",
 "prove this wasn't edited"), the answer is the server history — a cloud
@@ -124,7 +126,7 @@ your-book/
 
 ```yaml
 schema_version: 1
-book_id: lb_...                 # minted at init; immutable
+book_id: lb_...                 # local ID at init; replaced by cloud ID when linked
 name: "Acme Design"
 region: JP                      # ISO 3166-1; selects tax/locale rules
 overlay: jp@2026.09.1           # region rules version, pinned at init
@@ -209,8 +211,8 @@ May invoice for the EXAMPLE.COM redesign engagement.
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `date` | yes | `YYYY-MM-DD`; must match the filename prefix |
-| `payee` | yes | Native script OK; the filename slug derives from it |
+| `date` | yes | `YYYY-MM-DD`; must match the filename prefix, except generated `0000-opening-balances.md` |
+| `payee` | no (recommended) | Native script OK; the filename slug derives from it |
 | `status` | yes | `draft` / `posted` |
 | `tags` | no | Lowercase, free-form, for grouping |
 | `attachments` | no | `{path, type?, locator?}`; a `type` marks a causal source, untyped = supporting material |
@@ -362,6 +364,11 @@ categorization:
       confidence: 0.85
 ```
 
+Recorded schedule replay resolves the exact `schedule_source.overlay` version
+from embedded versions or the verified cache, even if it differs from the
+book's current pin. An unavailable version, changed book-layer hash, or missing
+engine capability causes a warning and shape-only validation.
+
 ### Filings — `filings/<recipe>.md`
 
 A recorded return artifact: the figures a return is filed from, produced by a
@@ -477,7 +484,7 @@ available if the release server cannot be reached.
 ```bash
 iris init                      # guided wizard in an empty directory
 iris init --name "Acme Design" --region JP --language en \
-  --entity-kind individual --fiscal-start-month 4     # flags skip the prompts
+  --entity-kind individual --fiscal-start-month 4 .   # flags skip the prompts
 ```
 
 `--sample` seeds ~40 demo journals to explore and delete. `--chart` picks a
@@ -489,7 +496,7 @@ After init, the human should: adjust `config/chart-of-accounts.yaml` to the
 business, then record **opening balances** (cash, bank, receivables, payables,
 loans) as the first journal entry, dated the book's first day and tagged
 `opening-balance` — the opening entry `iris yearend` writes into next year's
-book gets the same tag automatically, and cash flow leaves tagged entries out
+book gets the same tag automatically, and the asset-movements report leaves tagged entries out
 (a carried balance is not an inflow). Balances simply sum the book. Reconcile to the previous system's trial balance at the
 cutover date if migrating. `notes/todos.md` carries a reminder. Never assume
 zero balances mean an empty business — flag a missing opening balance in
@@ -653,6 +660,12 @@ after completion. Proceed with cloud book creation/linking and sync as usual.
   that is already linked, it refuses — that second cloud book would sit empty
   while `iris sync` keeps pushing to the first. When the book was created in
   the web app, use `iris api books link <id>`, not `new`.
+
+- Outside a book, creation requires `iris api books new --name "Acme" --fy 2026`;
+  optional flags: `--region`, `--currency`, `--book-type PERSONAL|BUSINESS`,
+  `--scale`, `--no-link`, `--idempotency-key`. Retain the printed retry key and
+  reuse `--idempotency-key <key>` after an uncertain response. Inside a local
+  book, the default key derives from its stable local ID. No `--json` for new.
 
 - `iris sync` pushes local changes, pulls remote ones (e.g. entries the
   accountant added in the web app), and reports per-file accept/reject.
@@ -922,8 +935,8 @@ book of the year being closed:
      refuses while the book holds entries dated past the next year (fix
      their dates first).
 2. **Seal (cloud).** Sealing marks the period closed — by whom, when — and
-   **locks** it: every write into the sealed year is refused on every
-   surface. Nothing is removed: the working tree is untouched and the server
+   **locks** its dated journals and `config/`, `assets/`, `filings/`,
+   `compiled/` on the server. `raw/` and `notes/` remain writable. Nothing is removed: the working tree is untouched and the server
    keeps every file with every earlier version. Sealed-year entries display as
    `closed` everywhere. The lock follows the entry's date on BOTH sides of a
    change: re-dating an entry that currently sits in a sealed year into an
@@ -944,6 +957,12 @@ Sealing is REFUSED while the year still contains `draft` drafts
 if it belongs in the year, delete it if abandoned, or change its date into an
 open year, then seal again; `--preview` lists the blockers.
 
+Before preview or close, recorded filings must replay against current cloud
+posted journals and recipe sources. Stale filings or unavailable replay sources
+can block even preview before it lists drafts. Re-run the filing recipe, validate,
+sync the filing and inputs, and retry preview. If replay projections remain
+unavailable after successful sync, seek support from the [Discord community](https://discord.gg/wZDsv9gyb9) rather than retrying close.
+
 To amend a sealed year:
 
 ```bash
@@ -954,8 +973,8 @@ iris yearend          # refresh the FY2026 book's opening balances (while 2026 i
 iris api seal --period 2025 <book-id>   # close the year again (supersedes the old seal)
 ```
 
-`iris reopen` unlocks the seal (writes are accepted again, permanently
-flagged as post-seal edits in `iris api history`); there is nothing to
+`iris reopen` unlocks the accounting scope (changes to that scope are accepted
+again and permanently flagged as post-seal edits in `iris api history`); there is nothing to
 restore because sealing never removes files. Post-seal edits are allowed and
 auditable, not hidden — badged in the web app's Activity log and per-journal
 History. Re-sealing supersedes the old seal in the audit chain. If the NEXT
@@ -1212,7 +1231,7 @@ switch top-right, since no avatar menu exists there.
 
 | Page | What's there |
 | --- | --- |
-| **Dashboard** | Headline numbers, P&L flow chart, balance-sheet treemap, incomplete-entries banner; with 2+ books adds net-worth tile, cross-book action queue, consolidated P&L, top movers. Consolidating books that span currencies needs a base currency (`iris api config set --base-currency`) plus a recorded rate per other currency (`iris price add --unit USD --price 155`) — the same price store Net Worth uses; a book whose currency has no recorded rate is listed separately, never folded in silently. The card shows a **Conversion rates** row per currency with the rate and the date it was recorded, each editable — an edit re-converts that view only and is never saved. |
+| **Dashboard** | Headline numbers, P&L flow chart, balance-sheet treemap, incomplete-entries banner; net-worth tile also appears with one book; with 2+ books adds cross-book action queue, consolidated P&L, top movers. Consolidating books that span currencies needs a base currency (`iris api config set --base-currency`) plus a recorded rate per other currency (`iris price add --unit USD --price 155`) — the same price store Net Worth uses; a book whose currency has no recorded rate is listed separately, never folded in silently. The card shows a **Conversion rates** row per currency with the rate and the date it was recorded, each editable — an edit re-converts that view only and is never saved. |
 | **Journals** | Filter/search by date range, payee, free text, status (incl. the derived `closed`), amount (=/>/<); CSV export; open/create/edit/delete entries (delete is soft — the entry moves to the Deleted view); entries in a sealed FY display as `closed` and refuse edit/delete/post until the year is reopened; one-click **Post** on draft entries (detail page) and checkbox **Post selected** for batches (list) — the review path for connector/email drafts when the user isn't at the CLI; **Deleted** view lists soft-deleted entries with who/when and a per-row **Restore** action. |
 | Journal detail → **History** | Full per-file audit trail (put/delete/move, who, when, source, reason); **"after seal"** badge on post-seal changes. |
 | **Reports** | General Ledger (per account, optional opening balance), Trial Balance (warns if D≠C), P&L, Balance Sheet. Date/as-of filters, hide-zero-rows toggle, CSV export. Posted only; "freshness" note + "incompletes" banner. |
@@ -1220,7 +1239,7 @@ switch top-right, since no avatar menu exists there.
 | **Raw documents** | Two-pane browser of `raw/`; inline rendering (images, PDFs, parsed CSV tables, text); **Cited by** panel → the journals that reference the document. |
 | **Notes** | Read-only Markdown viewer of `notes/` (incl. parse caches, which link back to their source). |
 | **Activity** | Book-wide audit log of every file operation; filter by actor/path/operation; expandable content **diff**; **Recover** button when a prior version exists; post-seal changes badged. |
-| **Year-end** | The book's fiscal year (a book is one year) with its close state (open / closed / reopened), journal + blocking-draft counts, and post-seal amendment counts. Owners close the year (preview shows the files the close locks + the drafts that block it — sealing refuses while drafts remain) and reopen it for amendments. Closing removes nothing. History panel shows the full close/reopen chain. The book plate's year links here; a note says the next year is its own book (`iris yearend`). |
+| **Year-end** | The book's fiscal year (a book is one year) with its close state (open / closed / reopened), journal + blocking-draft counts, and post-seal amendment counts. Owners close the year (preview shows the locked files and blocking drafts; recorded filings must replay successfully even before preview; sealing refuses while drafts remain) and reopen it for amendments. Closing removes nothing. History panel shows the full close/reopen chain. The book plate's year links here; a note says the next year is its own book (`iris yearend`). |
 | **Settings — yours** (avatar menu, works outside any book) | User-scoped only: interface language (EN/日本語), appearance (light / dark / system), a Books directory (every book + role, each row opening that book's settings), Personal Access Tokens, Connect your AI (connector URL), Connected apps (list + disconnect connector consents). |
 | **Settings — book** (sidebar, inside the book) | Book-scoped only: book ID + fiscal year, Posting approval (owners only — makes posting + posted-entry changes web-only; cannot be changed from CLI/tokens), Inbound email (address, allowlist, quarantine), Grants (owners only), Danger zone (owners only — delete the book; see below). |
 | **Net Worth** | Cross-book balance sheet: assets − liabilities per book, `owner: true` accounts left out; cash, receivables, fixed assets, loans at book value, units at recorded prices (book value when unpriced); a book counts only inside its own fiscal year (a book whose year ended is listed as *year ended* until `iris yearend` creates the next one); total, month-over-month change, trend, movers, composition; per-book include/exclude in its Settings tab. Best-effort, not audited; units without a recorded price are listed as missing. |
@@ -1267,8 +1286,9 @@ year): its year, draft count, last activity, and a **Year-end** column with
 that year's close readiness (closed / reopened / ready to close / "N drafts"
 blocking), each badge linking into that book's Year-end screen. Switch into a client
 book to review/approve entries, check Activity, run reports. Year-end: close
-each client's FY from the book's **Year-end** screen (or the CLI). Client books stay fully separate — no cross-client
-aggregation.
+each client's FY from the book's **Year-end** screen (or the CLI). Files and permissions are separate per client book. Dashboard Consolidated
+P&L defaults to all accessible books (select the intended books); Net Worth
+defaults to owned books only, with invited books opt-in.
 
 ## The remote connector (cloud) — the user's books away from their computer
 
@@ -1279,7 +1299,11 @@ captures expenses. The user adds it as a custom connector; sign-in is OAuth
 with a scope choice at consent: **Bookkeeper** (reads + draft-only writes,
 the default) or **Viewer** (read-only). Effective access is the AND of that
 scope and the user's per-book role — a Bookkeeper connection still can't
-draft into a book where the user is only a Reviewer.
+draft into a book where the user is only a Reviewer. When the client runs on
+the user's computer (Claude Code), the consent page warns that the approval
+goes to a local program that any other program could impersonate; if the
+user asks, that warning is expected — approve only a connection they just
+started themselves.
 
 Supported clients are **Claude** (mobile, web, desktop, Claude Code) and
 **ChatGPT**. The server identifies a client by its Client ID Metadata
@@ -1296,7 +1320,10 @@ last `iris sync` from a machine; reports carry a `figures_as_of` timestamp —
 mention it when presenting numbers.
 
 Tools: `list_books`; `get_report` (trial-balance | profit-and-loss |
-balance-sheet | cashflow; posted entries only); `list_accounts` (call before
+balance-sheet | cashflow; posted entries only). `cashflow` is the legacy token
+for monthly **asset movements** (`basis: asset-movements`): gross increases
+and decreases across all asset accounts, including receivables/fixed assets;
+transfers can appear on both sides. It is not a cash-flow statement. Tools also include `list_accounts` (call before
 drafting — account paths, not guesses); `search_journals`; `get_journal`;
 `fiscal_years` (each year's close state — open / closed / reopened — with
 journal, blocking-draft, and post-seal-edit counts; answers "which years are
@@ -1308,7 +1335,7 @@ draft-only, status pinned `draft`, entries identified by `journal_path`;
 
 The write surface **drafts, never posts**: a remote draft appears in the
 local book at the next `iris sync` and is posted there. Posting, sealing,
-touching `posted`/`closed` entries, and any write into a sealed fiscal year
+touching `posted`/`closed` entries, and writes to sealed-year journals or accounting dependencies
 (`draft_journal` / `update_draft` / `delete_draft`) are refused by
 construction. `search_journals` shows sealed-FY entries as
 `closed` (and accepts `closed` in its status filter); `get_journal` returns
@@ -1343,12 +1370,12 @@ list everything.
 
 | Command | Purpose |
 | --- | --- |
-| `iris init [flags] [path]` | Create a book. `--name --region --language --entity-kind --chart(JP: general/it/food) --currency --fiscal-start-month --fiscal-year (the year the book covers; default: the one holding today) --sample --book-id` |
+| `iris init [flags] <path>` | Create a book (bare `iris init` opens the wizard; flags require a path, e.g. `.`). `--name --region --language --entity-kind --chart(JP: general/it/food) --currency --fiscal-start-month --fiscal-year (the year the book covers; default: the one holding today) --sample --book-id` |
 | `iris onboard [--book PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]` | Wire the AI: register MCP (Claude Code always; other clients when detected/forced), write the Claude Code skill |
 | `iris onboard --status [--json]` | Read-only report: what is registered where, and whether each registered binary still exists |
 | `iris offboard [--book PATH] [--keep-skill] [--remove-path] [--dry-run]` | Inverse of onboard: remove MCP registrations + skill (book data and sign-in untouched) |
 | `iris uninstall [--yes] [--dry-run]` | Remove iris itself from the machine: binaries, `~/.config/irisbooks` (CLI session revoked server-side first), skill, machine-level MCP registrations, PATH entry. Prints the exact deletion list and asks first; books and per-book `.mcp.json` are never touched (run `iris offboard` per book beforehand if wanted) |
-| `iris clone <book-id> [dest] [--force]` | Fetch a server book to disk (needs sign-in); works immediately on a brand-new server-created book; writes the local guides (`LLM-GUIDE.md`, `CLAUDE.md`, `README.md`) when absent — they don't sync |
+| `iris clone [--force] <book-id> [dest]` | Fetch a server book to disk (needs sign-in); works immediately on a brand-new server-created book; writes the local guides (`LLM-GUIDE.md`, `CLAUDE.md`, `README.md`) when absent — they don't sync |
 | `iris status [--json] [path]` | Book identity, FY start, archive flags, draft count (`draftCount` in JSON — drafts are not in reports) |
 | `iris validate [--v] [--json] [--fix] [path]` | Full validation (rules of the region overlay included, recorded schedules and filings replayed); `--json` emits issues + counts, exits 1 on errors; `--fix` records the overlay's derived values (hints) into the files |
 | `iris hash [--raw] <file>` | Canonical content hash of one file |
@@ -1357,8 +1384,8 @@ list everything.
 | `iris report tb\|pl\|bs\|ledger\|sum …` | Statements; `pl` takes `--from/--to`, `tb`/`bs` take `--as-of`, `ledger` takes `--account`. Unnamed dates default to the book's fiscal year up to today (the JSON states them). `sum --by KEY[,KEY...] [--from D] [--to D] [--year FY]` is the generic group-by over posted lines — keys are `account`, `unit`, `payee`, `month`, or dotted concern fields like `tax.category`; lines missing a key surface as an explicit empty group. Output is always JSON (minor units); `--json` is accepted as a no-op |
 | `iris search [--from D] [--to D] [--min N] [--max N] [--payee S] [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]` | Find journals; filters AND-combined; deterministic, offline. Status column shows the effective status (sealed-FY journals show as `closed`; `--status closed` filters them) |
 | `iris show [--json] <path> [path]` | Cross-references both directions |
-| `iris export [--out DIR] [--year YYYY] [--as-of D] [path]` / `iris export assets` | CSVs (UTF-8 + BOM) |
-| `iris asset schedule\|depreciate --month YYYY-MM\|--year YYYY [path]` | Depreciation plan / month's entries / FY-total annual entries (one cadence per FY — mixing refused) |
+| `iris export [--out DIR] [--year YYYY] [--as-of D] [path]` / `iris export assets [--year YYYY] [--out FILE] [path]` | CSVs (UTF-8 + BOM) |
+| `iris asset schedule [--year YYYY] [path]` / `iris asset depreciate --month YYYY-MM\|--year YYYY [path]` | Depreciation plan / month's entries / FY-total annual entries (one cadence per FY — mixing refused) |
 | `iris overlay list [--json] [path]` | The region overlay in effect: pin, book layer, rules, recipes (with params), derivations |
 | `iris overlay recipe <id> --set k=v ... [--write <path>] [--json] [path]` | Run a recipe; `--write` records a schedule onto the asset file (`schedule:` + `schedule_source:`) or figures as a filing under `filings/`. Map params: `--set deemed_pct='{"1": 90}'` |
 | `iris overlay test [--json] [path]` | Run the golden tests of the published overlay and of `config/overlays/`; exit 1 on a failure. `--dir <overlay-dir>` instead tests one published overlay directory (e.g. a checkout of the public overlays repo) outside any book |
@@ -1371,9 +1398,10 @@ list everything.
 | `iris conflicts list` / `resolve <path> --keep mine\|cloud` | Conflict sidecar management |
 | `iris attention list` / `retry [--path <relpath>]` | Server-rejection queue |
 | `iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes \| --local] [path]` | End the year: create next year's book as a standalone copy (config, guides, policy notes, held assets, 期首残高 opening entry; new-year entries moved) and, for a linked book, its cloud copy (grants copied, inbound address moved; `--yes` needed without a terminal — ask the user). Re-run to refresh the opening entry while the next year is open; frozen once it is sealed. Requires `fiscal_year` |
-| `iris reopen <fiscal-year> [path]` | Unlock a sealed FY (writes accepted again, flagged as post-seal edits). The year's files never left the working tree — edit directly, then `iris sync`, `iris yearend` to refresh the carry-forward, and re-seal with `iris api seal` |
+| `iris reopen <fiscal-year> [path]` | Unlock a sealed FY (accounting-scope changes accepted again, flagged as post-seal edits). The year's files never left the working tree — edit directly, then `iris sync`, `iris yearend` to refresh the carry-forward, and re-seal with `iris api seal` |
 | `iris price add\|list\|sync` | Unit prices, user-scoped (not stored in the book), offline + sync |
-| `iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]` | MCP server pinned to one book. Local tools: validate, diff, balance, report, status; cloud (when authed): sync, seal, export_from_cloud |
+| `iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]` | MCP server pinned to one book. Local tools: validate, diff, balance, report, status, check_update; cloud (when authed): sync, seal, export_from_cloud. `--http` requires `Authorization: Bearer <token>`; the token is in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
+| `iris update [--check] [--json]` | Check for a release or install a verified update; restart long-running MCP servers afterward |
 | `iris version` | Version |
 
 Cloud (`iris api …`, book-ID–scoped unless noted):
@@ -1386,7 +1414,7 @@ Cloud (`iris api …`, book-ID–scoped unless noted):
 | `iris api config [set --base-currency … --set-unit BTC:8,XAU:4 --remove-unit …]` | Per-user preferences, merged into new books at init |
 | `iris api grants list\|invite --email E\|role --user U --to OWNER\|BOOKKEEPER\|REVIEWER\|revoke --user U <book-id>` | Book access (owner-only) |
 | `iris api inbox show\|allow <pat>\|disallow <pat>\|quarantine <book-id>` | Inbound email |
-| `iris api seal --period YYYY [--type yearly] [--preview] <book-id>` | Period seal: closes AND locks the FY (all writes refused until `iris reopen`); removes nothing (working tree untouched); re-sealing supersedes the prior seal |
+| `iris api seal --period YYYY [--type yearly] [--preview] <book-id>` | Period seal: closes AND locks the FY (dated journals and accounting dependencies locked until `iris reopen`; raw/notes remain writable); removes nothing (working tree untouched); re-sealing supersedes the prior seal |
 | `iris api balance [--as-of D] <book-id>` | Server-side trial balance (JSON output) |
 | `iris api holdings [--as-of D] [--json] <book-id>` | Per-unit net positions |
 | `iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id>` | The durable correction/deletion record; `--all --json` exports the book's — its fiscal year's — record as a file |
@@ -1436,9 +1464,10 @@ only: book deleted, access revoked, session expired).
 | `iris validate` errors | Unbalanced entry; unknown account; `date:` ≠ filename prefix; bad status; YAML parse; incoherent JP `tax` block | Fix the named file; re-run. Add missing accounts to the chart — never invent paths in the journal |
 | `iris: command not found` | Binary not installed on this host | Install: `curl -fsSL https://irisbooks.jp/install.sh \| sh` (macOS/Linux) or `irm https://irisbooks.jp/install.ps1 \| iex` (Windows PowerShell), confirm with `iris version`. Sandboxed agents: there is **no** bundled copy in the book — use the host's `iris mcp serve` over MCP |
 | Validate footer: "N file(s) blocked in the sync queue" | Server rejected a push (not a file problem) | `iris attention list` → fix cause → re-save the journal (or `iris attention retry`) |
+| `CAPACITY_EXCEEDED` | Operation exceeds its capacity limit (chart replacement: 1,500 accounts) | Narrow report/search scope if possible; preserve accounts used by journals; seek support from the [Discord community](https://discord.gg/wZDsv9gyb9) when the operation cannot safely be reduced. Repeating the same request will not fix it |
 | Sync conflict | Same file changed on both sides; server took the canonical path, yours is a `.conflicted` sidecar | Merge by hand, delete the sidecar, `iris sync`; or `iris conflicts resolve --keep mine\|cloud` |
 | `iris sync` exit code 3 | Terminal disconnect — `--json` carries `disconnectReason`: `"deleted"` (owner deleted the cloud book; local files intact), `"forbidden"` (grant revoked), `"auth_expired"` (session gone) | deleted → keep working locally (reset `book_id` to the local id) or `iris api books new --no-link` + `link --force` (plain `new` refuses while `book_id` still names the deleted book); forbidden → ask the owner to re-invite; auth_expired → `iris api login` |
-| Need to change a sealed year | Sealed FY is locked (post/sync/web/connector writes refused; sync rejects PERIOD_SEALED); its files stay in the working tree | `iris reopen <year>` (unlocks; nothing to restore) → edit → `iris sync` (flagged as post-seal edits — by design, auditable not hidden) → re-seal with `iris api seal` |
+| Need to change a sealed year | Sealed FY is locked (dated journals and accounting dependencies locked; raw/notes remain writable; sync rejects PERIOD_SEALED for locked changes); its files stay in the working tree | `iris reopen <year>` (unlocks; nothing to restore) → edit → `iris sync` (flagged as post-seal edits — by design, auditable not hidden) → re-seal with `iris api seal` |
 | Web app numbers ≠ CLI numbers | Unpushed local changes, or drafts, or projection lag | `iris diff` then `iris sync`; remember posted-only; check the report "freshness" note |
 | Email to the book quarantined as `auth_fail` despite allowlisting | Automatic forwarding rule broke SPF | Forward manually from the user's own mail client instead |
 

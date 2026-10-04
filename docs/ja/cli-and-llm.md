@@ -197,7 +197,7 @@ MACRS — は進め方が違います。AI が償却率を調べ、方法が切�
 決められた順序で表を組み立て、行の出どころを記録するので、`iris validate` が
 再計算して 1 年遅れの切替を捕まえられます。手で組み合わせるのは、レシピのない
 方式の代替手段です。ファイル形式と iris が検査する内容は
-[`schedule:`](book-format-reference.md#schedule--計算させるか表を記録するか) に。
+[`schedule:`](book-format-reference.md#schedule-計算させるか表を記録するか) に。
 
 ## エクスポート
 

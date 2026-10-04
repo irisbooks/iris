@@ -20,7 +20,7 @@ your-book/
 ├── assets/
 │   └── YYYY/<asset-name>.md       # fixed assets (by acquisition year)
 ├── filings/
-│   └── <fy>/<recipe>.md           # recorded return figures, written by overlay recipes
+│   └── <recipe>.md                # recorded return figures, written by overlay recipes
 ├── notes/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<mirror of raw/>.md    # parse caches
@@ -54,7 +54,7 @@ Notes:
 
 ```yaml
 schema_version: 1
-book_id: lb_...                 # minted at init; immutable
+book_id: lb_...                 # local ID at init; replaced by cloud ID when linked
 name: "Acme Design"
 region: JP                      # ISO 3166-1; selects the tax/locale rules
 overlay: jp@2026.09.1           # region rules version, pinned at init (see below)
@@ -142,8 +142,8 @@ Why this transaction happened (not a restatement of the lines).
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `date` | yes | `YYYY-MM-DD`; must match the filename prefix |
-| `payee` | yes | Native script OK; the filename slug derives from it |
+| `date` | yes | `YYYY-MM-DD`; must match the filename prefix, except generated `0000-opening-balances.md` |
+| `payee` | no (recommended) | Native script OK; the filename slug derives from it |
 | `status` | yes | `draft` / `posted` |
 | `tags` | no | Lowercase, free-form, for grouping |
 | `attachments` | no | `{path, type?, locator?}`; a `type` marks a causal source |
@@ -291,8 +291,11 @@ first row's month. `iris validate` **replays** the recipe with those inputs and
 refuses the file if the recorded rows differ, so a switch a year late no
 longer passes just because the total is right. The inputs stay on the file for
 your 税理士 to check against the published table. A table without
-`schedule_source` is checked for shape only. If your `iris` ships a different
-overlay version than the one recorded, validate says so as a warning and
+`schedule_source` is checked for shape only. Replay uses the exact recorded
+version from the versions built into your
+`iris` or its verified download cache, even when it differs from the book's
+current pin. If that version is unavailable, the book-layer hash differs,
+or the required engine capability is unavailable, validation warns and
 checks the shape only.
 
 ### Disposing of an asset

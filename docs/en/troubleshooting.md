@@ -75,6 +75,14 @@ iris attention retry            # re-push everything in the queue
 iris attention retry --path <relpath>   # just one file
 ```
 
+## Capacity limits (`CAPACITY_EXCEEDED`)
+
+This is a capacity limit, not a transient failure. Repeating the same request
+will not resolve it. Read the named operation and limit. For a report or
+search, narrow the date range or filters when possible. Chart replacement
+must fit within 1,500 accounts in one atomic update; keep accounts referenced
+by journals. If the operation cannot be reduced safely, seek support from the [Discord community](https://discord.gg/wZDsv9gyb9).
+
 ## Sync conflicts
 
 If you and someone else (or you on another device) changed the same file, a
@@ -107,7 +115,7 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
   `config/book.yaml` and set `book_id` back to your local id (`iris status`
   prints it). To reconnect to the cloud, create a new book
   (`iris api books new --no-link` — the folder still points at the deleted id,
-  so plain `new` refuses) and link it (`iris api books link <id> --force`).
+  so plain `new` refuses) and link it (`iris api books link --force <id>`).
 - **forbidden** — your access was revoked (your credential is valid but you
   no longer hold a grant). Ask the book's owner to re-invite you. If access
   was intentionally revoked, that's expected.
@@ -118,9 +126,10 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
 
 A sealed fiscal year is **locked**: `iris post` refuses journals dated in it
 ("FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it, then
-re-seal"), sync pushes into it are rejected by the server, and the web app
-and remote connector refuse edits too. The year's files stay in your working
-tree — they just refuse writes. To amend the year, reopen it first:
+re-seal"). The server also rejects changes to those journals and to `config/`,
+`assets/`, `filings/`, `compiled/` until reopening. `raw/` and `notes/` remain
+writable. Local files remain editable, but locked changes cannot sync.
+To amend the accounting records, reopen the year first:
 
 ```bash
 iris reopen 2025      # unlocks the seal; the files are already in the working tree

@@ -27,6 +27,11 @@ sign-in, that is usually why, rather than anything wrong with your account.
    - **Bookkeeper** (default) — the AI can read your books and create
      *draft* entries.
    - **Viewer** — read-only: reports and browsing, no drafting.
+
+   If the app runs on your computer (Claude Code, for example), the page also
+   warns that the approval goes to a program on this computer. Any program
+   there could ask under that app's name, so approve only if you just started
+   the connection yourself.
 3. Approve, and the connector is live in that AI app — including on your
    phone if the app syncs connectors across devices.
 
@@ -35,7 +40,10 @@ draft into a book where you are only a Reviewer.
 
 ## What you can do from anywhere
 
-- **Ask for figures** — trial balance, P&L, balance sheet, monthly cashflow.
+- **Ask for figures** — trial balance, P&L, balance sheet, monthly asset movements (`cashflow` is the tool’s legacy report name).
+  This totals increases and decreases across all asset accounts, including
+  receivables and fixed assets; transfers can appear on both sides. It is
+  not a cash-flow statement.
   Numbers come from the cloud copy and include posted entries only; the AI is
   told when they were last synced from your machine and will say so.
 - **Browse and search entries** — by date, payee, amount, status.
@@ -62,7 +70,7 @@ The connector **drafts, it never posts**. It cannot:
 
 - post or approve entries,
 - edit or delete anything that's `posted` or `closed`,
-- draft into a sealed fiscal year — a sealed year refuses all writes until
+- draft into a sealed fiscal year — sealed-year journals cannot be written until
   the owner reopens it (its entries show as `closed` when browsing),
 - seal or reopen a fiscal year.
 

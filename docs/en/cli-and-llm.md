@@ -204,7 +204,7 @@ the book's region overlay has a **recipe** for the method — Japan's 定率法 
 order and records where the rows came from, so `iris validate` can replay them
 and catch a switch that landed a year late. Composing by hand is the fallback
 for a method no recipe covers. See
-[`schedule:`](book-format-reference.md#schedule--recording-the-table-instead-of-computing-it)
+[`schedule:`](book-format-reference.md#schedule-recording-the-table-instead-of-computing-it)
 for the file format and what iris checks.
 
 ## Exporting

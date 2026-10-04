@@ -66,7 +66,8 @@ auditor can go from any entry to its receipt and back.
 > (see [Audit handoff](#audit-handoff)).
 
 > **Seals** (closing a year) lock the period — writes into a sealed year are
-> refused until it is reopened, and every edit made while reopened is flagged
+> refused for journals and accounting dependencies until reopening; changes
+> to that scope made while reopened are flagged
 > in that history. See [Year-end close](#year-end-close).
 
 ## Consumption tax (消費税)
@@ -265,10 +266,10 @@ visible for your 税理士 to check against 別表第十.
 Then run depreciation:
 
 ```bash
-iris asset schedule                    # each asset's depreciation plan
+iris asset schedule --year 2026        # each asset's depreciation plan
 iris asset depreciate --year 2026      # annual: one FY-total entry per asset at year end
 iris asset depreciate --month 2026-05  # monthly: that month's entries
-iris export assets                     # per-asset schedule as CSV
+iris export assets --year 2026         # per-asset schedule as CSV
 ```
 
 Most sole proprietors and small companies book depreciation once a year as a
@@ -312,11 +313,20 @@ iris api seal --period 2025 <book-id>             # seal it (cloud)
   re-run refreshes the new book's opening balances. See
   [iris yearend](cli-reference.md#iris-yearend).
 - **Seal.** Marks the fiscal year as closed — by whom and when — and **locks**
-  it: every write into the sealed year is refused, on every surface (the CLI,
-  sync, the web app, the remote connector). Its entries display as `closed`.
+  its dated journals and `config/`, `assets/`, `filings/`, `compiled/`. The
+  server rejects changes to that scope until reopening. `raw/` and `notes/`
+  remain writable. Its entries display as `closed`.
 - **Nothing is removed.** Sealing and reopening never delete a file: the
   year's files stay in your working tree and on the server, with every
   earlier version.
+
+Before previewing or closing, recorded filings must replay successfully against
+the cloud's current posted journals and recipe sources. A stale filing after a
+correction, or an unavailable recipe source, can block even the preview before
+it lists drafts. Re-run the filing recipe with the intended inputs, run
+`iris validate`, sync the filing and its inputs, and preview again. If the
+cloud still reports an unavailable replay projection after a successful sync,
+seek support from the [Discord community](https://discord.gg/wZDsv9gyb9); repeated close attempts will not repair it.
 
 Need to amend a sealed year? In its book, reopen it, edit, re-sync, and
 re-seal:
@@ -357,7 +367,7 @@ What an auditor, a 税理士 or a tax office asks for is already in the book:
   what changed, who changed it and when — including corrections made after
   the year was closed
   (marked `post_seal_period`). See
-  [iris api history](cli-reference.md#iris-api-balance--holdings--history).
+  [iris api history](cli-reference.md#iris-api-balance-holdings-history).
 - **Access.** Or invite your 税理士 into the book, where the history is
   visible entry by entry — see
   [Collaboration and roles](web-app.md#collaboration-and-roles).

@@ -52,11 +52,12 @@ Older binaries without this command use the installer to upgrade first.
 
 ### iris init
 
-Create a new book. Bare `iris init` runs a guided wizard; flags skip the
+Create a new book. Bare `iris init` runs a guided wizard in the current directory.
+With flags, supply a destination path (`.` for the current directory) to skip the
 prompts.
 
 ```bash
-iris init [flags] [path]
+iris init [flags] <path>
 ```
 
 | Flag | Meaning |
@@ -143,7 +144,7 @@ the book has none — they never sync, so a book created in the web app arrives
 without them.
 
 ```bash
-iris clone <book-id> [dest] [--force]
+iris clone [--force] <book-id> [dest]
 ```
 
 ## Inspect & validate
@@ -255,8 +256,9 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
                                                          # group-by sums over journal lines
 ```
 
-Report output is **JSON** (amounts in minor units — the same shape the web
-API serves). There is no text-table mode: terminal column alignment is
+Report output is **JSON** (amounts in minor units). Cloud responses may
+include additional revision or freshness metadata. There is no text-table mode:
+terminal column alignment is
 unreliable for Japanese account names, your AI consumes JSON anyway, and the
 web app is the formatted view for humans. A `--json` flag is still accepted
 as a no-op for compatibility.
@@ -357,7 +359,7 @@ Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 
 ```bash
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
-iris export assets [--out DIR] [path]
+iris export assets [--year YYYY] [--out FILE] [path]
 ```
 
 ## Fixed assets
@@ -367,7 +369,7 @@ iris export assets [--out DIR] [path]
 Fixed-asset depreciation and reporting.
 
 ```bash
-iris asset schedule [path]                  # print each asset's depreciation schedule
+iris asset schedule [--year YYYY] [path]    # print each asset's depreciation schedule
 iris asset depreciate --month YYYY-MM [path]  # generate that month's entries (status: draft)
 iris asset depreciate --year YYYY [path]      # one FY-total entry per asset, dated the FY's last day
 ```
@@ -502,7 +504,7 @@ Manage the local queue of server-side rejections.
 ```bash
 iris attention list [path]              # show path + code + issues
 iris attention retry [path]             # drop suppression; the next `iris sync` re-pushes
-iris attention retry [path] --path <relpath>   # just one file
+iris attention retry --path <relpath> [path]   # just one file
 ```
 
 **Output shape** (`list --json`):
@@ -569,8 +571,10 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [
 ### iris reopen
 
 Unlock a sealed fiscal year for amendment. The seal is unlocked on the server
-(a sealed period refuses all writes until this runs; edits made while
-reopened are permanently flagged as post-seal edits). The year's files never
+(the year’s journals and `config/`, `assets/`, `filings/`, `compiled/` are
+locked until this runs; edits to that scope after reopening are permanently
+flagged as post-seal edits). `raw/` and `notes/` remain writable throughout.
+The year's files never
 left the working tree — sealing locks the year, it does not remove files —
 so there is nothing to restore: edit them directly, run `iris sync` to push
 your edits, and `iris api seal` to close the year again.
@@ -613,7 +617,7 @@ agent, pinned to one book.
 iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
 ```
 
-Local tools: `validate`, `diff`, `balance`, `report`, `status`. Asset tools:
+Local tools: `validate`, `diff`, `balance`, `report`, `status`, `check_update`. Asset tools:
 `asset_schedule` (the engine's per-asset figures) plus three depreciation
 calculators — `declining_table`, `flat_table`, `straight_line_table` — your AI
 composes into a recorded `schedule:` for methods no recipe covers. Recipe
@@ -621,6 +625,14 @@ tools: one per recipe of the book's overlay (`jp_teiritsu`,
 `jp_shouhizei-general`, `jp_shouhizei-simplified`), each recording its result
 with provenance when given a `write` path. Cloud tools (when authenticated):
 `sync`, `seal`, `export_from_cloud`.
+
+With `--http`, the server listens on a localhost address instead of stdio and
+accepts only requests carrying the header `Authorization: Bearer <token>`. The
+token is created the first time you start it, in
+`~/.config/irisbooks/mcp-http.token` (readable only by you), and stays the same
+after restarts, so set it once as a header in your MCP client. Delete the file
+to get a new token on the next start, then update the header in your MCP client
+to match.
 
 ### iris version
 
@@ -675,8 +687,8 @@ List or create cloud books, or link a local book to one.
 
 ```bash
 iris api books list [--json]
-iris api books new [flags] [--json]
-iris api books link <book-id> [path]
+iris api books new [flags]
+iris api books link [--force] <book-id> [path]
 ```
 
 Run `new` from inside a local book that has no cloud id yet and the new book
@@ -688,6 +700,18 @@ refused. It starts empty, and that first sync pushes the folder's own files.
 `--no-link` skips all of this. Run `new` from inside a
 book that is *already* linked and it refuses: a second cloud book there would
 sit empty while `iris sync` keeps pushing to the first.
+
+Outside a book folder, provide at least `--name` and `--fy`:
+
+```bash
+iris api books new --name "Acme Design" --fy 2026 --region JP
+```
+
+Other flags are `--currency`, `--book-type PERSONAL|BUSINESS`, `--scale`,
+`--no-link`, and `--idempotency-key`. Creation prints a retry key; retain it
+and reuse `--idempotency-key <key>` if the result is uncertain, to avoid a
+duplicate book. Inside a local book, the default key is derived from its
+stable local ID, so retrying the same creation uses the same key.
 
 ### iris api token
 
@@ -740,15 +764,26 @@ iris api inbox quarantine [--json] <book-id>
 
 ### iris api seal
 
-Close a fiscal year (period seal). A sealed period is **locked**: every write into it is refused, on every surface — but
+Close a fiscal year (period seal). The server locks journals dated in the year
+and `config/`, `assets/`, `filings/`, `compiled/`. `raw/` and `notes/` remain
+writable. Local files can still be edited, but locked changes cannot sync;
 the year's files stay in your working tree. To amend a sealed year, run
-`iris reopen <fy>` — edits made while reopened are flagged in the audit trail
+`iris reopen <fy>` — changes to the locked scope while reopened are flagged
+in the audit trail
 (`iris api history`) — then re-run this command to close the year again (the
 new seal supersedes the old one). `--preview` lists the files the seal
 would lock, without sealing. Sealing is **refused** while the year
 still contains `draft` drafts — a sealed year must be fully resolved. Post
 each draft if it belongs in the year, delete it if abandoned, or change its
 date into an open year; `--preview` lists the blockers.
+
+Before previewing or closing, recorded filings must replay successfully against
+the cloud's current posted journals and recipe sources. A stale filing after a
+correction, or an unavailable recipe source, can block even the preview before
+it lists drafts. Re-run the filing recipe with the intended inputs, run
+`iris validate`, sync the filing and its inputs, and preview again. If the
+cloud still reports an unavailable replay projection after a successful sync,
+seek support from the [Discord community](https://discord.gg/wZDsv9gyb9); repeated close attempts will not repair it.
 
 ```bash
 iris api seal --period YYYY [--type yearly] [--preview] <book-id>
@@ -798,9 +833,10 @@ for example when a tax office asks for it, write it out as JSON:
 iris api history --all --json <book-id> > history-2025.json
 ```
 
-The other cloud commands' `--json` (`books list`, `grants list`, `token list`,
-`inbox show`, `inbox quarantine`) passes the server's response through
-unchanged.
+`books list --json` emits a stable list with `bookId`, `fiscalYear`, `role`,
+`name`, `region`, and `currency`. The other cloud commands' `--json`
+(`grants list`, `token list`, `inbox show`, `inbox quarantine`) passes the
+server's response through unchanged.
 
 ### iris api export
 

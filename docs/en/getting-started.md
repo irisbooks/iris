@@ -47,7 +47,7 @@ you can change this later by editing the "Posting policy" section of
 
 ```bash
 iris init --name "Acme Design" --region JP --language en \
-  --entity-kind individual --fiscal-start-month 4
+  --entity-kind individual --fiscal-start-month 4 .
 ```
 
 Add `--sample` to seed ~40 demo entries you can explore and then delete. See
@@ -60,7 +60,7 @@ business. Then record your **opening balances** — cash, bank, receivables,
 payables, loans — as your first journal entry, dated the first day of the
 book's fiscal year and tagged `opening-balance` (the opening entry
 `iris yearend` writes into next year's book gets the same tag
-automatically; the cash-flow view leaves it out, since a carried balance is
+automatically; the asset-movements report leaves it out, since a carried balance is
 not money coming in). If you're
 migrating from another system, these should reconcile to that system's trial
 balance at the cutover date. (`notes/todos.md` has a task reminding you of
@@ -109,8 +109,13 @@ email address and the book will already be waiting.
 
 ### 2. Create a book
 
+If you already have a local book, choose **Already have an IrisBooks book on your computer?** in
+the wizard and follow the linking step below before creating a separate cloud
+book. After linking and syncing, use **Refresh book list** in the wizard to open it.
+
 If you have no books yet, the app drops you into the **New book** wizard. Give
 the book a name and region, say whether an individual or a company keeps it,
+choose the fiscal year it covers,
 and pick the month its fiscal year starts (a Japanese company defaults to
 April, everyone else to January). It's created in the cloud — already seeded
 with its `config/book.yaml` and a starter chart of accounts, so

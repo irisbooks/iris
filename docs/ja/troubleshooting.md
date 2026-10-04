@@ -72,6 +72,14 @@ iris attention retry            # キュー内すべてを再 push
 iris attention retry --path <relpath>   # 1ファイルのみ
 ```
 
+## 容量の上限（`CAPACITY_EXCEEDED`）
+
+一時的な失敗ではなく、処理の上限に達しています。同じリクエストを繰り返しても
+解消しません。エラーに示された処理と上限を確認してください。レポートや検索では、
+可能なら期間や条件を絞ります。勘定科目表の置き換えは、1回の更新で1,500科目以内に
+収める必要があります。仕訳が参照している科目は削除しないでください。安全に処理を
+小さくできない場合は、[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
+
 ## 同期のコンフリクト
 
 あなたと別の誰か（または別端末のあなた）が同じファイルを変更すると、push が
@@ -103,7 +111,7 @@ iris conflicts resolve <path> --keep cloud    # あなたの版を破棄
   ます。ローカルで作業を続けるには、`config/book.yaml` の `book_id` をローカル ID
   に戻します（`iris status` が表示します）。クラウドに再接続するには、新しい帳簿を
   作成し（`iris api books new --no-link` — フォルダは削除済みの ID を指したままなので、
-  `--no-link` なしでは拒否されます）、リンクします（`iris api books link <id> --force`）。
+  `--no-link` なしでは拒否されます）、リンクします（`iris api books link --force <id>`）。
 - **forbidden** — アクセスが取り消されました（認証情報は有効ですが、権限が
   ありません）。帳簿のオーナーに再招待を依頼してください。意図的な取り消しで
   あれば、それは想定どおりです。
@@ -114,9 +122,10 @@ iris conflicts resolve <path> --keep cloud    # あなたの版を破棄
 
 締め済み会計年度は**ロック**されています。`iris post` はその年度の仕訳を拒否し
 （"FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it,
-then re-seal"）、その年度への同期の push はサーバーが拒否し、Web アプリと
-リモートコネクタでの編集も拒否されます。年度のファイルは作業ツリーにそのまま
-残っています — 書き込みが拒否されるだけです。修正するにはまず再オープンします。
+then re-seal"）。サーバーは年度内の仕訳と `config/`・`assets/`・`filings/`・
+`compiled/` の変更を再オープンまで拒否します。`raw/` と `notes/` は変更できます。
+ローカルのファイル自体は編集できますが、ロック対象の変更は同期できません。
+会計記録を修正するには、まず年度を再オープンします。
 
 ```bash
 iris reopen 2025      # 締めのロックを解除（ファイルは作業ツリーにそのまま）
