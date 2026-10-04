@@ -8,8 +8,10 @@ get supplier invoices, online-purchase receipts, and bank notifications into
 
 ## Your book's receiving address
 
-The address is generated when the book is created and never changes. Show it
-with:
+The address is generated when the book is created. It follows your business
+from year to year: when [`iris yearend`](cli-reference.md#iris-yearend) starts
+next year's book, the address moves to the new book (and the old book gets a
+fresh one), so vendors keep one address. Show it with:
 
 ```bash
 iris api inbox show <book-id>

@@ -28,7 +28,7 @@
 記帳します。
 
 ```bash
-iris post journals/2026/05/2026-05-04-example-com-01.md
+iris post journals/2026-05/2026-05-04-example-com-01.md
 ```
 
 あるいは `status:` フィールドを `posted` に書き換えて、再検証します。

@@ -1,7 +1,8 @@
 # IrisBooks User Manual
 
-IrisBooks is local-first, double-entry bookkeeping built for Japan. Your
-books are a **folder of plain Markdown and YAML files** on your own machine —
+IrisBooks is local-first, double-entry bookkeeping. Each country's tax rules
+come as a region overlay, and Japan is the first region with one. Your books
+are a **folder of plain Markdown and YAML files** on your own machine —
 not rows in someone else's database. You work with them through two lenses:
 
 - the **`iris` command-line tool** driven by your own AI assistant (Claude,

@@ -35,10 +35,10 @@ The top bar carries your location:
 - **Dashboard** — the one always-visible tab, for the screens that span
   your whole account.
 - **The book plate** — the current book's name and fiscal year, side by
-  side with the book's color dot. Click the name to switch books, open
-  **My Books**, or create a new book. Inside a book, clicking the year
-  opens the fiscal-year menu: every year the book spans with its close
-  status — pick one to see that year's journals, or jump to **Year-end**.
+  side with the book's color dot. Click the name to switch books (each book
+  is listed with its year — two years of one business share a name), open
+  **My Books**, or create a new book. Inside a book, the year links to the
+  book's **Year-end** screen.
 
 Whichever of the two is your current place is gently recessed into the
 bar — carved in, like a nameplate. Inside a book the plate is carved and
@@ -177,13 +177,13 @@ the book-level view of the durable history.
 
 ## Year-end
 
-The **Year-end** screen lists every fiscal year the book spans — how many
-journal entries it holds, its close state (**Open** / **Closed** /
-**Reopened**), and who closed it, when. It's where a book **owner** runs
+The **Year-end** screen shows the book's fiscal year — how many journal
+entries it holds, its close state (**Open** / **Closed** / **Reopened**), and
+who closed it, when. It's where a book **owner** runs
 the period close:
 
-- **Close a year.** A preview shows what the year's archive snapshot will
-  capture and lists any remaining drafts. A year cannot close while
+- **Close a year.** A preview shows which files the close will lock and
+  lists any remaining drafts. A year cannot close while
   drafts remain — post, delete, or redate them first (each listed draft
   links to its entry). Closing **locks** the year: every change to it is
   refused, on every surface, until the year is reopened.
@@ -191,12 +191,14 @@ the period close:
   reopened is permanently flagged "after seal" in the audit trail, and
   the screen counts the files amended. Close the year again when you're
   done — the **History** panel keeps every close and reopen on record.
-- **Download the archive (zip).** The closed year's snapshot bundle, for
-  handing to your accountant or an auditor. It's built on first request;
-  the download starts as soon as it's ready.
 
-The same flow works from the CLI (`iris api seal`, `iris reopen`,
-`iris api archive download`) — see
+Closing never removes anything: the year's files stay in the book.
+
+A book covers one fiscal year. The next year starts as a book of its own —
+created from the CLI with [`iris yearend`](cli-reference.md#iris-yearend) —
+and appears in **My Books** beside this one, with the same people's access.
+
+The same flow works from the CLI (`iris api seal`, `iris reopen`) — see
 [Japan tax & compliance](japan-tax-and-compliance.md). Members who aren't
 the owner see the same year list read-only.
 
@@ -294,30 +296,40 @@ Accountants use PATs to run `iris api …` across many client books from scripts
 
 ## Net Worth
 
-**Net Worth** values your holdings across books — cash, plus
-non-currency units like foreign currency, crypto, or metals — and shows a
-total, the change versus last month, a trend line, the biggest movers, and a
-composition breakdown. The **Settings** tab there lets you choose which books
-count toward the consolidated total. It's a best-effort "how am I doing"
-number, not an audited figure; units without a recorded price are listed so you
-know what's missing. IrisBooks fetches no prices on your behalf — exchange
-rates included — so record them yourself with `iris price add`.
+**Net Worth** adds up what your books own minus what they owe — cash,
+receivables, fixed assets and loans at the value recorded in the books, and
+foreign currency, crypto, shares or metals at the prices you recorded — and
+shows a total, the change versus last month, a trend line, the biggest movers,
+and a composition breakdown. Accounts marked `owner: true` in the chart (事業主貸,
+事業主借) are left out: they are your own money, not the business's. The
+**Settings** tab there lets you choose which books count toward the
+consolidated total.
+
+A book counts for the months of its own fiscal year, so the trend line runs
+from one year's book into the next without counting anything twice. Once a
+book's year has ended, it stops counting until next year's book exists — Net
+Worth lists it as *year ended* until you run
+[`iris yearend`](cli-reference.md#iris-yearend).
+
+It's a best-effort "how am I doing" number, not an audited figure. A unit
+without a recorded price counts at its book value and is listed so you know
+what to price. IrisBooks fetches no prices on your behalf — exchange rates
+included — so record them yourself with `iris price add`.
 
 ## For accountants — the daily shape
 
 If you manage many client books:
 
-- **My Books** is your client directory — each book with its draft count,
-  fiscal-year status, last activity, and a **Year-end** column showing the
-  *previous* fiscal year's close state per client: closed, reopened,
-  **ready to close**, or "N drafts" still blocking it. At year-end this
-  column is your worklist — each badge links straight into that book's
-  Year-end screen.
+- **My Books** is your client directory — each book (one per client per
+  fiscal year) with its year, draft count, last activity, and a **Year-end**
+  column showing that year's close state: closed, reopened, **ready to
+  close**, or "N drafts" still blocking it. At year-end this column is your
+  worklist — each badge links straight into that book's Year-end screen.
 - Switch into a client book to review and approve entries, check the
   **Activity** log for what staff did, and run reports.
 - Use **PATs** + `iris api …` to script repetitive work across books.
-- At year-end, close each client's fiscal year and download the auditor
-  bundle from **Year-end** (or the CLI) — see
+- At year-end, close each client's fiscal year from **Year-end** (or the
+  CLI) — see
   [Japan tax & compliance](japan-tax-and-compliance.md).
 
 Client books stay fully separate — there's no cross-client aggregation, which

@@ -39,7 +39,8 @@ iris init
 ```
 
 It asks for a book name, region, language, entity kind (individual / company /
-…), fiscal-year start, and whether your AI assistant should **post entries
+…), fiscal-year start, the fiscal year the book covers (a book is one year —
+pick last year's if you're catching up on its filing), and whether your AI assistant should **post entries
 automatically** after validating (say no to review and post them yourself —
 you can change this later by editing the "Posting policy" section of
 `LLM-GUIDE.md`). Then it scaffolds the folder. You can also skip the prompts:
@@ -56,9 +57,11 @@ Add `--sample` to seed ~40 demo entries you can explore and then delete. See
 
 Open `config/chart-of-accounts.yaml` and adjust the accounts to match your
 business. Then record your **opening balances** — cash, bank, receivables,
-payables, loans — as your first journal entries, tagged `opening-balance`
-(reports treat the latest entry with that tag as the starting point for
-balances; year-end carry-forwards get the same tag automatically). If you're
+payables, loans — as your first journal entry, dated the first day of the
+book's fiscal year and tagged `opening-balance` (the opening entry
+`iris yearend` writes into next year's book gets the same tag
+automatically; the cash-flow view leaves it out, since a carried balance is
+not money coming in). If you're
 migrating from another system, these should reconcile to that system's trial
 balance at the cutover date. (`notes/todos.md` has a task reminding you of
 this.)

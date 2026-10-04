@@ -21,6 +21,35 @@ with a two-space indent. The output shapes below are written as key skeletons �
 
 ## Setup
 
+### iris update
+
+```bash
+iris update --check [--json]   # read-only check against the latest stable release
+iris update [--json]           # install after signature, checksum and version checks
+```
+
+Updates the executable currently running (resolving symlinks), so MCP
+registrations keep pointing at the same path. JSON includes `currentVersion`,
+`latestVersion`, `status`, `updateAvailable`, `executablePath`, `pathExecutable`,
+`pathMismatch`, `installKind`, `downloadURL`, `updateCommand` (an argument
+array), `instructions`, `updated`, `restartRequired`, and optional `error`.
+`updateAvailable` is null for a failed check or development/prerelease build.
+Status is `update_available`, `up_to_date`, `newer_than_latest`, `development`,
+`check_failed`, or `updated`. Exit 0 means a successful check/update (including
+no update needed); exit 1 means failure; exit 2 means invalid arguments.
+
+No implicit network checks occur during book operations. `IRIS_DL_BASE`
+selects the download base (default `https://irisbooks.jp/dl`); the release
+signature is always checked against the built-in key, without requiring
+`minisign` to be installed. A failed verification preserves the old executable.
+No downgrade or development-build replacement is automatic.
+
+For `.mcpb` installations the check provides a matching bundle URL; installation
+is done through the client's extension settings. After a CLI update, rerun
+`iris onboard` in your book and restart MCP; call `check_update` to confirm the
+agent's running version. On Windows, stop MCP servers and retry if locked.
+Older binaries without this command use the installer to upgrade first.
+
 ### iris init
 
 Create a new book. Bare `iris init` runs a guided wizard; flags skip the
@@ -36,9 +65,10 @@ iris init [flags] [path]
 | `--region` | Region code (JP, US; default JP) |
 | `--language` | Language (ISO 639-1) |
 | `--entity-kind` | individual / company / partnership / trust |
-| `--chart` | Chart variant: general / it / food (default general) |
+| `--chart` | Starter-chart variant, where the region offers several — JP: general / it / food (default general). A region without a chart of its own gets a neutral starter chart |
 | `--currency` | Currency (ISO 4217; default per region) |
 | `--fiscal-start-month` | Fiscal-year start month 1–12 |
+| `--fiscal-year` | The fiscal year the book covers (YYYY; default: the one holding today) — e.g. last year's, when you're catching up on its filing |
 | `--sample` | Seed ~40 demo journals to explore |
 | `--posting` | Posting policy written into LLM-GUIDE.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
 | `--book-id` | Pre-link to an existing server book (advanced) |
@@ -105,7 +135,10 @@ iris uninstall [--yes] [--dry-run]
 Fetch a server book to disk (the lifecycle peer of `init`). Requires
 sign-in. Works immediately on a brand-new book created in the web app or
 with `iris api books new` — server-created books are born with
-`config/book.yaml` and a starter chart of accounts.
+`config/book.yaml` and a starter chart of accounts. It also writes the local
+guides for your AI assistant (`LLM-GUIDE.md`, `CLAUDE.md`, `README.md`) when
+the book has none — they never sync, so a book created in the web app arrives
+without them.
 
 ```bash
 iris clone <book-id> [dest] [--force]
@@ -178,8 +211,13 @@ iris hash [--raw] <file>
 Bring a book's layout into canonical shape. Dry-run by default.
 
 ```bash
-iris organize [--apply] [--fix fy-folders,extensions,empty-raw,config-typos] [--json] [path]
+iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] [--json] [path]
 ```
+
+`month-folders` moves a journal filed under a `journals/YYYY-MM/` folder that
+isn't its date's month into the right one, and updates the parse caches'
+`target:` links in `notes/raw/` to the new paths. Subfolders below the month
+(such as `auto/`) are kept; journals outside month folders are left alone.
 
 **Output shape** (`--json`) — the plan, which is exactly what `--apply` executes:
 
@@ -229,14 +267,13 @@ missing a key form an explicit empty-keys group, so unclassified lines are
 visible rather than dropped. `--year` uses the fiscal year (begins-in
 convention); `--from/--to` take arbitrary inclusive dates.
 
-**Default dates.** A date you leave out comes from the book's **working
-fiscal year**: the fiscal year of your latest journal dated on or before
-today, where today is the date where the book is kept (Japan time for a JP
-book). Balances (`balance`, `tb`, `bs`, `ledger`) are as of today, or as of
-the year's last day once that year is over; `pl` and `sum` run from the
-year's first day to the same date. So while you are still entering last
-year after it ended, reports show last year in full, and your first entry of
-the new year moves them forward. Give only `--to` and the range starts on
+**Default dates.** A date you leave out comes from the book's fiscal year
+(`fiscal_year` — a book is one year). Balances (`balance`, `tb`, `bs`,
+`ledger`) are as of today, where today is the date where the book is kept
+(Japan time for a JP book), or as of the year's last day once that year is
+over; `pl` and `sum` run from the year's first day to the same date. So last
+year's book, opened in February to file its return, shows last year in full.
+Give only `--to` and the range starts on
 the first day of that date's fiscal year; give only `--from` and it runs
 through today. An entry dated after today stays out until its date arrives.
 The JSON always states the dates it used, and the web app, the MCP tools and
@@ -350,12 +387,23 @@ iris overlay list [--json] [path]                                   # the overla
 iris overlay recipe <id> --set name=value ... [--write <path>] [path]  # run a recipe; --write records it with provenance
 iris overlay test [--json] [path]                                   # run the golden tests of every layer in effect
 iris overlay test --dir <overlay-dir> [--json]                      # run one published overlay's golden tests, outside any book
+iris overlay fetch [path]                                           # download + verify the version the book pins, if this iris lacks it
+iris overlay upgrade [--to <id>@<version>] [path]                   # move the pin to the newest published version (or --to)
 iris overlay trust [path]                                           # trust this book's config/overlays/ on this machine
 ```
 
 `recipe` prints the proposal; with `--write` a schedule recipe rewrites the
 asset file (`schedule:` + `schedule_source:`) and a figures recipe writes a
 filing under `filings/`. Map-valued params are passed as `--set name='{"1": 90}'`.
+
+`upgrade` and `fetch` download from the releases of the public
+[`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository and
+check the signature before a version is used. Versions released before your
+`iris` was built are included in it and never downloaded. Downloaded versions are kept in
+`~/.config/irisbooks/overlays/` (never in the book) and checked again every
+time they load. `upgrade` changes nothing unless the new version passes its own
+tests and the book's `config/overlays/` still loads on it. `iris validate`
+never downloads anything.
 
 ## Editing & promoting
 
@@ -451,7 +499,7 @@ Manage the local queue of server-side rejections.
 
 ```bash
 iris attention list [path]              # show path + code + issues
-iris attention retry [path]             # drop suppression and ask the engine to re-push
+iris attention retry [path]             # drop suppression; the next `iris sync` re-pushes
 iris attention retry [path] --path <relpath>   # just one file
 ```
 
@@ -459,34 +507,61 @@ iris attention retry [path] --path <relpath>   # just one file
 
 ```text
 { records[ { path, local_fs, local_sha, code?,
-             issues[{ field, message }], detected_at, reason? } ] }
+             issues[{ field, message, rule? }], detected_at, reason? } ] }
 ```
 
 `code` is the server invariant that refused the file — `UNBALANCED_JOURNAL`,
 `UNKNOWN_ACCOUNT`, `PERIOD_SEALED`, `BULK_DELETE_REFUSED`, and so on.
+`OVERLAY_RULE` means a region-overlay rule refused it (the published overlay's
+or your book's own in `config/overlays/`); each issue's `rule` names the rule,
+which `iris overlay list` shows.
 
 ### iris yearend
 
-Write the next fiscal year's opening-balances journal (期首残高) from a
-year's closing balances — the accounting half of a year-end close (the
-compliance half, locking and archiving, is `iris api seal`). Balance-sheet
-accounts carry forward at their closing balance; income and expense reset to
-zero; net income folds into the equity account named by
-`opening_balance_equity_account` in `config/book.yaml` (or the book's sole
-equity account). The entry lands at
-`journals/<fy+1>/<MM>/0000-opening-balances.md`, tagged `opening-balance` —
-reports treat the latest such entry as the starting point for balances, which
-is what makes each fiscal year self-contained.
+End a fiscal year by starting the next year's book — the accounting half of
+a year-end close (the compliance half, locking the year, is `iris api seal`).
+A book covers one fiscal year, so `iris yearend` creates the next one as a
+standalone copy, in a new folder beside this one (`acme-2025` →
+`acme-2026`; `--to` picks the folder). The new book gets:
 
-Safe to re-run while the next year is still open: late corrections to the
-closed year flow into the entry (identical results are a no-op). Once the
-next year is sealed, the entry is frozen — a mismatch is reported with
-remedies, never silently rewritten. Unposted drafts dated in the year are
-warned about (they don't carry). Works offline; run `iris sync` afterwards
-to push.
+- `config/` — `book.yaml` with `fiscal_year` advanced and its own book ID,
+  the chart of accounts, `rules.yaml` and `config/overlays/`;
+- the guides (`README.md`, `LLM-GUIDE.md`, `CLAUDE.md`) and the policy notes
+  (`decisions.md`, `workflow.md`, `todos.md`, `open-questions.md`);
+- the fixed assets still held when the new year starts;
+- an opening-balances journal (期首残高) at
+  `journals/<YYYY-MM>/0000-opening-balances.md`, dated the new year's first
+  day and tagged `opening-balance`. Balance-sheet accounts carry forward at
+  their closing balance (with quantities for currency, crypto and other
+  unit-tracked holdings); income and expense reset to zero; net income folds
+  into the equity account named by `opening_balance_equity_account` in
+  `config/book.yaml` (or the book's sole equity account).
+
+Entries already dated in the new year **move** to the new book, with the raw
+files they cite. Earlier journals, `compiled/`, `filings/`, parse caches and
+disposed assets stay here. `--carry notes,raw` copies all of `notes/` or
+`raw/` as well.
+
+If this book is linked to the cloud, the same run creates the new book's
+cloud copy — everyone with access to this book gets the same access, and
+this book's inbound email address moves to the new one — then syncs both
+books. It asks first; `--yes` skips the question (needed when no terminal is
+attached), and `--local` makes only the local book.
+
+Nothing links the two books afterwards. To carry a late correction to the
+old year, fix it in the old book and run `iris yearend` again with the same
+`--to`: the new book's opening entry is refreshed (identical results are a
+no-op), and entries dated in the new year that appeared in the old book since
+are moved. The new book's config and notes are left as they are. Once the new
+year is sealed, its opening entry is frozen — a mismatch is reported with
+remedies, never silently rewritten. Unposted drafts dated in the closed year
+are warned about (they don't carry).
+
+`<fiscal-year>` is optional — it defaults to the book's `fiscal_year`, and
+naming any other year is refused.
 
 ```bash
-iris yearend <fiscal-year> [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [path]
 ```
 
 ### iris reopen
@@ -494,8 +569,8 @@ iris yearend <fiscal-year> [path]
 Unlock a sealed fiscal year for amendment. The seal is unlocked on the server
 (a sealed period refuses all writes until this runs; edits made while
 reopened are permanently flagged as post-seal edits). The year's files never
-left the working tree — sealing locks and archives, it does not remove files
-— so there is nothing to restore: edit them directly, run `iris sync` to push
+left the working tree — sealing locks the year, it does not remove files —
+so there is nothing to restore: edit them directly, run `iris sync` to push
 your edits, and `iris api seal` to close the year again.
 
 ```bash
@@ -639,13 +714,12 @@ iris api inbox quarantine [--json] <book-id>
 
 ### iris api seal
 
-Close a fiscal year (period seal) and build its archive snapshot. A sealed
-period is **locked**: every write into it is refused, on every surface — but
+Close a fiscal year (period seal). A sealed period is **locked**: every write into it is refused, on every surface — but
 the year's files stay in your working tree. To amend a sealed year, run
 `iris reopen <fy>` — edits made while reopened are flagged in the audit trail
 (`iris api history`) — then re-run this command to close the year again (the
-new seal supersedes the old one). `--preview` lists the files the seal's
-archive would capture, without sealing. Sealing is **refused** while the year
+new seal supersedes the old one). `--preview` lists the files the seal
+would lock, without sealing. Sealing is **refused** while the year
 still contains `draft` drafts — a sealed year must be fully resolved. Post
 each draft if it belongs in the year, delete it if abandoned, or change its
 date into an open year; `--preview` lists the blockers.
@@ -654,20 +728,12 @@ date into an open year; `--preview` lists the blockers.
 iris api seal --period YYYY [--type yearly] [--preview] <book-id>
 ```
 
-### iris api archive
-
-Download a sealed fiscal-year archive (triggers the build and waits).
-
-```bash
-iris api archive download --year YYYY [--out DIR] [--timeout 5m] [--interval 5s] <book-id>
-```
-
 ### iris api balance / holdings / history
 
 ```bash
 iris api balance [--as-of YYYY-MM-DD] <book-id>              # server-side trial balance (JSON output)
 iris api holdings [--as-of YYYY-MM-DD] [--json] <book-id>    # per-unit net positions
-iris api history [--path PATH] [--limit N] [--json] <book-id> # durable correction/deletion record
+iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id> # durable correction/deletion record
 ```
 
 **Output shapes:**
@@ -690,6 +756,22 @@ read-time resolution of it to a name or email, for human readers.
 sealed; that is the flag an auditor looks for. `moved_from_path` records a
 rename rather than a delete plus a create.
 
+`history` returns the newest 100 events unless you narrow it:
+
+- `--path` — one file's timeline.
+- `--all` — every event. A book is one fiscal year, so this is the year's
+  whole record, corrections made after it was closed included.
+- `--from` / `--to` — changes made between two dates, in the book's time
+  zone (Japan time for a JP book).
+
+With `--from`, `--to` or `--all` it returns every matching event;
+`--limit` still caps it when you give one. To hand the record over as a file,
+for example when a tax office asks for it, write it out as JSON:
+
+```bash
+iris api history --all --json <book-id> > history-2025.json
+```
+
 The other cloud commands' `--json` (`books list`, `grants list`, `token list`,
 `inbox show`, `inbox quarantine`) passes the server's response through
 unchanged.
@@ -698,7 +780,6 @@ unchanged.
 
 ```bash
 iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSVs
-iris api export audit <book-id>                                          # auditor bundle
 ```
 
 With `--year`, the export is restricted to journals dated in that fiscal
@@ -717,6 +798,14 @@ iris api networth settings [--include|--exclude|--reset <id>]
 iris api networth history [--months N] [--refresh] [--json]
 iris api networth movers [--as-of D] [--compare D] [--json]
 ```
+
+`networth` values each book's balance sheet — assets minus liabilities,
+leaving out `owner: true` accounts — with unit holdings at your recorded prices
+(`basis: price`) and everything else, or a unit with no price, at book value
+(`basis: book`). A book counts only inside its own fiscal year; the cross-book
+total lists the books it leaves out under `excluded`, with the reason
+(`year_ended` or `year_not_started`). Movers compare by account and unit across
+books, so moving to next year's book isn't shown as a sale.
 
 ## Environment variables
 

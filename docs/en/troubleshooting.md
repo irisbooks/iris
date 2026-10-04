@@ -30,7 +30,7 @@ Reports include **only `posted`** entries. If a transaction is missing from
 still `draft`. Promote it:
 
 ```bash
-iris post journals/2026/05/2026-05-04-example-com-01.md
+iris post journals/2026-05/2026-05-04-example-com-01.md
 ```
 
 …or edit the `status:` field to `posted` and re-validate.

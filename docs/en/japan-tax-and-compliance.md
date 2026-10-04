@@ -57,12 +57,13 @@ auditor can go from any entry to its receipt and back.
 > still work, but there is no auditor-trustable correction/deletion history.
 > The claim also holds only **while the book stays on the service**. If you
 > **delete a book** (after a 30-day window, all server data is permanently
-> destroyed — including the correction history and sealed archives), the
+> destroyed — including the correction history), the
 > durable history is gone and the book no longer qualifies. As with paper
 > books, the legal duty to preserve your books — including that history —
 > for the statutory retention period (7 years, up to 10 in some corporate
-> cases) is yours. Before deleting a book, export what you must keep:
-> `iris api export audit` (see [Audit handoff](#audit-handoff)).
+> cases) is yours. Before deleting a book, keep your own copy of the book
+> folder and of its record from `iris api history --all --json`
+> (see [Audit handoff](#audit-handoff)).
 
 > **Seals** (closing a year) lock the period — writes into a sealed year are
 > refused until it is reopened, and every edit made while reopened is flagged
@@ -159,7 +160,7 @@ you pass, the 課税売上割合, net tax and the payable amount rounded down to
 ¥100) and `jp.shouhizei-simplified` (簡易課税 — sales tax by 事業区分 and the
 deemed purchase tax at the みなし仕入率 you pass). `iris overlay recipe
 jp.shouhizei-general --set from=2026-01-01 --set to=2026-12-31 --set
-non_invoice_pct=80 --write filings/2026/jp.shouhizei-general.md` records the
+non_invoice_pct=80 --write filings/jp.shouhizei-general.md` records the
 figures under `filings/` with provenance, and `iris validate` re-runs the
 recipe against the journals from then on — a posted correction after filing
 shows up as an error until the recipe is re-run. Your AI fills the form from
@@ -283,65 +284,83 @@ For the filings themselves — 固定資産台帳, the fixed-asset tax return
 plus the engine's fiscal-year figures (`iris export assets --year` /
 `iris asset schedule --year`) and this year's official form spec (the NTA's
 or your municipality's published layout), and writes the result under
-`compiled/jp/<form>/<year>/` in the book. Forms change yearly, so the AI
+`compiled/jp/<form>/` in the book. Forms change yearly, so the AI
 fetches the current spec rather than following a frozen instruction sheet.
 
 ## Year-end close
 
-Closing a fiscal year has an accounting half and a compliance half:
+A book covers one fiscal year. Closing it has an accounting half and a
+compliance half, run in the book of the year you're closing:
 
 ```bash
-iris yearend 2025                                 # write FY2026's 期首残高 (opening balances)
-iris sync                                         # push the entry
+iris yearend                                      # start the FY2026 book, with its 期首残高 (opening balances)
+# …決算整理 and the return happen here, in the FY2025 book…
+iris yearend                                      # after late corrections: refresh FY2026's opening balances
 iris api seal --period 2025 --preview <book-id>   # see exactly what will be sealed (cloud)
 iris api seal --period 2025 <book-id>             # seal it (cloud)
-iris api archive download --year 2025 <book-id>   # download the sealed archive zip
 ```
 
-- **Carry forward (`iris yearend`).** Writes the next year's 期首残高
-  (opening balance) entry from the closing balances, so the new year starts
-  reconciled and self-contained. Works offline — it's an
-  ordinary journal in your book. See
+- **Next year's book (`iris yearend`).** Creates the FY2026 book beside this
+  one as a copy — your settings, chart of accounts, guides and notes, and the
+  fixed assets you still hold — with a 期首残高 (opening balance) entry
+  computed from this year's closing balances, so the new year starts
+  reconciled and self-contained. Entries you already recorded in 2026 move
+  across. For a cloud book, the new book's cloud copy is created in the same
+  step (the same people keep access, and your inbound email address moves to
+  it) and both books are synced. You can run it as soon as the new year
+  starts: 決算整理 and the return still happen in the old book, and each
+  re-run refreshes the new book's opening balances. See
   [iris yearend](cli-reference.md#iris-yearend).
 - **Seal.** Marks the fiscal year as closed — by whom and when — and **locks**
   it: every write into the sealed year is refused, on every surface (the CLI,
   sync, the web app, the remote connector). Its entries display as `closed`.
-- **Archive.** A snapshot of the sealed year (zip + queryable SQLite) is built
-  server-side for download and audit handoff. Your working tree is untouched
-  — the year's files stay exactly where they are.
+- **Nothing is removed.** Sealing and reopening never delete a file: the
+  year's files stay in your working tree and on the server, with every
+  earlier version.
 
-Need to amend a sealed year? Reopen it, edit, re-sync, and re-seal:
+Need to amend a sealed year? In its book, reopen it, edit, re-sync, and
+re-seal:
 
 ```bash
 iris reopen 2025      # unlock the seal; the year's files are already in the working tree
 # …make corrections…
 iris sync             # push; the server flags these as post-seal edits
-iris yearend 2025     # refresh next year's opening balances (while 2026 is still open)
+iris yearend          # refresh the FY2026 book's opening balances (while 2026 is still open)
 iris api seal --period 2025 <book-id>   # close the year again (supersedes the old seal)
 ```
 
 If the *next* year is already sealed too, `iris yearend` leaves its opening
 entry frozen as filed and tells you so — book the difference as a
-current-period correction (前期損益修正), or reopen that year as well.
+current-period correction (前期損益修正) in the new book, or reopen that year
+as well.
 
-The seal / reopen / archive-download half also lives in the web app: the
-book's **Year-end** screen lists every fiscal year with its close state
+The seal / reopen half also lives in the web app: the
+book's **Year-end** screen lists the book's fiscal year with its close state
 and runs the same preview → close → reopen flow — see
-[Using the web app](web-app.md#year-end). Only the carry-forward
-(`iris yearend`) is CLI-only, since it writes a journal into your local
-book.
+[Using the web app](web-app.md#year-end). Only starting the next year's book
+(`iris yearend`) is CLI-only, since it creates a folder on your computer.
 
 ### Audit handoff
 
-To give an auditor or 税理士 a self-contained package:
+What an auditor, a 税理士 or a tax office asks for is already in the book:
 
-```bash
-iris api export audit <book-id>
-```
+- **The books.** The book folder itself (plain markdown and YAML), or a
+  fiscal year as CSVs with `iris export --year 2025` (from the cloud copy:
+  `iris api export --year 2025 <book-id>`).
+- **The correction/deletion record**, as a file:
 
-This bundles a per-fiscal-year snapshot (queryable SQLite), Excel-friendly CSV
-views, and the event log — the complete correction/deletion timeline, including
-any post-close edits.
+  ```bash
+  iris api history --all --json <book-id> > history-2025.json
+  ```
+
+  The book is the year, so it lists every change to that year's records —
+  what changed, who changed it and when — including corrections made after
+  the year was closed
+  (marked `post_seal_period`). See
+  [iris api history](cli-reference.md#iris-api-balance--holdings--history).
+- **Access.** Or invite your 税理士 into the book, where the history is
+  visible entry by entry — see
+  [Collaboration and roles](web-app.md#collaboration-and-roles).
 
 ## Quick compliance checklist
 
@@ -354,9 +373,10 @@ any post-close edits.
       sync (for the correction/deletion history) and you have filed the
       advance notification (届出) with your tax office. Keep the book on the
       service for the retention period — deleting the book ends 優良
-      eligibility (run `iris api export audit` first if you must).
-- [ ] At year-end: seal, download the archive, and (for handoff)
-      `iris api export audit`.
+      eligibility (keep a copy of the book and its
+      `iris api history --all --json` first if you must).
+- [ ] At year-end: `iris yearend` to start next year's book; once the return
+      is filed, seal the year in the old book.
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md) · [Troubleshooting](troubleshooting.md).

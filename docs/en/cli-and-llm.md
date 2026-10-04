@@ -49,6 +49,33 @@ where to flag uncertainty).
 > reached over MCP" — the host runs `iris mcp serve` and the assistant calls
 > the verbs as MCP tools against the same folder.
 
+## Check and update iris
+
+```bash
+iris update --check --json     # installed/latest versions and executable path
+iris update                   # verify and replace the running executable
+```
+
+Checks contact the release server only when requested. They need no sign-in;
+bookkeeping commands continue to work offline. A failed check means the
+latest version is unknown. Development/prerelease builds are reported as
+`development` and are not replaced automatically; newer stable builds are
+never downgraded.
+
+After updating, run `iris onboard` in your book to refresh agent guidance,
+then restart the IrisBooks MCP server. Ask your AI to call `check_update` to
+confirm the server's running version. Its report identifies PATH conflicts
+and gives instructions for the executable the agent actually uses.
+
+A `.mcpb` extension contains a separate binary. Its update report links the
+matching bundle; reinstall it through your client's extension settings with
+the same book folder and restart. Updating the CLI alone does not update it.
+On Windows, stop IrisBooks MCP servers and retry if the executable is locked.
+
+Older binaries without `iris update` can be upgraded by rerunning the
+[installer](getting-started.md), then `iris onboard`. Ask before installing
+an update unless the user has already authorized it.
+
 ## The everyday loop
 
 ### 1. Drop a document into `raw/`
@@ -67,7 +94,7 @@ Following `LLM-GUIDE.md`, it will:
   `ignored`, or `deferred`. This means re-opening the same statement later
   doesn't redo the work.
 - Propose one journal per real transaction as
-  `journals/<fy>/<mm>/…-NN.md` with `status: draft`.
+  `journals/YYYY-MM/…-NN.md` with `status: draft`.
 - File anything ambiguous in `notes/open-questions.md` instead of guessing.
 
 ### 3. Validate
@@ -105,7 +132,7 @@ A `draft` entry stays out of your reports and balances until posted. When
 you're happy with one, promote it:
 
 ```bash
-iris post journals/2026/05/2026-05-04-example-com-01.md
+iris post journals/2026-05/2026-05-04-example-com-01.md
 ```
 
 `iris post` validates the file (non-empty, balanced), sets `status: posted`,
@@ -132,7 +159,7 @@ After that:
 - `iris sync` pushes your local changes and pulls anything new (e.g. entries
   your accountant added in the web app). It reports per-file accept/reject.
 - `iris diff` shows exactly what *would* be pushed before you sync.
-- `iris api history --path journals/2026/05/...md <book-id>` shows the durable
+- `iris api history --path journals/2026-05/...md <book-id>` shows the durable
   correction/deletion record for a file.
 
 Sync stays **explicit** — it runs when you ask, never in the background.
@@ -188,12 +215,13 @@ iris export --year 2026     # restrict to a fiscal year
 iris export assets          # per-asset depreciation schedule
 ```
 
-CSVs are written UTF-8 with a BOM so Excel opens Japanese correctly. A text
-cell (payee, memo, tags, account or asset name) that starts with `=`, `+`,
-`-` or `@` is written with a leading `'`, so a spreadsheet shows it as text
+CSVs are written UTF-8 with a BOM so Excel opens non-ASCII text, such as
+Japanese, correctly. A text cell (payee, memo, tags, account or asset name)
+that starts with `=`, `+`, `-` or `@` is written with a leading `'`, so a
+spreadsheet shows it as text
 instead of running it as a formula; amounts are never changed. For a
-cloud-linked book, `iris api export audit <book-id>` produces an
-auditor-facing bundle.
+cloud-linked book, `iris api history --all --json <book-id>` writes the
+book's — that year's — correction/deletion record as a file.
 
 ## A note on what *not* to do
 
