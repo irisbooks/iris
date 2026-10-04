@@ -130,8 +130,9 @@ iris api books new             # or: iris api books link <book-id>
 iris sync                      # push your local files up
 ```
 
-Run inside your book folder, `iris api books new` links the new cloud book to
-that folder for you — that's why `iris sync` works on the next line. If you
+Run inside your book folder, `iris api books new` creates the cloud book from
+that folder's own settings (name, fiscal year, region, …) and links it for
+you — that's why `iris sync` works on the next line. If you
 already created the book in the web app, use `iris api books link` with the id
 the app showed you instead; running `new` again would give you a second book.
 

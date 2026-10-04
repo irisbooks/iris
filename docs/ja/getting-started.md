@@ -127,9 +127,9 @@ iris api books new             # または: iris api books link <book-id>
 iris sync                      # ローカルファイルを push
 ```
 
-帳簿のフォルダの中で実行すると、`iris api books new` は作成したクラウド帳簿を
-そのフォルダに自動で link します。次の行の `iris sync` がそのまま動くのはこのため
-です。すでに Web アプリで帳簿を作成済みの場合は、アプリに表示された ID を使って
+帳簿のフォルダの中で実行すると、`iris api books new` はそのフォルダの設定
+（帳簿名・会計年度・地域など）のままクラウド帳簿を作り、フォルダに自動で link
+します。次の行の `iris sync` がそのまま動くのはこのためです。すでに Web アプリで帳簿を作成済みの場合は、アプリに表示された ID を使って
 `iris api books link` を実行してください。ここで `new` を実行すると、帳簿がもう1つ
 できてしまいます。
 

@@ -630,7 +630,11 @@ iris sync                 # one explicit push + pull pass
 ```
 
 - Run inside a local book with no cloud id, `iris api books new` links the new
-  book to that folder automatically (`--no-link` skips it). Run inside a book
+  book to that folder automatically (`--no-link` skips it) and needs no flags:
+  name, fiscal year, region, currency, entity kind and fiscal-year start come
+  from `config/book.yaml`, and a flag that contradicts the file is refused.
+  The server seeds nothing for that book, so the first `iris sync` pushes the
+  folder's own `book.yaml` + chart without a conflict. Run inside a book
   that is already linked, it refuses — that second cloud book would sit empty
   while `iris sync` keeps pushing to the first. When the book was created in
   the web app, use `iris api books link <id>`, not `new`.
@@ -640,7 +644,7 @@ iris sync                 # one explicit push + pull pass
 - `iris diff` shows exactly what *would* be pushed before syncing.
 - `iris clone <book-id>` fetches a server book to disk (lifecycle peer of
   `init`). Works immediately on a brand-new book created in the web app or
-  with `iris api books new` — server-created books are born with
+  with `iris api books new` outside a book folder — those are born with
   `config/book.yaml` + a starter chart of accounts.
 - The local file-first workflow doesn't change — the book simply gains sync,
   the web app, collaboration, seals, and the durable history.

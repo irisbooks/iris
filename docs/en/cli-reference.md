@@ -134,8 +134,10 @@ iris uninstall [--yes] [--dry-run]
 
 Fetch a server book to disk (the lifecycle peer of `init`). Requires
 sign-in. Works immediately on a brand-new book created in the web app or
-with `iris api books new` — server-created books are born with
-`config/book.yaml` and a starter chart of accounts. It also writes the local
+with `iris api books new` outside a book folder — those are born with
+`config/book.yaml` and a starter chart of accounts. (A cloud book created
+from inside a local book starts empty and receives that folder's files on its
+first `iris sync`.) It also writes the local
 guides for your AI assistant (`LLM-GUIDE.md`, `CLAUDE.md`, `README.md`) when
 the book has none — they never sync, so a book created in the web app arrives
 without them.
@@ -659,7 +661,11 @@ iris api books link <book-id> [path]
 
 Run `new` from inside a local book that has no cloud id yet and the new book
 is linked to that folder automatically — the same effect as `books link`, so
-the next `iris sync` just works. `--no-link` skips it. Run `new` from inside a
+the next `iris sync` just works. The cloud book is created from that folder's
+`config/book.yaml` (name, fiscal year, region, currency, individual or company,
+fiscal-year start), so no flags are needed; a flag that contradicts the file is
+refused. It starts empty, and that first sync pushes the folder's own files.
+`--no-link` skips all of this. Run `new` from inside a
 book that is *already* linked and it refuses: a second cloud book there would
 sit empty while `iris sync` keeps pushing to the first.
 
