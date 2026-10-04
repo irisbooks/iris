@@ -629,6 +629,21 @@ iris api books link <book-id>   # …or link this folder to an existing one
 iris sync                 # one explicit push + pull pass
 ```
 
+For a cloud/browser executor that cannot navigate to the CLI's localhost
+callback, use `iris api login --handoff-file`. Open the printed consent URL
+and let the user sign in and approve through the supported browser flow.
+The browser downloads `iris-login.json`; its download directory must be
+accessible to the shell. Pass **only its path** to
+`iris api login --complete <downloaded-file-path>`, then run `iris api whoami`.
+Do not read, print, or paste authorization-file contents, pending-login files,
+or session tokens. The CLI handles code redemption and credential storage.
+The code expires 5 minutes after approval; the pending request expires 10
+minutes after starting. To retry, start again and use the new URL/download.
+Starting again replaces the previous pending request. Completion remains bound
+to the original environment. Cancel downloads a denial file; completing it
+clears the pending request without credentials. Remove the downloaded file
+after completion. Proceed with cloud book creation/linking and sync as usual.
+
 - Run inside a local book with no cloud id, `iris api books new` links the new
   book to that folder automatically (`--no-link` skips it) and needs no flags:
   name, fiscal year, region, currency, entity kind and fiscal-year start come

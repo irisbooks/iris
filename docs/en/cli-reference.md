@@ -649,6 +649,26 @@ iris api whoami     # validate the cached token
 iris api logout     # revoke this device's session and remove the token
 ```
 
+For a cloud agent or a browser that blocks localhost callbacks, use file delivery
+(the browser's download folder must be accessible to the CLI):
+
+```bash
+iris api login --handoff-file
+# Open the printed URL, sign in, and allow access. The browser downloads iris-login.json.
+iris api login --complete /path/to/downloads/iris-login.json
+iris api whoami
+```
+
+Pass only the downloaded file's path; the CLI reads it and stores the session
+credential internally. The file contains a single-use authorization code, not
+a session token. It is bound to the private PKCE verifier retained by the CLI
+and expires 5 minutes after approval. The pending login expires 10 minutes
+after starting; starting again replaces it, so use the new URL and download.
+Completion uses the environment selected when login started. Cancel on the
+consent page downloads a cancellation result; completing that file clears the
+pending login without saving a credential. After completion, remove the
+downloaded file. Normal `iris api books …` and `iris sync` then work unchanged.
+
 ### iris api books
 
 List or create cloud books, or link a local book to one.
