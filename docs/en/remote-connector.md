@@ -46,6 +46,14 @@ draft into a book where you are only a Reviewer.
   not a cash-flow statement.
   Numbers come from the cloud copy and include posted entries only; the AI is
   told when they were last synced from your machine and will say so.
+- **Inspect ledger and grouped totals** — `get_report(report="ledger", account=...)`
+  reads the account ledger; `report="sum", by="tax.category,tax.rate"` groups
+  posted lines, including concern fields. Supply `from`/`to`, or `year` for sum.
+- **Read Net Worth and prices** — `get_networth` uses your included books
+  (or one `book_id`); `get_holdings` reads a book's unit quantities;
+  `list_prices` reads your recorded prices. The first two accept `as_of`.
+  These reads use synced data. Price recording and price sync stay in local
+  MCP/CLI; the remote connector exposes no price write tool.
 - **Browse and search entries** — by date, payee, amount, status.
 - **Check the fiscal years** — which years exist, which are closed or
   reopened, and how many drafts still block a year's close. (Closing and
@@ -63,6 +71,8 @@ draft into a book where you are only a Reviewer.
   the file is rejected (for example by the malware scan) the page tells you
   instead of pretending it worked. If the document is already in your email,
   the AI hands you the book's [receiving address](email-inbox.md) instead.
+
+Cloud cross-book reports share one generation per user per UTC day with the web app. Later requests reuse the same inputs, even with different dates or books. Responses show `snapshot.generatedAt` and `snapshot.nextRefreshAt`; changes to journals or prices appear at the next generation. Reporting currency and inclusion preferences can re-render stored inputs immediately. Current access is always checked. A failed generation consumes the daily slot.
 
 ## What it deliberately can't do
 

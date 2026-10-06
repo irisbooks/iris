@@ -545,8 +545,11 @@ iris attention retry --path <relpath> [path]   # 1ファイルのみ
 指定すると拒否されます。
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [--dry-run] [path]
 ```
+
+`--dry-run` は開始仕訳、移動、クラウド操作、繰越から除外する未記帳の下書き件数を
+JSON で表示します。ファイルやクラウドには書き込みません。
 
 ### iris reopen
 
@@ -563,6 +566,22 @@ iris reopen <fiscal-year> [path]
 ```
 
 ## 価格（純資産）
+
+### iris networth
+
+```bash
+iris networth --books-dir ~/IrisBooks --as-of 2026-10-06
+iris networth --currency JPY ~/IrisBooks/business-2026 ~/IrisBooks/personal-2026
+iris networth history --books-dir ~/IrisBooks --months 12
+iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
+```
+
+ローカルの記帳済み仕訳と価格記録を使い、通信せずに帳簿を横断して評価します。
+親フォルダ直下の帳簿、または明示的なフォルダ一覧を選びます。
+通貨が異なる場合は `--currency` が必要です。各帳簿は自分の会計年度内だけで
+集計し、下書きは除外します。価格がない保有は簿価を使い、`unpriced` に示します。
+帳簿のコピーを二重に数えないよう、重複するフォルダ・帳簿 ID は拒否します。
+出力は JSON です。クラウドの集計対象設定は使いません。
 
 ### iris price
 
@@ -606,6 +625,55 @@ AI がこれらを組み合わせて `schedule:` に記録します。レシピ�
 サインインには `login`・`auth_status`・`logout` を使います。
 `list_cloud_books` はアクセスできるクラウド帳簿を一覧表示します。
 ローカルフォルダの一覧とは別です。
+
+帳簿フォルダにアクセスできる場合、通常のファイル一覧・読み取り・文字列検索・
+下書きやノートの編集には `rg`・`grep`・`find`・`cat`・`sed` やエディタを使います。
+操作は選択した帳簿内で行い、記帳データを編集した後は検証します。ローカル MCP は
+会計計算、検証、認証、同期、記帳・締め・償却・翌年度帳簿の
+作成などの専用処理に使います。検索などの参照ツールは任意の補助です。
+構造化した条件や締め済み状態での検索、ファイルに直接アクセスできないクライアント
+で利用できます。
+
+ローカル MCP に `show` ツールはありません。書類と仕訳の参照関係は
+ファイル検索で確認します。CLI の `iris show` は引き続き使えます。
+
+記帳ツール: `search_journals`（日付・金額・取引先・状態・科目・タグの検索）、
+`post`（`paths` または `all`、
+`dry_run=true` でプレビュー）、`list_conflicts`、`resolve_conflict`
+（`path` と `keep="mine"|"cloud"`）、`list_attention`、`retry_attention`
+（`path` は任意）、`export_local`（`kind="journals"|"assets"`、任意の
+`year`・仕訳用の `as_of`・`out_dir`、既定の出力先は `exports/`）。
+出力先は対象帳簿の内側に限定します。競合で mine を残すと直後に同期し、
+cloud を残すとサイドカーファイルを削除します。attention の再試行は拒否記録を
+消す操作です。修正後に明示的に `sync` を呼んでください。
+
+年度・資産ツール: `asset_depreciate`（`month` または `year`、記帳せず下書きを
+生成）、`fiscal_years`、`history`（任意の `path`・`from`・`to`・`limit`・
+`all`）、`reopen`（`year`、オーナー権限はサーバーが確認）。後者 3 つは
+クラウドに接続した帳簿とサインインが必要です。親フォルダモードでは
+`yearend(book="freelance-2025", next_book="freelance-2026")` も使えます。
+既定では開始仕訳、仕訳の移動、クラウドの操作をプレビューするだけです。
+`preview=false` で実行し、`local_only=true` でクラウド作成・同期を省略できます。
+仕訳の移動、権限のコピー、受信アドレスの移管が発生する場合がありますが、
+旧年度は締めません。`next_book` は親フォルダ直下の子フォルダ名で、帳簿作成と
+同じパス制限が適用されます。CLI でも `iris yearend --dry-run` を使えます。
+
+資産価値の参照: `get_holdings` は選択した接続済み帳簿を読み、
+`get_networth` はローカルフォルダを集計し、未同期の記帳済み編集も含めます。
+認証や通信は不要です。`books_dir="."` または
+`books=["business-2026", "personal-2026"]` を指定します。
+パスはサーバーの設定ルート内に限定されます。単一帳簿モードでは兄弟フォルダを
+選べないため、複数帳簿には親フォルダモードを使います。
+`as_of`・`currency`・`mode="current"|"history"|"movers"`、推移には `months`、
+変動要因には `compare` を指定できます。価格はローカルの記録を使い、
+通貨が異なる場合は `currency` が必要です。
+`list_prices` は既定でクラウドを読み、`source="local"` でオフラインの記録を読みます。
+`record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
+で価格をローカルに記録します。`price` は小数点以下 6 桁以内の文字列です。
+`sync_prices` で公開し、他のデバイスの価格も取得します。帳簿の同期とは別の操作です。
+価格はユーザーの設定フォルダに保存し、税務用の帳簿ファイルには入れません。
+`get_holdings` 以外の価格・資産価値ツールにはローカルの `book` 指定が不要で、
+ローカルの価値集計には帳簿フォルダが必要です。
 
 `--books-dir` には、帳簿フォルダを直下にまとめた既存の親フォルダ（例:
 `~/IrisBooks`）を指定します。`list_books` で帳簿を確認し、各操作の `book` に
@@ -883,20 +951,15 @@ iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSV 
 ```bash
 iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S]
 iris api price list [--unit BTC] [--json]
-
-iris api networth [--as-of YYYY-MM-DD] [--json]              # 帳簿横断の合計
 iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
-iris api networth settings [--include|--exclude|--reset <id>]
-iris api networth history [--months N] [--refresh] [--json]
-iris api networth movers [--as-of D] [--compare D] [--json]
 ```
 
-`networth` は帳簿ごとの貸借対照表 — 資産から負債を引いたもの（`owner: true` の
-科目は除く）— を評価します。単位で管理する保有は記録した価格（`basis: price`）、
-それ以外と価格のない単位は簿価（`basis: book`）です。帳簿は自分の会計年度の中
-だけで集計され、帳簿横断の合計は、集計に含めなかった帳簿を理由
-（`year_ended` または `year_not_started`）とともに `excluded` に挙げます。変動要因は
-帳簿をまたいで科目と単位ごとに比べるので、翌年度の帳簿への移行が売却には見えません。
+`iris api networth` は指定したクラウド帳簿 1 冊だけを評価します。
+帳簿横断の合計・推移・変動要因・集計対象設定は CLI から削除しました。
+横断集計にはローカルの `iris networth` または Web アプリを使います。
+Web とリモート MCP のクラウド横断集計は、ユーザーごとに UTC 日付あたり
+1 回だけ作る共通スナップショットを使います。日付や帳簿の選択を変えても、
+再生成はしません。集計時点と次回更新時刻が応答に含まれます。
 
 ## 環境変数
 

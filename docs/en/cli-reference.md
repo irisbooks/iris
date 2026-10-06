@@ -565,8 +565,11 @@ are warned about (they don't carry).
 naming any other year is refused.
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [--dry-run] [path]
 ```
+
+`--dry-run` returns a JSON preview of opening balances, moves and cloud
+actions, plus the count of unposted drafts excluded. It writes nothing.
 
 ### iris reopen
 
@@ -584,6 +587,22 @@ iris reopen <fiscal-year> [path]
 ```
 
 ## Prices (Net Worth)
+
+### iris networth
+
+```bash
+iris networth --books-dir ~/IrisBooks --as-of 2026-10-06
+iris networth --currency JPY ~/IrisBooks/business-2026 ~/IrisBooks/personal-2026
+iris networth history --books-dir ~/IrisBooks --months 12
+iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
+```
+
+Values posted local journals and the local price log without network access.
+Select immediate child books of a parent folder or supply explicit book folders.
+Mixed currencies require `--currency`. Each book counts only within its fiscal
+year; drafts are excluded. Missing prices use book value and appear in `unpriced`.
+Duplicate folders/book identities are refused to avoid counting copies twice.
+Output is JSON. Cloud inclusion settings do not apply.
 
 ### iris price
 
@@ -627,6 +646,55 @@ with provenance when given a `write` path. Cloud tools (when authenticated):
 `sync`, `seal`, `export_from_cloud`, `create_cloud_book`, `link_book`.
 Host sign-in tools: `login`, `auth_status`, `logout`. `list_cloud_books` lists
 accessible cloud books, separately from local folder discovery.
+
+Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
+routine file listing, reading, text searches and draft/note edits when the
+book folder is accessible. Keep operations within the selected book and run
+validation after bookkeeping edits. Local MCP is for accounting calculations,
+validation, authentication, sync and guarded workflows
+such as posting, seals, depreciation and year-end. Structured search and other
+inspection tools are optional helpers, useful for structured filters,
+derived closed status or when the client cannot access files directly.
+
+Local MCP has no `show` tool. Use filesystem searches to inspect document/journal
+references; the CLI `iris show` command remains available.
+
+Bookkeeping tools: `search_journals` (date, amount, payee, status, account and tag
+filters), `post` (`paths` or `all`,
+with `dry_run=true` to preview), `list_conflicts`, `resolve_conflict`
+(`path`, `keep="mine"|"cloud"`), `list_attention`, `retry_attention` (optional
+`path`) and `export_local` (`kind="journals"|"assets"`, optional `year`,
+`as_of` for journals and `out_dir`, default `exports/`). Exports stay inside
+the selected book. Keeping mine during conflict resolution immediately syncs;
+keeping cloud removes the sidecar. Retrying attention clears rejections for
+the next explicit `sync`.
+
+Lifecycle tools: `asset_depreciate` (`month` or `year`, creates drafts without
+posting), `fiscal_years`, `history` (optional `path`, `from`, `to`, `limit`,
+`all`) and `reopen` (`year`, server-enforced owner access). The latter three
+require a linked book and sign-in. Parent mode additionally offers
+`yearend(book="freelance-2025", next_book="freelance-2026")`: it previews the
+opening entry, journal moves and cloud actions by default. Use `preview=false`
+to execute, or `local_only=true` to skip cloud creation/sync. It may move
+journals, copy grants and transfer the inbound address; it does not seal the
+old year. `next_book` is an immediate child folder, with the same confinement
+rules as book creation. The CLI also supports `iris yearend --dry-run`.
+
+Portfolio reads: `get_holdings` reads the selected linked cloud book.
+`get_networth` values local folders, including unsynced posted edits, without
+login or network: use `books_dir="."` for child books of the configured root,
+or `books=["business-2026", "personal-2026"]`. Paths stay inside that root.
+It accepts `as_of`, `currency`, and `mode="current"|"history"|"movers"`
+(with `months` for history or `compare` for movers). It uses the local price
+log; mixed currencies require `currency`. A single-book server can select only
+folders inside its pinned book; use parent mode for sibling books. `list_prices`
+defaults to cloud, or accepts `source="local"` for the offline log.
+`record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
+records an observation locally; price must be a decimal string with at most
+six fractional digits. `sync_prices` publishes it and pulls other-device
+observations, separately from book sync. Prices live in the user's config
+folder, outside tax book files. Except `get_holdings`, these portfolio tools
+need no local `book` selector; local valuation requires book folders.
 
 With `--books-dir`, select an existing parent folder, such as `~/IrisBooks`,
 whose immediate children are book folders. Call `list_books` to discover them,
@@ -909,21 +977,15 @@ year.
 ```bash
 iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S]
 iris api price list [--unit BTC] [--json]
-
-iris api networth [--as-of YYYY-MM-DD] [--json]              # cross-book total
 iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
-iris api networth settings [--include|--exclude|--reset <id>]
-iris api networth history [--months N] [--refresh] [--json]
-iris api networth movers [--as-of D] [--compare D] [--json]
 ```
 
-`networth` values each book's balance sheet — assets minus liabilities,
-leaving out `owner: true` accounts — with unit holdings at your recorded prices
-(`basis: price`) and everything else, or a unit with no price, at book value
-(`basis: book`). A book counts only inside its own fiscal year; the cross-book
-total lists the books it leaves out under `excluded`, with the reason
-(`year_ended` or `year_not_started`). Movers compare by account and unit across
-books, so moving to next year's book isn't shown as a sale.
+`iris api networth` values one explicitly selected cloud book.
+Cloud cross-book totals, history, movers and inclusion settings were removed
+from the CLI. Use local `iris networth` or the web app instead.
+Web and remote MCP cloud cross-book reports share one snapshot generation per
+user per UTC day. Changing dates or book selections does not regenerate it.
+Responses include the generation time and next refresh time.
 
 ## Environment variables
 

@@ -564,6 +564,46 @@ folders, root symlinks, archived cloud books and any existing `<book>.partial`
 staging entry (including symlinks). It exposes no force option and is
 available only with `--books-dir`, not against a launch-pinned single book.
 
+Local MCP has no `show` tool. Use filesystem searches to inspect document/journal
+references; the CLI `iris show` command remains available.
+
+Bookkeeping tools: `search_journals` (date, amount, payee, status, account and tag
+filters), `post` (`paths` or `all`,
+with `dry_run=true` to preview), `list_conflicts`, `resolve_conflict`
+(`path`, `keep="mine"|"cloud"`), `list_attention`, `retry_attention` (optional
+`path`) and `export_local` (`kind="journals"|"assets"`, optional `year`,
+`as_of` for journals and `out_dir`, default `exports/`). Exports stay inside
+the selected book. Keeping mine during conflict resolution immediately syncs;
+keeping cloud removes the sidecar. Retrying attention clears rejections for
+the next explicit `sync`.
+
+Lifecycle tools: `asset_depreciate` (`month` or `year`, creates drafts without
+posting), `fiscal_years`, `history` (optional `path`, `from`, `to`, `limit`,
+`all`) and `reopen` (`year`, server-enforced owner access). The latter three
+require a linked book and sign-in. Parent mode additionally offers
+`yearend(book="freelance-2025", next_book="freelance-2026")`: it previews the
+opening entry, journal moves and cloud actions by default. Use `preview=false`
+to execute, or `local_only=true` to skip cloud creation/sync. It may move
+journals, copy grants and transfer the inbound address; it does not seal the
+old year. `next_book` is an immediate child folder, with the same confinement
+rules as book creation. The CLI also supports `iris yearend --dry-run`.
+
+Portfolio reads: `get_holdings` reads the selected linked cloud book.
+`get_networth` values local folders, including unsynced posted edits, without
+login or network: use `books_dir="."` for child books of the configured root,
+or `books=["business-2026", "personal-2026"]`. Paths stay inside that root.
+It accepts `as_of`, `currency`, and `mode="current"|"history"|"movers"`
+(with `months` for history or `compare` for movers). It uses the local price
+log; mixed currencies require `currency`. A single-book server can select only
+folders inside its pinned book; use parent mode for sibling books. `list_prices`
+defaults to cloud, or accepts `source="local"` for the offline log.
+`record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
+records an observation locally; price must be a decimal string with at most
+six fractional digits. `sync_prices` publishes it and pulls other-device
+observations, separately from book sync. Prices live in the user's config
+folder, outside tax book files. Except `get_holdings`, these portfolio tools
+need no local `book` selector; local valuation requires book folders.
+
 `iris onboard --status --json` reports what is registered where (including
 whether each registration's binary still exists) — use it to diagnose a
 broken integration before re-running `iris onboard`, which is always safe
@@ -599,8 +639,16 @@ ended to file its return, therefore shows last year in full. Every
 report's JSON states the dates it used: read them before quoting a figure,
 and always name the period (`--year` or `--from`/`--to`) for filing figures.
 
-Use `iris search` / `iris show` (deterministic, offline) instead of scanning
-folders yourself when asked "find …" or "what cites …".
+Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
+routine file listing, reading, text searches and draft/note edits when the
+book folder is accessible. Keep operations within the selected book and run
+validation after bookkeeping edits. Local MCP is for accounting calculations,
+validation, authentication, sync and guarded workflows
+such as posting, seals, depreciation and year-end. Structured search and other
+inspection tools are optional helpers, useful for structured filters,
+derived closed status or when the client cannot access files directly.
+
+Use `iris hash` when canonical content hashing is required.
 
 5. The human promotes: `iris post journals/2026-05/2026-05-04-example-com-01.md`
    (`--dry-run` to check without changing anything).
@@ -1371,7 +1419,7 @@ last `iris sync` from a machine; reports carry a `figures_as_of` timestamp —
 mention it when presenting numbers.
 
 Tools: `list_books`; `get_report` (trial-balance | profit-and-loss |
-balance-sheet | cashflow; posted entries only). `cashflow` is the legacy token
+balance-sheet | cashflow | ledger | sum; posted entries only). `cashflow` is the legacy token
 for monthly **asset movements** (`basis: asset-movements`): gross increases
 and decreases across all asset accounts, including receivables/fixed assets;
 transfers can appear on both sides. It is not a cash-flow statement. Tools also include `list_accounts` (call before
@@ -1382,7 +1430,7 @@ closed?" and explains a PERIOD_SEALED refusal; closing/reopening themselves
 are not connector operations);
 `draft_journal` / `update_draft` (full-replace) / `delete_draft` — all three
 draft-only, status pinned `draft`, entries identified by `journal_path`;
-`get_inbox_address`; `create_upload_link`.
+`get_inbox_address`; `create_upload_link`; `get_networth` (included books or an explicit `book_id`, optional `as_of`); `get_holdings` (`book_id`, optional `as_of`); `list_prices` (optional `unit`, authenticated user only). Ledger requires `account`; sum requires comma-separated `by` keys and accepts `from`/`to` or `year`. Remote prices are read-only. Web and remote MCP Net Worth, plus web consolidated P&L and movers, use one shared report-input snapshot per user per UTC day. `snapshot.generatedAt` and `snapshot.nextRefreshAt` describe freshness. Dates, selections, `refresh`, journal/price changes never cause a second generation that day. Grants are rechecked; newly accessible books wait for the next generation. Failed generation consumes the slot; it cannot be retried until the next UTC day.
 
 The write surface **drafts, never posts**: a remote draft appears in the
 local book at the next `iris sync` and is posted there. Posting, sealing,
@@ -1448,7 +1496,7 @@ list everything.
 | `iris sync [--quiet] [--json] [--allow-bulk-delete] [path]` | One explicit push+pull pass; per-file accept/reject. The server refuses a pass that would delete most of the book's cloud files (`BULK_DELETE_REFUSED`); re-run with `--allow-bulk-delete` only when the mass deletion is intentional |
 | `iris conflicts list` / `resolve <path> --keep mine\|cloud` | Conflict sidecar management |
 | `iris attention list` / `retry [--path <relpath>]` | Server-rejection queue |
-| `iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes \| --local] [path]` | End the year: create next year's book as a standalone copy (config, guides, policy notes, held assets, 期首残高 opening entry; new-year entries moved) and, for a linked book, its cloud copy (grants copied, inbound address moved; `--yes` needed without a terminal — ask the user). Re-run to refresh the opening entry while the next year is open; frozen once it is sealed. Requires `fiscal_year` |
+| `iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes \| --local] [--dry-run] [path]` | End the year: create next year's book as a standalone copy (config, guides, policy notes, held assets, 期首残高 opening entry; new-year entries moved) and, for a linked book, its cloud copy (grants copied, inbound address moved; `--yes` needed without a terminal — ask the user). Re-run to refresh the opening entry while the next year is open; frozen once it is sealed. Requires `fiscal_year` |
 | `iris reopen <fiscal-year> [path]` | Unlock a sealed FY (accounting-scope changes accepted again, flagged as post-seal edits). The year's files never left the working tree — edit directly, then `iris sync`, `iris yearend` to refresh the carry-forward, and re-seal with `iris api seal` |
 | `iris price add\|list\|sync` | Unit prices, user-scoped (not stored in the book), offline + sync |
 | `iris mcp serve [--book PATH \| --books-dir PATH] [--http 127.0.0.1:PORT]` | MCP server for one book or a parent of immediate child books. Parent mode: list_books, create_book, clone_book (cloud book → new child folder), required book=<child-folder> on book operations, list_recipes/run_recipe for per-book overlays. Local: validate, diff, balance, report, status, asset_schedule; global: login, auth_status, logout, list_cloud_books, check_update and depreciation calculators; cloud (when authed): create_cloud_book, link_book, sync, seal, export_from_cloud (output inside the selected book). `--http` requires `Authorization: Bearer <token>`; token in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
@@ -1471,7 +1519,8 @@ Cloud (`iris api …`, book-ID–scoped unless noted):
 | `iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id>` | The durable correction/deletion record; `--all --json` exports the book's — its fiscal year's — record as a file |
 | `iris api export [--out DIR] [--year YYYY] [--as-of D] <book-id>` | Server CSVs. `--year` restricts to journals dated in that FY; sealed years stay in the live tree and export like any other |
 | `iris api price add\|list` | Server-side unit prices |
-| `iris api networth [--book id] [--as-of D]` / `settings [--include\|--exclude\|--reset id]` / `history [--months N] [--refresh]` / `movers [--as-of D] [--compare D]` | Cross-book Net Worth (cloud) |
+| `iris networth [history\|movers] --books-dir PARENT` or explicit folder list | Local cross-book valuation; no network; optional currency/date/months/compare |
+| `iris api networth --book id [--as-of D]` | One cloud book only |
 
 **Recording prices (Net Worth):** `--price` is the value of **one whole
 unit** in the reporting currency (decimals OK); `--unit` is the symbol

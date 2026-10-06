@@ -134,8 +134,16 @@ iris search --payee amazon --from 2026-04-01     # find entries
 iris show raw/2026-05-invoice.pdf                # what cites this document
 ```
 
-`iris search` and `iris show` are deterministic, offline views over your
-files — use them (and let your AI use them) instead of eyeballing folders.
+Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
+routine file listing, reading, text searches and draft/note edits when the
+book folder is accessible. Keep operations within the selected book and run
+validation after bookkeeping edits. Local MCP is for accounting calculations,
+validation, authentication, sync and guarded workflows
+such as posting, seals, depreciation and year-end. Structured search and other
+inspection tools are optional helpers, useful for structured filters,
+derived closed status or when the client cannot access files directly.
+
+`iris search` and `iris show` remain available for structured offline views.
 
 ### 5. Promote to `posted`
 
