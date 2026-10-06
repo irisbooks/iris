@@ -611,10 +611,10 @@ bitcoin is `9850000000000`. `origin` is `local` (captured on this machine) or
 ### iris mcp
 
 Run a Model Context Protocol server that exposes the `iris` verbs to a BYO
-agent, pinned to one book.
+agent, for one book or a parent folder containing several books.
 
 ```bash
-iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
+iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
 Local tools: `validate`, `diff`, `balance`, `report`, `status`, `check_update`. Asset tools:
@@ -624,7 +624,63 @@ composes into a recorded `schedule:` for methods no recipe covers. Recipe
 tools: one per recipe of the book's overlay (`jp_teiritsu`,
 `jp_shouhizei-general`, `jp_shouhizei-simplified`), each recording its result
 with provenance when given a `write` path. Cloud tools (when authenticated):
-`sync`, `seal`, `export_from_cloud`.
+`sync`, `seal`, `export_from_cloud`, `create_cloud_book`, `link_book`.
+Host sign-in tools: `login`, `auth_status`, `logout`. `list_cloud_books` lists
+accessible cloud books, separately from local folder discovery.
+
+With `--books-dir`, select an existing parent folder, such as `~/IrisBooks`,
+whose immediate children are book folders. Call `list_books` to discover them,
+then pass the child folder name as `book` on each book operation, such as
+`validate(book="freelance-2026")`. New books appear without restarting.
+An empty parent is supported: `create_book(book="freelance-2026")` creates a
+child book; optional `name`, `region`, `entity_kind`, `fiscal_start_month` and
+`fiscal_year` customize it. The parent itself is never initialized as a book,
+and existing books or non-empty child folders are never overwritten.
+
+In parent mode, use `list_recipes(book="freelance-2026")` to discover that
+book's recipe names and input schemas, then `run_recipe(book="freelance-2026",
+recipe="jp_teiritsu", params={...})`. The three arithmetic calculators and
+`check_update` need no book. Book references cannot be paths, and symlinks
+escaping the selected book are refused. `export_from_cloud` writes inside the
+selected book, including when `out_dir` is omitted.
+
+For Cowork or another MCP client, connect a local book without a terminal:
+
+1. Call `create_book(book="freelance-2026")`, or select a folder from `list_books`.
+2. Call `login`. It opens the host browser and returns immediately with an
+   `authorization_url` and a five-minute expiry. If the browser did not open,
+   open that URL yourself. Sign in and approve access.
+3. Call `auth_status` to confirm `status="signed_in"`. This checks the server;
+   `validate=false` checks only local credential presence. Repeating `login`
+   while approval is pending returns the same URL.
+4. Call `create_cloud_book(book="freelance-2026")`. It uses the local book's
+   settings, creates its cloud mirror and saves the link. Retrying an uncertain
+   creation uses the same retry key. For an existing cloud book, call
+   `list_cloud_books`, then `link_book(book="freelance-2026", cloud_book_id="bk_...")`.
+5. Call `sync(book="freelance-2026")` and read its accepted/rejected results.
+
+`login`, `auth_status`, `logout` and `list_cloud_books` need no `book` argument.
+Sign-in is saved on the host and shared with the CLI and other local MCP
+instances; credentials never appear in tool results. `logout` cancels this
+server's pending login and revokes/removes the saved device session. An
+`IRIS_API_TOKEN` environment credential takes precedence: remove it from the
+host MCP configuration and restart before using browser sign-in.
+Cloud creation/linking refuse archives and already-linked books. Linking an
+existing cloud book can produce file conflicts on sync; for a new cloud mirror
+of your folder, use `create_cloud_book`.
+
+To download an existing cloud book in parent-folder mode, use
+`login → auth_status → list_cloud_books → clone_book(book="freelance-2026", cloud_book_id="bk_...")`.
+Choose an absent or empty child folder; do not call `create_book` first.
+`clone_book` downloads the files, installs the local AI guides and initializes
+sync state and snapshots, so `diff` starts with no pending changes. The result
+includes the host path and book identity, and `list_books` discovers it without
+a restart. It refuses existing content, symlinks, archives and any pre-existing
+`<book>.partial` staging entry. There is no force option. It is available only
+with `--books-dir`.
+
+`--book` keeps the single-book tools described above; an empty or absent target
+is initialized automatically. The two directory flags cannot be combined.
 
 With `--http`, the server listens on a localhost address instead of stdio and
 accepts only requests carrying the header `Authorization: Bearer <token>`. The

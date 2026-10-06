@@ -473,7 +473,8 @@ means PATH and MCP may use different copies: use `executablePath`, not an
 assumed global `iris`. Stop MCP first on Windows if replacement is locked.
 
 For `installKind: mcpb`, reinstall the matching bundle at `downloadURL` through
-the client's extension settings, keeping the book folder, then restart.
+the client's extension settings, keeping the books parent folder, then restart.
+When upgrading an older single-book bundle, choose that book's parent folder.
 A standalone CLI update does not update a bundle. Older binaries lacking
 `update` need the installer; compare `iris version` with
 `https://irisbooks.jp/dl/latest/version.txt` first. Keep local bookkeeping
@@ -512,6 +513,56 @@ Registers `iris mcp serve` with MCP-capable clients (Claude Code's `.mcp.json`
 always; Claude Desktop, the Codex CLI, Cursor, Gemini CLI, and VS Code when
 detected or forced by flag) and writes a Claude Code skill. Every book ships
 `LLM-GUIDE.md` at its root — read it before working in a book.
+
+For the Cowork `.mcpb` bundle, configure the parent folder containing immediate
+child books and give Cowork file access to the working folder separately.
+The host runs `iris mcp serve --books-dir <parent>`. Call `list_books`, then
+pass `book=<child-folder-name>` on every book operation; there is no shared
+active book. Use `create_book(book=..., name=..., region=..., entity_kind=...,
+fiscal_start_month=..., fiscal_year=...)` for an absent or empty child folder.
+The parent itself is never initialized, existing files are never overwritten,
+and new books are discovered without a restart. Read the selected book's
+`LLM-GUIDE.md` before editing. Host paths may differ from Cowork's mounted paths.
+Use `list_recipes(book=...)` for that book's current recipe schemas and
+`run_recipe(book=..., recipe=..., params={...})` to execute them; `write`, when
+needed, belongs inside `params`. `--book PATH` retains the single-book tools.
+
+For cloud onboarding through local MCP, use:
+`create_book(book=...) → login → user approves in the host browser → auth_status → create_cloud_book(book=...) → sync(book=...)`.
+`login` returns immediately with `status=pending`, `authorization_url` and
+`expires_at`; show the URL if the browser did not open. Repeating it while
+pending returns the same URL. Ask the user to approve, then call `auth_status`
+to confirm `signed_in`; never read or request a token or PKCE verifier.
+`auth_status` validates the host credential by default (`validate=false` only
+checks presence). Treat `unknown` as a failed verification, not signed out;
+`rejected` needs a fresh login. Login expires after five minutes.
+`login`, `auth_status`, `logout` and `list_cloud_books` are global and need no
+book selection, including with an empty parent. The host device session is
+shared with CLI and other local MCP instances. An environment `IRIS_API_TOKEN`
+overrides browser sign-in; ask the user to remove it from the host MCP config
+and restart if they want to use login. `logout` cancels this server's pending
+login and revokes/removes the cached session; it cannot remove an environment PAT.
+`create_cloud_book` adopts the selected local config and links the resulting
+cloud ID without syncing automatically. It uses a stable local-identity retry
+key: retry an uncertain create on the same book. A `created_unlinked` result
+includes `book_id` for recovery with `link_book`. Existing-cloud path:
+`list_cloud_books → link_book(book=..., cloud_book_id=...) → sync(book=...)`;
+linking verifies access and can cause conflicts with pre-existing cloud files.
+Creation/linking refuse archives and already-linked books; they never select
+the book from the server's cwd. In single-book mode omit `book`.
+
+To download an existing cloud book instead of connecting an existing local
+folder, parent mode supports
+`login → user approves → auth_status → list_cloud_books → clone_book(book=<new-child-folder>, cloud_book_id=...)`.
+Do not call `create_book` first: clone needs an absent or empty destination.
+It reuses `iris clone`, downloads files atomically, installs local AI guides
+and initializes sync state/snapshots. The result includes `status=cloned`,
+`book`, host `path`, `book_id`, name, region, currency and fiscal year; the
+book is immediately available to `list_books`, `status`, `diff` and `sync`.
+An initial `diff` has no pending changes. `clone_book` refuses populated
+folders, root symlinks, archived cloud books and any existing `<book>.partial`
+staging entry (including symlinks). It exposes no force option and is
+available only with `--books-dir`, not against a launch-pinned single book.
 
 `iris onboard --status --json` reports what is registered where (including
 whether each registration's binary still exists) — use it to diagnose a
@@ -1400,7 +1451,7 @@ list everything.
 | `iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes \| --local] [path]` | End the year: create next year's book as a standalone copy (config, guides, policy notes, held assets, 期首残高 opening entry; new-year entries moved) and, for a linked book, its cloud copy (grants copied, inbound address moved; `--yes` needed without a terminal — ask the user). Re-run to refresh the opening entry while the next year is open; frozen once it is sealed. Requires `fiscal_year` |
 | `iris reopen <fiscal-year> [path]` | Unlock a sealed FY (accounting-scope changes accepted again, flagged as post-seal edits). The year's files never left the working tree — edit directly, then `iris sync`, `iris yearend` to refresh the carry-forward, and re-seal with `iris api seal` |
 | `iris price add\|list\|sync` | Unit prices, user-scoped (not stored in the book), offline + sync |
-| `iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]` | MCP server pinned to one book. Local tools: validate, diff, balance, report, status, check_update; cloud (when authed): sync, seal, export_from_cloud. `--http` requires `Authorization: Bearer <token>`; the token is in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
+| `iris mcp serve [--book PATH \| --books-dir PATH] [--http 127.0.0.1:PORT]` | MCP server for one book or a parent of immediate child books. Parent mode: list_books, create_book, clone_book (cloud book → new child folder), required book=<child-folder> on book operations, list_recipes/run_recipe for per-book overlays. Local: validate, diff, balance, report, status, asset_schedule; global: login, auth_status, logout, list_cloud_books, check_update and depreciation calculators; cloud (when authed): create_cloud_book, link_book, sync, seal, export_from_cloud (output inside the selected book). `--http` requires `Authorization: Bearer <token>`; token in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
 | `iris update [--check] [--json]` | Check for a release or install a verified update; restart long-running MCP servers afterward |
 | `iris version` | Version |
 

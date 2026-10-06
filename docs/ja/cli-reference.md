@@ -590,10 +590,10 @@ iris price sync
 ### iris mcp
 
 `iris` の各動詞を BYO エージェントに公開する Model Context Protocol サーバーを、
-1つの帳簿に固定して実行します。
+1 つの帳簿、または複数の帳簿をまとめた親フォルダに対して実行します。
 
 ```bash
-iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
+iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
 ローカルツール: `validate`・`diff`・`balance`・`report`・`status`・`check_update`。資産ツール:
@@ -602,7 +602,62 @@ iris mcp serve [--book PATH] [--http 127.0.0.1:PORT]
 AI がこれらを組み合わせて `schedule:` に記録します。レシピツール: 帳簿の
 オーバーレイのレシピごとに 1 つ（`jp_teiritsu`・`jp_shouhizei-general`・
 `jp_shouhizei-simplified`）。`write` にパスを渡すと結果を根拠付きで記録します。
-クラウドツール（認証時）: `sync`・`seal`・`export_from_cloud`。
+クラウドツール（認証時）: `sync`・`seal`・`export_from_cloud`・`create_cloud_book`・`link_book`。
+サインインには `login`・`auth_status`・`logout` を使います。
+`list_cloud_books` はアクセスできるクラウド帳簿を一覧表示します。
+ローカルフォルダの一覧とは別です。
+
+`--books-dir` には、帳簿フォルダを直下にまとめた既存の親フォルダ（例:
+`~/IrisBooks`）を指定します。`list_books` で帳簿を確認し、各操作の `book` に
+子フォルダ名を渡します（例: `validate(book="freelance-2026")`）。帳簿を追加しても
+サーバーの再起動は不要です。空の親フォルダでも起動でき、
+`create_book(book="freelance-2026")` で子フォルダに新しい帳簿を作成できます。
+`name`・`region`・`entity_kind`・`fiscal_start_month`・`fiscal_year` も指定できます。
+親フォルダ自体は帳簿にせず、既存の帳簿や空でない子フォルダは上書きしません。
+
+親フォルダモードでは `list_recipes(book="freelance-2026")` で帳簿のレシピ名と
+入力形式を確認し、`run_recipe(book="freelance-2026", recipe="jp_teiritsu",
+params={...})` で実行します。3 つの償却計算ツールと `check_update` には
+`book` は不要です。`book` にパスは指定できず、対象の帳簿の外を指すシンボリック
+リンクも拒否します。`export_from_cloud` は `out_dir` を省略した場合も、
+対象の帳簿内に出力します。
+
+Cowork などの MCP クライアントから、ターミナルを使わずにクラウドへ接続できます。
+
+1. `create_book(book="freelance-2026")` で帳簿を作るか、`list_books` から既存の帳簿を選びます。
+2. `login` を呼びます。ホストのブラウザが開き、待機中の状態と
+   `authorization_url`、5 分後の有効期限がすぐに返ります。ブラウザが開かなければ
+   この URL を自分で開き、サインインしてアクセスを許可してください。
+3. `auth_status` を呼び、`status="signed_in"` を確認します。通常はサーバーに
+   認証状態を確認します。`validate=false` では保存済みの認証情報の有無だけを
+   調べます。許可待ちの間に `login` を再度呼ぶと、同じ URL が返ります。
+4. `create_cloud_book(book="freelance-2026")` を呼びます。ローカル帳簿の設定で
+   クラウド帳簿を作り、接続先を保存します。結果が不明な場合も、同じキーで
+   再試行できます。既存のクラウド帳簿に接続する場合は、`list_cloud_books` で
+   ID を確認し、`link_book(book="freelance-2026", cloud_book_id="bk_...")` を呼びます。
+5. `sync(book="freelance-2026")` を呼び、受理・拒否の結果を確認します。
+
+`login`・`auth_status`・`logout`・`list_cloud_books` に `book` は不要です。
+認証情報はホストに保存され、CLI や他のローカル MCP インスタンスと共有されます。
+ツールの結果に認証情報は含めません。`logout` はこのサーバーの許可待ちを取り消し、
+保存済みのデバイスセッションを失効・削除します。環境変数 `IRIS_API_TOKEN` が
+ある場合はそちらが優先されます。ブラウザでサインインする前に、ホスト側の MCP 設定から
+この変数を外して再起動してください。
+アーカイブや接続済みの帳簿には、クラウド作成・接続を実行できません。
+既存のクラウド帳簿へ接続すると、同期時にファイルが競合する場合があります。
+手元のフォルダ用に新しいクラウド帳簿を作る場合は `create_cloud_book` を使います。
+
+既存のクラウド帳簿をダウンロードする場合は、親フォルダモードで
+`login → auth_status → list_cloud_books → clone_book(book="freelance-2026", cloud_book_id="bk_...")`
+を実行します。未作成または空の子フォルダを選び、先に `create_book` は呼ばないでください。
+`clone_book` はファイルとローカルの AI ガイドを配置し、同期状態とスナップショットを
+設定します。そのため、直後の `diff` には未同期の変更がありません。結果にはホスト側の
+パスと帳簿情報が含まれ、再起動せずに `list_books` から見つけられます。
+既存の内容、シンボリックリンク、アーカイブ、既存の `<book>.partial` 作業用フォルダは
+拒否します。強制上書きはできません。`--books-dir` の場合だけ利用できます。
+
+`--book` では従来どおり 1 つの帳簿に対して上記のツールを公開し、指定先が
+空または未作成なら帳簿を自動作成します。2 つのフォルダ指定は併用できません。
 
 `--http` を付けると、stdio の代わりに localhost のアドレスで待ち受け、
 `Authorization: Bearer <トークン>` ヘッダーの付いたリクエストだけを受け付けます。

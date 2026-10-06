@@ -49,6 +49,15 @@ where to flag uncertainty).
 > reached over MCP" — the host runs `iris mcp serve` and the assistant calls
 > the verbs as MCP tools against the same folder.
 
+For Cowork's `.mcpb` extension, choose a **parent folder of books**, such as
+`~/IrisBooks`, with each book in its own immediate child folder. Give Cowork
+file access to the folder you will work in too. The extension can start with
+an empty parent: ask your assistant to create a book with `create_book`.
+It finds books with `list_books` and names the target book on every operation.
+Adding another child book requires no change to the global MCP settings.
+For manual setup, use `iris mcp serve --books-dir ~/IrisBooks`; `--book PATH`
+continues to serve a single book. See [MCP commands](cli-reference.md#iris-mcp).
+
 ## Check and update iris
 
 ```bash
@@ -69,7 +78,9 @@ and gives instructions for the executable the agent actually uses.
 
 A `.mcpb` extension contains a separate binary. Its update report links the
 matching bundle; reinstall it through your client's extension settings with
-the same book folder and restart. Updating the CLI alone does not update it.
+the same parent folder and restart. When upgrading an older bundle that asked
+for one book, choose that book's parent folder in the new configuration.
+Updating the CLI alone does not update the bundled server.
 On Windows, stop IrisBooks MCP servers and retry if the executable is locked.
 
 Older binaries without `iris update` can be upgraded by rerunning the
