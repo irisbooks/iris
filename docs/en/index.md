@@ -1,31 +1,37 @@
 # IrisBooks User Manual
 
-IrisBooks is local-first, double-entry bookkeeping. Each country's tax rules
-come as a region overlay, and Japan is the first region with one. Your books
-are a **folder of plain Markdown and YAML files** on your own machine —
-not rows in someone else's database. You work with them through two lenses:
+IrisBooks is local-first, double-entry bookkeeping with your own AI assistant.
+Your book is a **folder you keep**: journals and other accounting records use
+Markdown with YAML frontmatter; configuration uses standalone YAML. Community
+open-source overlays supply checks and calculation helpers for a region or
+purpose. You work with your book through two lenses:
 
 - the **`iris` command-line tool** driven by your own AI assistant (Claude,
   Cursor, Copilot, …), and
 - the **web app**, a first-party interface for browsing, editing, reporting,
   and collaborating.
 
-Both read and write the same folder. Nothing is locked in a proprietary
-format — zip the folder and hand it to your accountant, sync it between
-machines, or keep it entirely offline.
+The CLI works on your files; the web app works on their synced cloud copy.
+You can copy the folder, hand it to your accountant, sync it between machines
+or keep it local. Local `iris` needs no account or network; your chosen AI
+service may need its own connection.
 
 > **New here?** Read [Getting started](getting-started.md) first, then
 > [Core concepts](concepts.md). Everything else is reference you can return to.
 
 ## Who this manual is for
 
+- **Personal tracking** — understand everyday spending and balances without
+  keeping every receipt. Start with a cash check-in or a statement and let
+  your AI help at a level of detail you can maintain.
 - **Business owners** — freelancers, sole proprietors (個人事業主), and SMBs
   who keep their own books and file 青色申告 / 確定申告. Start with the CLI +
   your own AI ([Bookkeeping with the CLI and your own LLM](cli-and-llm.md)),
   add the web app if you use the cloud.
 - **Accountants / 税理士** — firms managing many client books. The
-  [web app](web-app.md) is your primary surface; the CLI and access tokens
-  let you script across clients.
+  [file workflow with your own AI](cli-and-llm.md) is for you too. Use a
+  separate assistant work folder/session for each client; the
+  [web app](web-app.md) supports viewing and review.
 
 ## Table of contents
 
@@ -41,8 +47,9 @@ machines, or keep it entirely offline.
    the sender allowlist, and the quarantine.
 6. [Your AI on the go (remote connector)](remote-connector.md) — figures,
    drafts, and receipts from your phone (cloud).
-7. [Japan tax & compliance](japan-tax-and-compliance.md) — 優良電子帳簿,
-   consumption tax (消費税), fixed assets & depreciation, year-end close.
+7. [Japan tax & compliance](japan-tax-and-compliance.md) — correction
+   history and search, consumption tax (消費税), fixed assets & depreciation,
+   year-end close.
 8. [CLI command reference](cli-reference.md) — every command and flag.
 9. [Book file-format reference](book-format-reference.md) — the on-disk
    structure of a book.
@@ -54,13 +61,15 @@ machines, or keep it entirely offline.
 ```text
 your-book/
 ├── config/        # book settings + your chart of accounts
-├── raw/           # drop bank CSVs, receipts, invoices here
+├── raw/           # original documents, filed by you or your AI
 ├── journals/      # double-entry entries, one Markdown file each
 ├── notes/         # working notes shared with your AI and accountant
 └── compiled/      # AI-generated reports (regeneratable)
 ```
 
-You (or your AI) drop a bank statement into `raw/`, the AI proposes journal
-entries, you review them, `iris validate` checks the math, and `iris balance`
-shows your trial balance. With cloud sync, `iris sync` mirrors everything to
-the cloud where the web app, your accountant, and timestamped history live.
+Share a statement or tell your AI what happened. It files available originals
+under `raw/`, reasons about entries and explains its proposal. `iris validate`
+checks the work; after posting under your chosen policy, `iris balance` shows
+the results. Notes preserve context for another session or assistant. Optional
+`iris sync` mirrors book records to the cloud for the web app, collaboration
+and server-side change history.

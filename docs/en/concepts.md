@@ -5,14 +5,14 @@ both the CLI and the web app feel obvious.
 
 ## Files are your books
 
-There is no hidden database. A **book** is a folder on disk, and the files in
-it *are* your accounting records. You can read them, edit them, diff them,
-back them up, and hand them to your accountant with any tool you already use.
-IrisBooks (the CLI and the web app) are just two lenses onto that folder.
+A **book** is a folder on disk, and its files are the primary accounting
+records. You can read them, edit them, diff them, back them up, and hand them
+to your accountant with any tool you already use.
+The CLI works on those files; the web app works on their synced cloud copy.
 
-One book = one business, for one fiscal year. A sole proprietor with a side
-business keeps two books; that's normal. At year-end the next year's book
-starts as a copy of this one — see [One book per year](#one-book-per-year).
+One book covers one fiscal year. You can keep separate business and personal
+books and combine selected books in cross-book reports. At year-end the next
+year's book starts as a copy of this one — see [One book per year](#one-book-per-year).
 
 ```text
 your-book/
@@ -116,8 +116,9 @@ Anything under `raw/` — bank CSVs, receipt photos, PDF invoices — is the
 - From a document, see which journals cite it (`iris show <path>`, or the
   "Cited by" panel in the web app's Raw documents browser).
 
-This two-way cross-reference is one of the three things Japan's 優良電子帳簿
-status requires — see [Japan tax & compliance](japan-tax-and-compliance.md).
+With it, you, your 税理士 or an auditor can go from any entry to its evidence
+and back. For the book's other record-keeping features (correction history,
+search), see [Japan tax & compliance](japan-tax-and-compliance.md).
 
 ## Region rules — the overlay
 
@@ -126,18 +127,23 @@ law. What is specific to a country — how a line's tax is classified, which
 depreciation methods and specials apply and up to what limit, how a tax
 return's figures are assembled from the ledger — lives in a **region
 overlay**: a versioned set of rules and computations (**recipes**), written in
-YAML and CEL, one per region. Japan is the first region with one; for a
-Japanese book it covers the 税区分 of consumption-tax lines, the depreciation
-specials and their caps, when 定率法 switches to its revised rate, and the
+YAML and CEL. Overlays are community-maintained open source, and can serve
+a region or another purpose. For a Japanese book, the JP pack covers the
+税区分 of consumption-tax lines, depreciation specials and their caps,
+when 定率法 switches to its revised rate, and the
 figures of the 消費税 return.
 
-Your book pins one version in `config/book.yaml` — a Japanese book, for
+Your book pins published versions in `config/book.yaml` — a Japanese book, for
 example:
 
 ```yaml
 region: JP
 overlay: jp@2026.09.1
 ```
+
+Compatible published packs can also be selected together with `overlays:`.
+You and your AI can choose packs, create book-specific rules and contribute
+improvements to the community.
 
 - **Rules** check your entries. `iris validate` runs them, and the cloud runs
   the same version on every write.
@@ -150,8 +156,8 @@ overlay: jp@2026.09.1
   you decide. Figures recorded under an older version keep being checked
   against that version.
 
-A book in a region without an overlay yet has no `overlay:` line and gets the
-universal checks only (balanced entries, known accounts, dates, amounts);
+By default, a book in a region without an overlay yet has no `overlay:` line
+and gets universal checks only (balanced entries, known accounts, dates, amounts);
 once an overlay for its region is published, `iris overlay upgrade` pins it.
 
 The published overlays are open source (Apache-2.0) at
@@ -171,14 +177,15 @@ just use more or fewer of the features:
   `iris api login`). You edit locally and run `iris sync` to push and pull.
   The web app, multi-device access, collaboration, and timestamped history
   all live on the cloud side.
-- **Cloud-only (typical for accountants).** No local folder — you work
-  entirely in the web app against the server.
+- **Cloud-only access.** You can view and review the cloud copy without a
+  local folder. For bookkeeping work, accountants should also use files plus
+  their own AI, with a separate work folder/session for each client.
 
 Sync is **explicit**: nothing uploads until you (or your AI) run `iris sync`,
 or `iris post`. Web-app changes are written directly to the cloud.
 There is no background watcher silently
-shipping your files. An owner syncing from their laptop and an accountant
-working in the web app meet at the same server book.
+shipping your files. An owner and accountant can each sync their own copy of
+the same book, then use web for viewing and review.
 
 ## One book per year
 
@@ -218,21 +225,22 @@ See [Year-end close](japan-tax-and-compliance.md#year-end-close).
 ## The durable history (correction/deletion record)
 
 With cloud sync, the server keeps an append-only log of every change to every
-file — who changed it, when, and what it was before. This is the
-**訂正・削除の履歴** ("record of corrections and deletions") that Japanese law
-requires for 優良電子帳簿. View it with `iris api history` or in the web app's
-**Activity** timeline and per-journal **History** panel, and export the
+file — who changed it, when, and what it was before. In Japanese this is the
+**訂正・削除の履歴** ("record of corrections and deletions"). View it with
+`iris api history` or in the web app's **Activity** timeline and per-journal
+**History** panel, and export the
 book's — its fiscal year's — record as a file with
 `iris api history --all --json`.
 
-Local git history does *not* count for this — only the server-side record is
-auditor-trustable, which is why the durable history lives on the cloud side.
+Local git history is not a substitute: it lives on your own machine and can be
+rewritten, so it is not an independent record. That is why the durable history
+lives on the server.
 
 ## The two lenses, side by side
 
 | | CLI + your AI | Web app |
 | --- | --- | --- |
-| Best for | File-first owners, automation | Owners who want a GUI, accountants |
+| Main use | Owners and accountants working with AI on files | Viewing, review and cloud administration |
 | Edits | Your AI writes files; you review | Forms in the browser |
 | Works offline | Yes | No (needs the server) |
 | Reports | `iris report …` (text/JSON) | Rendered + CSV export |

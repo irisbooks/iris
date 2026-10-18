@@ -1,8 +1,9 @@
 # Japan tax & compliance
 
 IrisBooks is built for Japanese bookkeeping. This page covers the things a
-Japanese owner or 税理士 needs: qualifying for 優良電子帳簿, classifying
-consumption tax (消費税), depreciating fixed assets, and closing the year.
+Japanese owner or 税理士 needs: the record-keeping features (correction
+history, search, traceability), classifying consumption tax (消費税),
+depreciating fixed assets, and closing the year.
 
 > **How IrisBooks splits the work.** The engine handles the universal,
 > stable parts — double-entry math, per-line classification, totals, data
@@ -11,64 +12,47 @@ consumption tax (消費税), depreciating fixed assets, and closing the year.
 > back. So you'll see "IrisBooks gives you the numbers; your AI fills the
 > form, IrisBooks checks it reconciles." That's deliberate.
 
-## 優良電子帳簿 — the three requirements
+## History, search and traceability
 
-First, the context. The full 65万円 青色申告 special deduction requires meeting
-the 55万円 conditions plus *either* of two routes: filing electronically via
-**e-Tax**, or keeping your books as **優良電子帳簿** under 電子帳簿保存法. So
-優良 status is optional — one of two routes, not a requirement. Its own
-distinct benefit is a 5% reduction of 過少申告加算税, and claiming it requires
-notifying your tax office in advance (届出).
+Four features keep a book's records checkable after the fact — by you, your
+税理士, or an auditor:
 
-優良電子帳簿 takes three capabilities, and IrisBooks maps directly onto them:
-
-| Requirement | What it means | In IrisBooks |
+| Feature | What it does | Where |
 | --- | --- | --- |
-| **訂正・削除の履歴の確保** | A record of every correction and deletion | The durable server history: `iris api history`, the web app **Activity** timeline + per-journal **History** panel |
-| **帳簿間の相互関連性の確保** | Entries in one book trace to the matching entries in related books (e.g. journal ↔ general ledger) | Inherent in the design: the ledger and reports are derived live from the journals, and every ledger row carries the journal file it came from (`iris report ledger`, the web app **Accounts** ledger) |
-| **検索機能の確保** | Search by date, amount, and counterparty (combinable) | `iris search`, and the filters on the web app **Journals** page |
+| **Correction/deletion history** (訂正・削除の履歴) | The server records every change to every file, deletions included — who changed it, when, and what it was before | `iris api history`; the web app **Activity** timeline and per-journal **History** panel (cloud) |
+| **Search** | Find journals by date, amount, and counterparty, in any combination — and by status, account, or tag | `iris search`; the filters on the web app **Journals** page |
+| **Ledger ↔ journal** | Every ledger row names the journal file it came from | `iris report ledger`; the web app **Accounts** ledger |
+| **Journal ↔ source document** | Every journal cites its receipts, invoices, and statements, and you can walk that link both ways | `iris show <path>`; the **Cited by** panel in the web app's Raw documents browser |
 
-The second requirement deserves a word, because IrisBooks meets it by
-architecture rather than by a feature. In traditional bookkeeping, entries
-are transcribed (転記) from the journal into the general ledger, so the two
-books must carry a shared reference — typically a journal number — for an
-auditor to match them up. IrisBooks has no transcription step: the journal
-files are the single source, and the general ledger, trial balance, and
-statements are derived from them on demand. Every ledger row cites the
-journal file it came from, so the relationship between books is preserved
-natively — nothing is copied, so nothing can drift apart.
+The ledger link comes from the design rather than from a separate feature.
+The journal files are the only source: the general ledger, trial balance, and
+statements are computed from them on demand. Nothing is copied into a second
+book, so the two can never drift apart.
 
-Two of the three — **search** and **book-to-book traceability** — work fully
-offline (`iris search`, `iris report ledger`). The third — the
-**correction/deletion history** — has to be trustworthy to an auditor, which
-only the server-side record provides. That's why it lives on the cloud side:
-local git history is *not* auditor-trustable.
+Search and both kinds of traceability work fully offline. The correction
+history is kept by the server, so it exists only for a book synced to the
+cloud. A **local-only book has no server-side correction history**, and local
+git history doesn't stand in for one: it lives on your own machine and can be
+rewritten, so it is not an independent record.
 
-Separately from the three requirements, every journal also cites its **source
-documents** — `iris show <path>` and the **Cited by** panel in the web app's
-Raw documents browser walk that link in both directions. That journal ↔
-evidence trail is what 電子帳簿保存法 asks of scanned paper documents
-(スキャナ保存, for 重要書類), and it is plain audit hygiene besides: an
-auditor can go from any entry to its receipt and back.
-
-> **Scope of the 優良 claim.** All three capabilities must hold *together*,
-> so 優良電子帳簿 applies only to a book kept on cloud sync.
-> A **local-only book is not covered**: search and book-to-book traceability
-> still work, but there is no auditor-trustable correction/deletion history.
-> The claim also holds only **while the book stays on the service**. If you
-> **delete a book** (after a 30-day window, all server data is permanently
-> destroyed — including the correction history), the
-> durable history is gone and the book no longer qualifies. As with paper
-> books, the legal duty to preserve your books — including that history —
-> for the statutory retention period (7 years, up to 10 in some corporate
-> cases) is yours. Before deleting a book, keep your own copy of the book
-> folder and of its record from `iris api history --all --json`
-> (see [Audit handoff](#audit-handoff)).
+Deleting a book ends its server record too: after a 30-day window, all of the
+book's server data — including the correction history — is permanently
+destroyed. As with paper books, the duty to preserve your books for the
+statutory retention period (7 years, up to 10 in some corporate cases) is
+yours. Before deleting a book, keep your own copy of the book folder and of
+its record from `iris api history --all --json`
+(see [Audit handoff](#audit-handoff)).
 
 > **Seals** (closing a year) lock the period — writes into a sealed year are
 > refused for journals and accounting dependencies until reopening; changes
 > to that scope made while reopened are flagged
 > in that history. See [Year-end close](#year-end-close).
+
+> **Not certified.** IrisBooks holds no certification (for example, no
+> JIIMA 認証) and does not claim that a book kept in it meets the
+> 優良電子帳簿 requirements. Whether your books qualify, and any advance
+> notification (届出) to your tax office, is for you and your 税理士 to
+> determine.
 
 ## Consumption tax (消費税)
 
@@ -371,22 +355,6 @@ What an auditor, a 税理士 or a tax office asks for is already in the book:
 - **Access.** Or invite your 税理士 into the book, where the history is
   visible entry by entry — see
   [Collaboration and roles](web-app.md#collaboration-and-roles).
-
-## Quick compliance checklist
-
-- [ ] `config/book.yaml` has the right `region: JP`, `entity_kind`, and
-      `fiscal_start_month`.
-- [ ] If 課税事業者: `consumption_tax` is set and lines are classified; `iris
-      validate` is clean.
-- [ ] Fixed assets are described in `assets/` with correct `useful_life_months`.
-- [ ] (Optional) If you want 優良電子帳簿 treatment: the book is on cloud
-      sync (for the correction/deletion history) and you have filed the
-      advance notification (届出) with your tax office. Keep the book on the
-      service for the retention period — deleting the book ends 優良
-      eligibility (keep a copy of the book and its
-      `iris api history --all --json` first if you must).
-- [ ] At year-end: `iris yearend` to start next year's book; once the return
-      is filed, seal the year in the old book.
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md) · [Troubleshooting](troubleshooting.md).

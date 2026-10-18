@@ -1,12 +1,19 @@
 # Getting started
 
-There are two ways into IrisBooks. Most owners begin with the **CLI** (works
-fully offline, no account). If you use the cloud, or you're an accountant,
-you'll also use the **web app**. This page walks both.
+Begin with book files and your own AI, whether you are an owner or an
+accountant. Local **`iris` CLI** work needs no account or network. The optional
+**web app** supports viewing, review and cloud administration. This page walks both.
+
+Accountants should use a separate assistant work folder/session for each
+client and clone existing shared books rather than create new identities.
+See [the file workflow](cli-and-llm.md) for folder and tool access boundaries.
 
 ## Path A — Create a book on your machine (CLI)
 
 ### 1. Install `iris`
+
+The CLI is free and provided **as is**. Individual support, bug fixes and
+continued updates are not guaranteed. See [CLI use and support](cli-and-llm.md#cli-use-and-support).
 
 `iris` is a single binary. On macOS or Linux:
 
@@ -38,8 +45,8 @@ Run the guided wizard in an empty directory:
 iris init
 ```
 
-It asks for a book name, region, language, entity kind (individual / company /
-…), fiscal-year start, the fiscal year the book covers (a book is one year —
+It asks for a book name, region, language, fiscal-year start month (January
+unless you pick another), the fiscal year the book covers (a book is one year —
 pick last year's if you're catching up on its filing), and whether your AI assistant should **post entries
 automatically** after validating (say no to review and post them yourself —
 you can change this later by editing the "Posting policy" section of
@@ -47,7 +54,7 @@ you can change this later by editing the "Posting policy" section of
 
 ```bash
 iris init --name "Acme Design" --region JP --language en \
-  --entity-kind individual --fiscal-start-month 4 .
+  --fiscal-start-month 4 .
 ```
 
 Add `--sample` to seed ~40 demo entries you can explore and then delete. See
@@ -84,8 +91,8 @@ workflow. Your AI reads `LLM-GUIDE.md` at the book root before working.
 ### 5. The everyday loop
 
 ```bash
-# 1. Drop a bank CSV / receipt / invoice anywhere under raw/
-# 2. Ask your AI to process it into journal entries (status: draft)
+# 1. Share a document, point to an accessible file, or report a personal cash balance
+# 2. Your AI files available originals in raw/ and prepares entries (status: draft)
 # 3. Check the structure and the math
 iris validate
 # 4. See where you stand
@@ -93,8 +100,11 @@ iris balance
 iris report pl --from 2026-04-01 --to 2026-06-30
 ```
 
-That's the whole offline loop: files in `raw/`, entries in `journals/`,
-`iris validate` to check, `iris report` to read. No account, no network.
+Your AI can handle document filing; you do not need to move files into `raw/`
+yourself. Personal spending can start from a balance and a short interview,
+with estimates recorded explicitly; business records need precision and
+supporting evidence. See [the everyday workflow](cli-and-llm.md).
+Local `iris` needs no account or network; your AI service may need a connection.
 
 ## Path B — Use the web app (cloud)
 
@@ -103,9 +113,10 @@ collaboration, and the durable server history. It needs an IrisBooks account.
 
 ### 1. Sign in
 
-Go to the IrisBooks web app and sign in (or sign up). Accounts are
-email + password. If your accountant invited you, sign up with the invited
-email address and the book will already be waiting.
+Cloud accounts are invitation-only. Request an invitation through the
+[Discord community](https://discord.gg/wZDsv9gyb9), then sign in to the
+[web app](https://irisbooks.jp/app/) with the invited email address.
+If your accountant shared a book, it will already be waiting.
 
 ### 2. Create a book
 
@@ -114,15 +125,13 @@ the wizard and follow the linking step below before creating a separate cloud
 book. After linking and syncing, use **Refresh book list** in the wizard to open it.
 
 If you have no books yet, the app drops you into the **New book** wizard. Give
-the book a name and region, say whether an individual or a company keeps it,
-choose the fiscal year it covers,
-and pick the month its fiscal year starts (a Japanese company defaults to
-April, everyone else to January). It's created in the cloud — already seeded
+the book a name and region, choose the fiscal year it covers, and pick the
+month its fiscal year starts (January unless you pick another). It's created in the cloud — already seeded
 with its `config/book.yaml` and a starter chart of accounts, so
 `iris clone <book-id>` gives you a working local folder right away.
 
-Region, individual-or-company and the fiscal-year start can't be changed once
-the first journal is posted. The review step shows the dates your first fiscal
+Region and the fiscal-year start can't be changed once the first journal is
+posted. The review step shows the dates your first fiscal
 year covers, so check them there.
 
 ### 3. Link an existing local book (optional)
@@ -130,10 +139,15 @@ year covers, so check them there.
 Already have a book on disk from Path A? Connect the two so they sync:
 
 ```bash
-iris api login                 # one-time browser sign-in (this device gets its own session)
+IRISBOOKS_APP_BASE=https://irisbooks.jp IRISBOOKS_API_BASE=https://irisbooks.jp/api iris api login
 iris api books new             # or: iris api books link <book-id>
 iris sync                      # push your local files up
 ```
+
+In PowerShell, set `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.jp'` and
+`$env:IRISBOOKS_API_BASE = 'https://irisbooks.jp/api'` before `iris api login`.
+Successful login saves the service selection. Accounts and cloud books are
+separate between regional services.
 
 Run inside your book folder, `iris api books new` creates the cloud book from
 that folder's own settings (name, fiscal year, region, …) and links it for
@@ -157,9 +171,8 @@ your account settings. Full walk-through in
 ## Do I need an account?
 
 Not for bookkeeping itself — the local files and CLI are complete on their
-own. An IrisBooks account adds sync, the web app, collaboration, and the
-durable correction/deletion history that Japan's (optional) 優良電子帳簿
-status requires. See
+own. An IrisBooks account adds sync, the web app, collaboration, and a
+durable correction/deletion history kept on the server. See
 [Core concepts → Sync](concepts.md#sync-the-three-ways-to-work).
 
 ## Next steps

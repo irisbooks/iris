@@ -51,7 +51,7 @@ draft into a book where you are only a Reviewer.
   posted lines, including concern fields. Supply `from`/`to`, or `year` for sum.
 - **Read Net Worth and prices** — `get_networth` uses your included books
   (or one `book_id`); `get_holdings` reads a book's unit quantities;
-  `list_prices` reads your recorded prices. The first two accept `as_of`.
+  `list_prices` reads one page of your recorded prices. It accepts `unit`, `currency`, `year`, `limit` and `cursor`; follow `nextCursor` with the same filters. The first two accept `as_of`.
   These reads use synced data. Price recording and price sync stay in local
   MCP/CLI; the remote connector exposes no price write tool.
 - **Browse and search entries** — by date, payee, amount, status.

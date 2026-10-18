@@ -49,8 +49,10 @@
   元帳を読み、`report="sum", by="tax.category,tax.rate"` で記帳済みの行を
   分類別に集計します。`from`・`to`、または sum 用の `year` を指定できます。
 - **純資産と価格の参照** — `get_networth` は集計対象の帳簿（または指定した
-  `book_id`）、`get_holdings` は帳簿の単位別数量、`list_prices` は自分の
-  記録済み価格を読みます。前者 2 つは `as_of` を指定できます。
+  `book_id`）、`get_holdings` は帳簿の単位別数量を読みます。前者 2 つは
+  `as_of` を指定できます。`list_prices` は自分の記録済み価格を 1 ページずつ
+  読みます。`unit`・`currency`・`year`・`limit`・`cursor` を指定でき、同じ条件で
+  `nextCursor` を渡して続きを取得します。
   同期済みのデータを使います。価格の記録・同期はローカル MCP または CLI で
   行い、リモートコネクタには価格の書き込みツールはありません。
 - **仕訳の閲覧・検索** — 日付・取引先・金額・ステータスで。

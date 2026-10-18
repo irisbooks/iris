@@ -65,10 +65,9 @@ iris init [flags] <path>
 | `--name` | Book display name |
 | `--region` | Region code (JP, US; default JP) |
 | `--language` | Language (ISO 639-1) |
-| `--entity-kind` | individual / company / partnership / trust |
 | `--chart` | Starter-chart variant, where the region offers several — JP: general / it / food (default general). A region without a chart of its own gets a neutral starter chart |
 | `--currency` | Currency (ISO 4217; default per region) |
-| `--fiscal-start-month` | Fiscal-year start month 1–12 |
+| `--fiscal-start-month` | Fiscal-year start month 1–12 (default 1, January — pass `4` for a year that starts in April) |
 | `--fiscal-year` | The fiscal year the book covers (YYYY; default: the one holding today) — e.g. last year's, when you're catching up on its filing |
 | `--sample` | Seed ~40 demo journals to explore |
 | `--posting` | Posting policy written into LLM-GUIDE.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
@@ -305,7 +304,8 @@ sum     { groupBy[], from?, to?,
 
 `type` and `net` on a `Balance` populate once the account is classified against
 the chart. `ledger.entries[].balance` is the running balance *after* that entry,
-and `file` is the journal it came from — that is the 帳簿間の相互関連性 trail.
+and `file` is the journal it came from, so every ledger row traces back to its
+journal.
 `sum.rows[].keys` is positional: one entry per `--by` key, in the order you gave
 them.
 
@@ -383,18 +383,27 @@ double-count).
 ### iris overlay
 
 The region overlay is the versioned set of country-specific rules, recipes and
-derivations the book validates and computes with — pinned by `overlay:` in
+derivations the book validates and computes with — pinned by `overlay:` or `overlays:` in
 `config/book.yaml`, extended by the book's own `config/overlays/` when present.
 
 ```bash
 iris overlay list [--json] [path]                                   # the overlay in effect: pin, layers, rules, recipes, derivations
+iris overlay guide <id> [path]                                     # read a pinned package workflow guide
 iris overlay recipe <id> --set name=value ... [--write <path>] [path]  # run a recipe; --write records it with provenance
 iris overlay test [--json] [path]                                   # run the golden tests of every layer in effect
 iris overlay test --dir <overlay-dir> [--json]                      # run one published overlay's golden tests, outside any book
 iris overlay fetch [path]                                           # download + verify the version the book pins, if this iris lacks it
-iris overlay upgrade [--to <id>@<version>] [path]                   # move the pin to the newest published version (or --to)
+iris overlay upgrade [--to <id>@<version>] [--dry-run] [path]                   # move the pin to the newest published version (or --to)
 iris overlay trust [path]                                           # trust this book's config/overlays/ on this machine
 ```
+
+`list --json` includes `pins`, `fields` with allowed values, rule conditions
+and assertions, parameter schemas, and guide IDs. Local MCP exposes this
+through `describe_overlay` and `read_overlay_guide`. With plural pins, `fetch`
+verifies every member and upgrade checks the complete candidate set. `--dry-run`
+may populate the verified cache but leaves book files unchanged. See
+[book configuration examples](book-format-reference.md#configure-shared-rules-and-recipes-for-your-book)
+for stored defaults and account selectors.
 
 `recipe` prints the proposal; with `--write` a schedule recipe rewrites the
 asset file (`schedule:` + `schedule_source:`) and a figures recipe writes a
@@ -538,8 +547,10 @@ standalone copy, in a new folder beside this one (`acme-2025` →
   day and tagged `opening-balance`. Balance-sheet accounts carry forward at
   their closing balance (with quantities for currency, crypto and other
   unit-tracked holdings); income and expense reset to zero; net income folds
-  into the equity account named by `opening_balance_equity_account` in
-  `config/book.yaml` (or the book's sole equity account).
+  into the equity account marked `retained_earnings: true` in
+  `config/chart-of-accounts.yaml`, or the chart's only equity account when
+  none is marked. With several equity accounts and none marked, the run stops
+  and asks you to mark one.
 
 Entries already dated in the new year **move** to the new book, with the raw
 files they cite. Earlier journals, `compiled/`, `filings/`, parse caches and
@@ -611,19 +622,38 @@ stored in the book).
 
 ```bash
 iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--source S]
-iris price list [--unit BTC] [--json]
-iris price sync
+iris price list [--unit BTC] [--currency JPY] [--year 2026] [--json]
+iris price sync [--json]
+iris price conflicts [--json]
+iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
 ```
 
 **Output shapes.** `list --json`:
 
 ```text
-[ { unit, currency, date, valueMicro, source?, origin, recordedAt } ]
+[ { unit, currency, date, valueMicro, source?, origin, recordedAt,
+    revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
 
 `valueMicro` is the value of **one whole unit** × 1,000,000, so a ¥9,850,000
 bitcoin is `9850000000000`. `origin` is `local` (captured on this machine) or
-`server`. `sync --json` returns `{ pushed, pulled }`.
+`server`. `sync --json` returns `{ pushed, pulled, conflicts }`; unresolved
+conflicts give exit code 1 after other cells have synced.
+
+Prices are stored by observation calendar year under
+`~/.config/irisbooks/prices/YYYY.jsonl`. The old `prices.jsonl` migrates on first
+use and is retained. Sync downloads changes after the last successful page;
+corrections to older years are included.
+
+For concurrent edits of the same unit/currency/date, identical value and source
+converge automatically. Different edits retain both candidates. Local reports
+use the accepted server price for known conflicts and identify affected
+positions in `priceConflicts`; history annotates each affected point and movers
+include both dates. Other prices and bookkeeping reports continue working.
+Inspect `price conflicts --json`, then resolve using the displayed server
+revision and local edit ID. `--choose local` keeps the correction for the next
+sync; `--choose server` discards it. To supply a replacement, keep local and
+record the replacement before syncing. Stale resolution choices fail.
 
 ## MCP server
 
@@ -696,13 +726,21 @@ observations, separately from book sync. Prices live in the user's config
 folder, outside tax book files. Except `get_holdings`, these portfolio tools
 need no local `book` selector; local valuation requires book folders.
 
+Cloud `list_prices` accepts `unit`, `currency`, `year`, `limit` and `cursor`,
+and returns one page; follow `nextCursor` with the same filters. Local reads
+flag known conflicts and return the effective report price. Use `price_conflicts`
+to inspect both candidates, and `resolve_price_conflict(unit, currency, date,
+choose="local"|"server", revision, edit)` only with the user's explicit choice
+and the displayed identifiers. Resolution is local; sync afterward to publish a
+retained correction. Identical price/source edits converge without a prompt.
+
 With `--books-dir`, select an existing parent folder, such as `~/IrisBooks`,
 whose immediate children are book folders. Call `list_books` to discover them,
 then pass the child folder name as `book` on each book operation, such as
 `validate(book="freelance-2026")`. New books appear without restarting.
 An empty parent is supported: `create_book(book="freelance-2026")` creates a
-child book; optional `name`, `region`, `entity_kind`, `fiscal_start_month` and
-`fiscal_year` customize it. The parent itself is never initialized as a book,
+child book; optional `name`, `region`, `fiscal_start_month` and `fiscal_year`
+customize it. The parent itself is never initialized as a book,
 and existing books or non-empty child folders are never overwritten.
 
 In parent mode, use `list_recipes(book="freelance-2026")` to discover that
@@ -785,8 +823,34 @@ iris api whoami     # validate the cached token
 iris api logout     # revoke this device's session and remove the token
 ```
 
-For a cloud agent or a browser that blocks localhost callbacks, use file delivery
-(the browser's download folder must be accessible to the CLI):
+For an LLM running in a VM, use phone approval. The VM needs no browser,
+passkey or shared download folder:
+
+```bash
+iris api login --device
+# Give the user the printed IrisBooks URL and request number.
+# On their own phone: sign in, enter the number, review access and approve.
+iris api login --device-complete
+iris api whoami
+```
+
+The user can sign in with a registered passkey or password + authenticator
+code. Enter passwords and authenticator codes only in the user's browser;
+never give them to the agent. Number entry alone does not approve access:
+check the account, permissions and warning before approving. The device name
+is supplied by the requesting device and is not verified.
+
+`--device-complete` checks once. A waiting message with exit code 0 means
+approval is still pending and no new credential was saved; wait at least five
+seconds between checks. Continue only after `Authorized` and a successful
+`whoami`. Requests expire ten minutes after start. Starting again replaces
+the local pending request; use the latest number. Denied, expired or uncertain
+completion needs a new request. Completion uses the original environment.
+Only the CLI handles private proof and credential storage; do not inspect or
+share its pending/token files. `iris api logout` clears local pending state.
+
+File delivery is also available when the browser's download folder is
+accessible to the CLI:
 
 ```bash
 iris api login --handoff-file
@@ -818,8 +882,8 @@ iris api books link [--force] <book-id> [path]
 Run `new` from inside a local book that has no cloud id yet and the new book
 is linked to that folder automatically — the same effect as `books link`, so
 the next `iris sync` just works. The cloud book is created from that folder's
-`config/book.yaml` (name, fiscal year, region, currency, individual or company,
-fiscal-year start), so no flags are needed; a flag that contradicts the file is
+`config/book.yaml` (name, fiscal year, region, currency and fiscal-year
+start), so no flags are needed; a flag that contradicts the file is
 refused. It starts empty, and that first sync pushes the folder's own files.
 `--no-link` skips all of this. Run `new` from inside a
 book that is *already* linked and it refuses: a second cloud book there would
@@ -831,8 +895,8 @@ Outside a book folder, provide at least `--name` and `--fy`:
 iris api books new --name "Acme Design" --fy 2026 --region JP
 ```
 
-Other flags are `--currency`, `--book-type PERSONAL|BUSINESS`, `--scale`,
-`--no-link`, and `--idempotency-key`. Creation prints a retry key; retain it
+Other flags are `--currency`, `--scale`, `--no-link`, and
+`--idempotency-key`. Creation prints a retry key; retain it
 and reuse `--idempotency-key <key>` if the result is uncertain, to avoid a
 duplicate book. Inside a local book, the default key is derived from its
 stable local ID, so retrying the same creation uses the same key.
@@ -851,8 +915,14 @@ iris api token revoke <token-id>
 
 ### iris api config
 
-Show or set per-user preferences (reporting currency, default unit scales).
-Merged into new books at `iris init`.
+Show or set per-user preferences. Reporting currency controls cross-book
+reports. Default unit scales are a template copied into `config/book.yaml`
+by signed-in `iris init` when available; existing books are unchanged.
+Without default units, new books start with no explicit unit entries.
+Known currencies still use built-in precision; templates can override their
+quantity precision or declare custom units.
+`--remove-unit` removes a unit from the account template, not existing books.
+`iris init --no-user-defaults` skips the template.
 
 ```bash
 iris api config
@@ -975,10 +1045,17 @@ year.
 ### iris api price / networth
 
 ```bash
-iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S]
-iris api price list [--unit BTC] [--json]
+iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S] [--revision N]
+iris api price list [--unit BTC] [--currency JPY] [--year 2026] [--page] [--limit 500] [--cursor C] [--json]
 iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
 ```
+
+`iris api price list` follows every server page by default. `--page` returns
+`{ items, nextCursor, syncCursor, hasMore, userId }`; follow `nextCursor` using
+`--cursor` with the same filters. Page size is 1–1000. Each item includes its
+`revision`. Creation uses revision 0; correcting an existing cell requires
+`add --revision N` from the displayed row. A stale different edit fails with a
+conflict; identical value/source retries acknowledge the accepted row.
 
 `iris api networth` values one explicitly selected cloud book.
 Cloud cross-book totals, history, movers and inclusion settings were removed

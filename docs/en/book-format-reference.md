@@ -61,14 +61,11 @@ overlay: jp@2026.09.1           # region rules version, pinned at init (see belo
 language: ja                    # ISO 639-1; chart language follows this
 currency: JPY                   # ISO 4217
 scale: 0                        # minor-unit exponent — IMMUTABLE (JPY 0, USD 2, BHD 3)
-entity_kind: individual         # individual | company | partnership | trust
 fiscal_start_month: 4           # 1–12
 fiscal_year: 2026               # the fiscal year this book covers (2026-04-01..2027-03-31 here)
 created_at: "2026-06-20T12:34:56Z"
 
 # Optional:
-tax_id: "..."                   # opaque per region
-opening_balance_equity_account: "資本:元入金"   # where `iris yearend` folds net income
 strict_accounts: false          # false = allow accounts not in the chart (default is strict)
 
 units:                          # non-currency units (forex, crypto, metals, shares)
@@ -82,6 +79,21 @@ consumption_tax:                # JP only — see Japan tax page
   method: general
   business_class: 5
 ```
+
+`units` is optional and starts empty in new books. Known currencies use
+built-in quantity precision (JPY: 0, USD/EUR: 2, KWD: 3), without entries
+in this list. An explicit `units` entry overrides that currency's quantity
+precision; custom units such as BTC or shares require a declaration.
+Unknown symbols must include `scale`; even whole-unit custom units must
+explicitly specify `scale: 0`. Omitting it (or writing `null`) is rejected
+by local parsing, synced book uploads, and account unit-template API writes.
+For example, `- {symbol: USD, scale: 4}` permits four fractional digits
+in a USD `quantity`. It does not change the precision of journal amounts:
+those use the book's top-level `scale`, which defaults from `currency` when
+omitted. An explicit top-level `scale: 0` remains zero, even for USD.
+Signed-in `iris init` copies available account unit templates;
+`--no-user-defaults` skips them. Account preferences affect new books only.
+The BTC entry above is an example, not a preinstalled default.
 
 `scale` is the number of fractional digits the currency uses, and it is
 **immutable** — JPY is `0` (whole yen, no decimals), USD/EUR are `2`, the Gulf
@@ -108,10 +120,132 @@ works offline. Newer versions are released on their own, without a new
 `iris`: `iris overlay upgrade` moves the pin to the newest one after checking
 it, and `iris overlay fetch` downloads a version newer than your `iris` that a
 book already pins (for example, a book set up on another computer). Both
-verify the version's signature first. If your `iris` has neither built in
+verify the version's signature first. For legacy `overlay:` books, if your `iris` has neither built in
 nor downloaded the pinned version, `iris validate` warns and names the version
 it used instead. The cloud always checks the version the book pins, and refuses
 a pin to a version that has not been published.
+
+## Pin several published overlays
+
+`overlays` selects an **unordered set of exact versions**. Use it instead of
+`overlay`; the two forms cannot appear together. For example, a published
+specialist package could accompany the regional package:
+
+```yaml
+# Illustrative: jp-rsu must be published before this configuration can load.
+overlays:
+  - jp@2026.09.1
+  - jp-rsu@2026.10.1
+```
+
+Every member must be available locally or fetched with `iris overlay fetch`.
+An unavailable member stops validation; the plural form never substitutes
+another version. Duplicate package IDs, incompatible regions or dependencies,
+and conflicting published rule IDs or field definitions are errors. Pin order
+does not determine precedence. Each package keeps its own CEL helpers; a recipe
+records the exact version of the package that owns it.
+
+A package can declare `region: JP` and exact supported dependency versions in
+`overlay.yaml`, for example `requires_overlays: {jp: [2026.09.1]}`. Packages
+using the new selectors or parameter contract declare `requires_bindings: 2`.
+`iris overlay upgrade --dry-run` checks the candidate set, golden tests,
+book-layer compatibility and settings before showing the proposed pins.
+`--to jp-rsu@<version>` changes that member; without `--to`, upgrade checks
+the latest release of every pinned member together.
+
+## Discover field choices and workflow guides
+
+`iris overlay list --json` exposes pins, rules (including `when` and `assert`),
+parameter schemas, field definitions and guide IDs. Local MCP provides the
+same information through `describe_overlay`; a parent-folder server also takes
+`book`. These definitions describe the versions this book actually uses.
+
+Published packages may include an optional `fields.yaml`:
+
+```yaml
+fields:
+  line.sales.channel:               # path: target.concern.field
+    type: string
+    description: {en: Sales channel, ja: 販売チャネル}
+    enum:
+      - {value: online, label: {en: Online, ja: オンライン}}
+      - {value: store, label: {en: Store, ja: 店舗}}
+```
+
+Here `online` and `store` are the stored values; the labels are display text.
+Absent fields are optional unless `required: true` is declared. A field may
+also have a CEL `when` condition. Present values are checked against their
+types and choices. Older packages without field definitions still expose their
+rule assertions, including any lists of accepted values; structured metadata
+requires a new published version or an additional book-local field definition.
+
+A package's `guides/*.md` describes its workflow. Read a discovered guide with
+`iris overlay guide <id> [path]` or local MCP `read_overlay_guide` (`guide`).
+The text is reference data from the pinned package; it does not grant authority
+to edit or submit anything.
+
+## Configure shared rules and recipes for your book
+
+Rules are validations: they run `when` and then check `assert`. A matching rule
+does not create a report. Derivations propose field values; recipes compute
+schedules or figures. All three may declare `params` with a name, type,
+optional default and optional `enum`. Rule and derivation expressions read
+`params.<name>`; recipe expressions retain their named input variables.
+
+For example, a sales rule could declare an account selector and require a memo:
+
+```yaml
+rules:
+  - id: sales.memo-required
+    target: line
+    params:
+      - {name: accounts, type: account_selector, default: {exact: ['収益:Sales']}}
+    when: account_matches(line.account, params.accounts)
+    assert: line.memo != ''
+    message: {en: A selected sales line needs a memo., ja: 対象の売上明細にはメモが必要です}
+```
+
+Book-specific inputs go in `config/book.yaml.overlay_settings`, under the
+package ID, then `rules`, `derivations` or `recipes`, then the item ID:
+
+```yaml
+# Illustrative settings for a package defining these items.
+overlay_settings:
+  jp-sales-demo:
+    rules:
+      sales.memo-required:
+        params:
+          accounts: {contains: うりあげ}  # literal, case-sensitive substring
+    derivations:
+      sales.channel:
+        params: {channel: store}         # must be in the declared enum
+    recipes:
+      monthly-sales:
+        params:
+          accounts: {exact: ['収益:Sales']}
+          from: '2026-09-01'
+          to: '2026-09-30'
+```
+
+An `account_selector` contains exactly one of `exact` (a non-empty list of
+account references), `subtree` (a path and its colon-separated descendants),
+or `contains` (a literal substring). It never assumes that `うりあげ`, `売上`
+and `Sales` are synonyms. CEL `account_matches` tests one reference;
+`select_accounts(journals, selector)` supplies selected lines to `sums`.
+
+Quote dates and timestamps in settings, including inside maps and lists:
+`cutoff: '2026-09-01'`. Unquoted YAML dates are rejected before sync. Whole
+numbers inside map/list parameters use integer arithmetic locally and on the
+server; fractional values use doubles. A declared scalar `double` keeps that
+type.
+
+Unknown settings, absent required rule inputs, wrong types and invalid choices
+are errors. Recipe invocation values override book defaults. Before a recipe
+runs, name selectors resolve to sorted exact references found in the journals;
+no match is an error. Those resolved inputs are saved in provenance. Replay
+uses the saved inputs even if book defaults later change, while changed
+journal figures still make a saved filing stale. A monthly-sales computation
+is a reusable example; it is not itself a statutory tax return.
 
 ## Journal files — `journals/YYYY-MM/*.md`
 
@@ -196,6 +330,9 @@ accounts:
   - path: 資産:事業主貸
     type: asset
     owner: true               # the owner's own money — left out of Net Worth
+  - path: 資本:元入金
+    type: equity
+    retained_earnings: true   # optional — where `iris yearend` folds net income
 ```
 
 The account's normal side is derived from its `type`. `aliases` let journals
@@ -208,6 +345,15 @@ balance sheet lays out the way the 青色申告決算書 expects), but they hold
 owner's own money moving in and out of the business, not something the
 business owns or owes, so [Net Worth](web-app.md#net-worth) leaves them out.
 The Japanese starter charts set it.
+
+`retained_earnings: true` marks the equity account
+[`iris yearend`](cli-reference.md#iris-yearend) folds the year's net income
+into — 資本:元入金 for a sole proprietor, 純資産:繰越利益剰余金 for a company.
+At most one account may set it, and it must be `type: equity`; `iris validate`
+and the cloud refuse a chart that breaks either rule. When no account sets it,
+`iris yearend` uses the chart's only equity account, so the starter charts
+(which have exactly one) leave it out. Set it once your chart has more than
+one equity account.
 
 ## Asset files — `assets/YYYY/*.md`
 
@@ -362,18 +508,45 @@ hand. Filings sync and are sealed with the book, unlike `compiled/`.
 ## Your book's overlay layer — `config/overlays/` (optional)
 
 The region overlay — the rules, recipes and derivations your book's region
-comes with — is published with iris and pinned by `overlay:` in `book.yaml`.
+comes with — is published with iris and pinned by `overlay:` or `overlays:` in `book.yaml`.
 A book may add its own layer on top:
 
 ```text
 config/overlays/
 ├── overlay.yaml        # id: book / extends: jp@2026.09.1
+├── fields.yaml         # optional field types and choices
 ├── functions.yaml      # optional shared expressions
 ├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)
 ├── recipes/*.yaml      # extra computations
 ├── derive/*.yaml       # extra derived-value proposals
 └── tests/*.yaml        # golden cases — `iris overlay test` runs them
 ```
+
+With multiple published pins, the layer's `extends` is a list containing all
+of them. Local expressions inherit the regional primary package's CEL helpers;
+other published packages keep their helpers private. An override of an existing
+rule, derivation or recipe keeps that item's package ID for `overlay_settings`.
+New book-local items use the reserved `book` settings key, independent of the
+published pins and the local manifest's ID:
+
+```yaml
+overlay_settings:
+  book:
+    rules:
+      local.memo:
+        params: {memo: invoice}  # a new rule declared in config/overlays/rules/
+```
+
+Use the declared item ID for rules/derivations and the short recipe name for
+new local recipe defaults. Published field definitions cannot be replaced by
+the book layer. When adding a required rule input, sync its book-local definition
+first, then its settings. During a pin upgrade, the server can accept the new
+config even if the stored layer cannot compile on it; published settings must
+still be valid. Repair the definitions against the new pins, then sync the
+matching `extends` manifest. If several files need repair, each incoming
+definition must compile with the published and local helpers; file limits still
+apply while other definitions await repair. Record writes wait until the actual
+layer and all settings are valid.
 
 Rules and recipes are written in [CEL](https://cel.dev) expressions over the
 book's records — a language with no file or network access and a bounded cost,
@@ -382,7 +555,10 @@ your layer next to the published one, and the cloud applies it to every
 member's writes; only the book's Owner can change these files. The first time
 a machine meets a version of this layer it shows the files and asks once
 (`iris overlay trust` records the answer); until then only the published
-overlay applies. A recipe from your layer records `book:<hash>` as its source,
+overlay applies. `iris overlay list` and published MCP recipe tools remain
+available; the CLI and MCP `describe_overlay.issues` report
+`overlay.book-layer-untrusted`. Book-local settings are checked when the layer
+is trusted. A recipe from your layer records `book:<hash>` as its source,
 so a reviewer can see a schedule came from a book-specific recipe. The published
 overlays are open source (Apache-2.0) in the public
 [`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository. A layer

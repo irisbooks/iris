@@ -61,10 +61,9 @@ iris init [flags] <path>
 | `--name` | 帳簿の表示名 |
 | `--region` | 地域コード（JP, US。既定 JP） |
 | `--language` | 言語（ISO 639-1） |
-| `--entity-kind` | individual / company / partnership / trust |
 | `--chart` | 勘定科目テンプレートの種類（地域に複数ある場合）— 日本: general / it / food（既定 general）。専用の勘定科目表が無い地域では、特定の国に依存しない最小構成の勘定科目表になります |
 | `--currency` | 通貨（ISO 4217。地域既定） |
-| `--fiscal-start-month` | 会計年度開始月 1〜12 |
+| `--fiscal-start-month` | 会計年度開始月 1〜12（既定は 1 月。4 月に始まる年度なら `4`） |
 | `--fiscal-year` | この帳簿が扱う会計年度（YYYY。既定は今日を含む年度）— 前年度の申告をこれから済ませる場合は前年度など |
 | `--sample` | 試せるデモ仕訳を約40件追加 |
 | `--posting` | LLM-GUIDE.md に書き込む記帳ポリシー: `approve`(既定 — あなたが確認して記帳)/ `auto`(検証を通った仕訳をアシスタントが自動記帳) |
@@ -290,7 +289,7 @@ sum     { groupBy[], from?, to?,
 
 `Balance` の `type` と `net` は、その科目が勘定科目表に照らして分類できたときに
 入ります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
-は元の仕訳ファイルで、これが帳簿間の相互関連性をたどる道筋になります。
+は元の仕訳ファイルなので、元帳のどの行からも元の仕訳へたどれます。
 `sum.rows[].keys` は位置対応で、`--by` に渡したキーと同じ順に1つずつ並びます。
 
 ### iris search
@@ -365,18 +364,27 @@ iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末�
 ### iris overlay
 
 地域オーバーレイは、帳簿が検証と計算に使う国固有のルール・レシピ・派生の
-バージョン付きセットです。`config/book.yaml` の `overlay:` で固定され、帳簿独自の
+バージョン付きセットです。`config/book.yaml` の `overlay:` または `overlays:` で固定され、帳簿独自の
 `config/overlays/` があればそれで拡張されます。
 
 ```bash
 iris overlay list [--json] [path]                                   # 適用中のオーバーレイ: 固定バージョン・層・ルール・レシピ・派生
+iris overlay guide <id> [path]                                     # 固定したパッケージの手順書を読む
 iris overlay recipe <id> --set name=value ... [--write <path>] [path]  # レシピを実行。--write で根拠付きで記録
 iris overlay test [--json] [path]                                   # 適用中の各層のゴールデンテストを実行
 iris overlay test --dir <overlay-dir> [--json]                      # 公開オーバーレイ 1 つのゴールデンテストを帳簿の外で実行
 iris overlay fetch [path]                                           # 帳簿が固定したバージョンを、この iris になければダウンロードして検証
-iris overlay upgrade [--to <id>@<version>] [path]                   # 固定を公開済みの最新版（または --to）に移す
+iris overlay upgrade [--to <id>@<version>] [--dry-run] [path]                   # 固定を公開済みの最新版（または --to）に移す
 iris overlay trust [path]                                           # この帳簿の config/overlays/ をこのマシンで信頼する
 ```
+
+`list --json` には、`pins`、候補値を含む `fields`、ルールの条件・検証式、
+パラメーターの定義、手順書の ID が含まれます。ローカル MCP では
+`describe_overlay` と `read_overlay_guide` で確認できます。複数指定の場合、
+`fetch` は各パッケージの署名を検証し、`upgrade` は更新後の組み合わせ全体を
+確認します。`--dry-run` は検証済みキャッシュを保存する場合がありますが、
+帳簿のファイルは変更しません。既定値と科目選択の設定は
+[帳簿の設定例](book-format-reference.md#帳簿ごとにルールとレシピの入力を設定する)を参照してください。
 
 `recipe` は提案を表示します。`--write` を付けると、償却表のレシピは資産ファイルを
 書き換え（`schedule:` + `schedule_source:`）、集計レシピは `filings/` に申告記録を
@@ -519,8 +527,10 @@ iris attention retry --path <relpath> [path]   # 1ファイルのみ
   初日の日付で `opening-balance` タグを付けて作られます。貸借対照表科目は
   期末残高のまま繰り越され（外貨・暗号資産など数量を管理している保有資産は
   数量も含めて）、収益・費用はゼロにリセットされ、当期純利益は
-  `config/book.yaml` の `opening_balance_equity_account` で指定した資本科目
-  （未指定なら帳簿唯一の資本科目）へ折り込まれます。
+  `config/chart-of-accounts.yaml` で `retained_earnings: true` を付けた資本科目
+  （どの科目にも付いていなければ勘定科目表で唯一の資本科目）へ折り込まれます。
+  資本科目が複数あってどれにも付いていない場合は、いずれか 1 つに付けるよう
+  求めて止まります。
 
 すでに新年度の日付で記録した仕訳は、参照している元資料とともに新しい帳簿へ
 **移動**します。それより前の仕訳、`compiled/`、`filings/`、パースキャッシュ、
@@ -590,19 +600,37 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 
 ```bash
 iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--source S]
-iris price list [--unit BTC] [--json]
-iris price sync
+iris price list [--unit BTC] [--currency JPY] [--year 2026] [--json]
+iris price sync [--json]
+iris price conflicts [--json]
+iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
 ```
 
 **出力形**。`list --json`:
 
 ```text
-[ { unit, currency, date, valueMicro, source?, origin, recordedAt } ]
+[ { unit, currency, date, valueMicro, source?, origin, recordedAt,
+    revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
 
 `valueMicro` は**1単位あたり**の値 × 1,000,000 です（¥9,850,000 のビットコインは
 `9850000000000`）。`origin` は `local`（この端末で記録）か `server`。
-`sync --json` は `{ pushed, pulled }` を返します。
+`sync --json` は `{ pushed, pulled, conflicts }` を返します。
+競合が残る場合は、他の価格の同期を進めたうえで終了コード 1 を返します。
+
+価格は観測日の暦年ごとに `~/.config/irisbooks/prices/YYYY.jsonl` に保存します。
+従来の `prices.jsonl` は初回利用時に移行し、元のファイルも残します。
+同期は前回取得したページ以降の変更を取得します。過年度の価格訂正も対象です。
+
+同じ単位・通貨・日付への編集は、価格と出典が一致すれば自動で合流します。
+異なる場合は両方の候補を残します。競合が判明した価格は、ローカル集計でも
+サーバーの確定値を使い、影響する保有を `priceConflicts` に示します。
+推移では該当する時点、変動要因では比較する両時点に情報を添えます。
+他の価格や記帳レポートの利用は続けられます。
+`price conflicts --json` で確認し、表示されたサーバーの revision とローカル編集 ID
+を指定して解決します。`--choose local` は次の同期で送る訂正を残し、
+`--choose server` はその編集を破棄します。別の値に直す場合は local を選んでから
+価格を再記録して同期します。候補が変わった後の古い解決指定は拒否されます。
 
 ## MCP サーバー
 
@@ -675,12 +703,20 @@ cloud を残すとサイドカーファイルを削除します。attention の�
 `get_holdings` 以外の価格・資産価値ツールにはローカルの `book` 指定が不要で、
 ローカルの価値集計には帳簿フォルダが必要です。
 
+クラウドの `list_prices` は `unit`・`currency`・`year`・`limit`・`cursor`
+を受け取り、1 ページを返します。同じ条件で `nextCursor` を渡して続きを取得します。
+ローカルの参照は既知の競合を示し、集計に使う価格を返します。
+`price_conflicts` で両候補を確認し、ユーザーが選んだ場合にだけ
+`resolve_price_conflict(unit, currency, date, choose="local"|"server", revision, edit)`
+に表示された識別子を渡します。解決はローカルで行い、残した訂正は次の同期で公開します。
+価格と出典が一致する編集は自動で合流します。
+
 `--books-dir` には、帳簿フォルダを直下にまとめた既存の親フォルダ（例:
 `~/IrisBooks`）を指定します。`list_books` で帳簿を確認し、各操作の `book` に
 子フォルダ名を渡します（例: `validate(book="freelance-2026")`）。帳簿を追加しても
 サーバーの再起動は不要です。空の親フォルダでも起動でき、
 `create_book(book="freelance-2026")` で子フォルダに新しい帳簿を作成できます。
-`name`・`region`・`entity_kind`・`fiscal_start_month`・`fiscal_year` も指定できます。
+`name`・`region`・`fiscal_start_month`・`fiscal_year` も指定できます。
 親フォルダ自体は帳簿にせず、既存の帳簿や空でない子フォルダは上書きしません。
 
 親フォルダモードでは `list_recipes(book="freelance-2026")` で帳簿のレシピ名と
@@ -761,9 +797,34 @@ iris api whoami     # キャッシュ済みトークンを検証
 iris api logout     # このデバイスのセッションを取り消してトークンを削除
 ```
 
-クラウド上の AI エージェントや、localhost へのアクセスが制限されたブラウザでは、
-認可結果をファイルで受け取れます。ブラウザのダウンロード先を CLI から読み取れる
-必要があります。
+VM 上の AI エージェントには、スマートフォンからの承認が使えます。
+VM にブラウザやパスキー、共有のダウンロードフォルダは必要ありません。
+
+```bash
+iris api login --device
+# 表示された IrisBooks の URL とリクエスト番号をユーザーに伝えます。
+# ユーザー自身のスマートフォンでサインインし、番号を入力してアクセス内容を確認・承認します。
+iris api login --device-complete
+iris api whoami
+```
+
+登録済みのパスキー、またはパスワードと認証アプリのコードでサインインできます。
+パスワードや認証コードはユーザー自身のブラウザに入力し、エージェントには
+渡さないでください。番号を入力するだけではアクセスは許可されません。
+アカウント・権限・注意書きを確認してから承認してください。デバイス名は
+アクセスを要求した側が指定したもので、本人確認済みの情報ではありません。
+
+`--device-complete` は一度だけ状態を確認します。終了コードが 0 でも、待機の
+メッセージが出た場合は未承認で、新しい資格情報は保存されていません。
+再確認は 5 秒以上空けてください。`Authorized` が表示され、`whoami` が成功してから
+先に進みます。リクエストは開始から 10 分で失効します。やり直すとローカルの
+待機状態が置き換わるため、最新の番号を使ってください。拒否・期限切れ・完了したか
+不明な場合は新しいリクエストを開始します。完了時には開始時の環境を使います。
+秘密の検証値や資格情報は CLI が内部で扱うため、待機ファイルやトークンファイルを
+読んだり共有したりしないでください。`iris api logout` でローカルの待機状態も解除できます。
+
+ブラウザのダウンロード先を CLI から読み取れる場合は、認可結果をファイルで
+受け取る方法も使えます。
 
 ```bash
 iris api login --handoff-file
@@ -795,7 +856,7 @@ iris api books link [--force] <book-id> [path]
 クラウド ID をまだ持たないローカル帳簿の中で `new` を実行すると、作成した帳簿が
 そのフォルダに自動で link されます。`books link` と同じ効果なので、続けて
 `iris sync` がそのまま動きます。クラウド帳簿はそのフォルダの `config/book.yaml`
-（帳簿名、会計年度、地域、通貨、個人・法人の区分、会計年度の開始月）から作られる
+（帳簿名、会計年度、地域、通貨、会計年度の開始月）から作られる
 ため、フラグは不要です。ファイルと食い違うフラグを指定すると拒否します。作成時点の
 クラウド帳簿は空で、最初の同期でフォルダ自身のファイルが push されます。
 `--no-link` を付けると、これらをすべて行いません。すでに link 済みの
@@ -808,8 +869,7 @@ iris api books link [--force] <book-id> [path]
 iris api books new --name "Acme Design" --fy 2026 --region JP
 ```
 
-ほかに `--currency`・`--book-type PERSONAL|BUSINESS`・`--scale`・`--no-link`・
-`--idempotency-key` が使えます。作成時に表示される再試行キーを保存してください。
+ほかに `--currency`・`--scale`・`--no-link`・`--idempotency-key` が使えます。作成時に表示される再試行キーを保存してください。
 成功したか分からない場合は、同じ `--idempotency-key <key>` で再試行すると、帳簿の
 重複作成を防げます。ローカル帳簿の中では、安定したローカル ID から既定のキーを
 作るため、同じ帳簿での再試行には同じキーが使われます。
@@ -828,8 +888,13 @@ iris api token revoke <token-id>
 
 ### iris api config
 
-ユーザー単位の設定（レポート通貨、既定の単位スケール）を表示・設定します。
-`iris init` 時に新しい帳簿へ取り込まれます。
+ユーザー単位の設定を表示・変更します。集計通貨は複数帳簿のレポートに使います。
+既定の単位と小数桁数は新規帳簿用のひな形で、ログイン済みの `iris init` が
+取得できれば `config/book.yaml` に取り込みます。既存の帳簿には反映されません。
+既定の単位がなければ、単位リストが空の帳簿を作成します。既知の通貨には
+内蔵の小数桁数を使います。ひな形で数量の桁数を上書きしたり、独自単位を登録できます。
+`--remove-unit` はひな形から単位を削除します。既存帳簿の単位は削除しません。
+`iris init --no-user-defaults` でひな形の取り込みを省略できます。
 
 ```bash
 iris api config
@@ -949,10 +1014,18 @@ iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSV 
 ### iris api price / networth
 
 ```bash
-iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S]
-iris api price list [--unit BTC] [--json]
+iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S] [--revision N]
+iris api price list [--unit BTC] [--currency JPY] [--year 2026] [--page] [--limit 500] [--cursor C] [--json]
 iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
 ```
+
+`iris api price list` は既定で全ページを取得します。`--page` は
+`{ items, nextCursor, syncCursor, hasMore, userId }` を返します。
+同じ条件で `--cursor` に `nextCursor` を渡して続きを取得します。
+ページ件数は 1〜1000 です。各価格には `revision` が含まれます。
+新規登録は revision 0、既存価格の訂正は表示された revision を
+`add --revision N` に渡します。古い revision からの異なる訂正は競合になり、
+価格と出典が一致する再送は確定済みの値を返します。
 
 `iris api networth` は指定したクラウド帳簿 1 冊だけを評価します。
 帳簿横断の合計・推移・変動要因・集計対象設定は CLI から削除しました。

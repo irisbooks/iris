@@ -1,15 +1,20 @@
 # Using the web app
 
-The web app is the graphical interface to IrisBooks, available to any
-signed-in account. It's the primary surface for accountants and a comfortable second lens
-for owners who'd rather click than type. It works against the cloud copy of
-your book, so it needs you to be signed in and online.
+The web app is the viewing and review surface for owners and accountants:
+read reports, review entries, approve where permitted, inspect history and
+manage cloud access. For bookkeeping work, accountants should also use
+[book files with their own AI](cli-and-llm.md), in a separate workspace for
+each client. The web app works against the cloud copy of your book, so it
+requires sign-in and an online connection.
 
 ## Signing in
 
-Accounts are email + password. From the sign-in screen you can:
+Accounts start with email + password. From the sign-in screen you can:
 
-- **Log in** with your email and password.
+- **Log in** with your email and a registered passkey, or your password.
+  When authenticator protection is enabled, password login also requires
+  its six-digit code. If a passkey prompt is cancelled or unavailable,
+  choose password login and use your authenticator.
 - **Sign up** (when open) — submit your email and password, then confirm with
   the verification code emailed to you.
 - **Reset a password** via "Forgot password" — request a code, then set a new
@@ -17,9 +22,8 @@ Accounts are email + password. From the sign-in screen you can:
 
 These screens have a language switch in the top-right corner (labeled
 "日本語" / "English") in case your browser's language was guessed wrong.
-The emails behind these flows (verification codes, reset codes, invitations)
-arrive in the app's language — the switch here, your browser on first
-visit, or whatever you chose later in Settings → Language.
+The `.io` service currently sends verification codes, reset codes and invitations
+using Cognito's default English emails. The app itself supports both languages.
 
 If your accountant invited you to a book, sign up (or log in) with the exact
 email they invited, and the book is already there.
@@ -28,31 +32,52 @@ There's also a **CLI authorization** page: when you run `iris api login`, the
 browser opens here to authorize the command-line tool. Confirm it's your email
 and the expected tool, then approve.
 
+For `iris api login --device`, open the printed IrisBooks URL on your own
+phone. Sign in, enter the request number, then review your account, permissions
+and warning before approving. Approve only a request you intentionally started;
+the displayed device name is not verified. Your password, authenticator code
+and passkey stay with you; the VM receives its own CLI session after approval.
+
+### Passkeys and authenticator backup
+
+In your avatar menu → Settings → Account security, first set up an
+authenticator app. Scan the QR or copy the setup key, then verify a code.
+Keep a backup of the authenticator. You can then add a passkey on your own
+device, and add another passkey as a spare. Passkey login uses your device's
+biometric or PIN verification; it does not require an additional authenticator
+code. You can replace the authenticator or remove a passkey in the same card.
+
+Sign in again if asked before changing protection. After a change, existing
+browser, CLI, API-token and connector access is revoked; sign in or reconnect
+where needed. If finishing the change fails, use the completion retry button.
+Existing users choose when to enroll. Password reset does not remove
+authenticator protection, and self-service recovery after losing all factors
+is not available. Keep a working backup before relying on passkeys.
+
 ## Layout
 
-The top bar carries your location:
+The sidebar stays available on both global and book pages:
 
-- **Dashboard** — the one always-visible tab, for the screens that span
-  your whole account.
-- **The book plate** — the current book's name and fiscal year, side by
-  side with the book's color dot. Click the name to switch books (each book
-  is listed with its year — two years of one business share a name), open
-  **My Books**, or create a new book. Inside a book, the year links to the
-  book's **Year-end** screen.
+- **Across books** contains **Dashboard** and **Net Worth**, for portfolio
+  reports.
+- **My Books** lists each book with its fiscal year. Open a book to enter
+  its Overview; when switching from another book, the current section is
+  preserved and book-specific filters and resource selections are cleared.
+  The arrow expands its sections without changing the current page. One
+  book expands at a time, with Overview, Journals, Activity, four report
+  links, and management pages for Files, Accounts, Notes, Year-end and
+  Book settings.
+- **Closed books** groups closed and archived books. A direct link to one
+  opens its group and sections automatically.
+- **Manage books** opens the full **My Books** directory; **Add new book**
+  starts book creation. Both are available with one book as well.
 
-Whichever of the two is your current place is gently recessed into the
-bar — carved in, like a nameplate. Inside a book the plate is carved and
-tinted with the book's color; on screens outside a book it sits flat and
-dimmed (Dashboard is carved instead) — clicking the book's name takes you
-back inside.
-
-Inside a book, the left sidebar lists that book's screens: Journals and
-Activity, a Reports group (General Ledger / Trial Balance / P&L / Balance
-Sheet — all four always visible), and a Manage group (Accounts, Raw
-documents, Notes, Year-end, Settings). Outside a book there is no sidebar —
-the Dashboard and its related screens use the full width. On a phone, the
-book plate sits on its own row under the top bar, with the menu button for
-the book's screens at its right edge.
+The top bar names the current global page: **Dashboard**, **Net Worth**,
+**Manage books**, **Settings**, or **Add new book**. Inside a book, it shows
+the book's name and fiscal year; the year links to its **Year-end** screen.
+The top bar stays visible as you scroll, with the sidebar or mobile drawer
+directly below it.
+On a phone, use the top-left menu button for the same navigation.
 
 Your **avatar** (top right) opens the account menu from anywhere: your
 **Settings** (see below), a language switch, and log out. The language
@@ -61,18 +86,19 @@ so if the interface ever ends up in a language you can't read, the way
 back stays readable. Everything else — including the color theme —
 lives in Settings.
 
-Each book gets its own accent color — the plate and the sidebar rail wear
-it — so you always know where you are. **Net Worth** opens from its card on
-the Dashboard, and **My Books** from the book plate's menu; both have a
-"‹ Dashboard" link to step back.
+Each view has its own URL: `/app/` for Dashboard, `/app/networth` for Net
+Worth, `/app/books` for the directory, and `/app/b/<book-id>/...` for book
+pages. You can bookmark them or open independent browser tabs. The address
+decides which book is shown; a previously visited book does not override
+it. Existing report filters and file selections remain in their URLs.
 
 ## Dashboard
 
-The home screen. With one book it shows that book's headline numbers —
-revenue, expenses, net income, a P&L flow chart and balance-sheet treemap, and
-a banner if any entries are still incomplete. The net-worth tile also appears
-with one book. With two or more books it adds an action queue (what needs
-attention across books), a consolidated P&L, and your top movers.
+The portfolio home screen shows net worth, consolidated P&L, top movers
+and pending drafts for one or more books. Book-specific P&L flow charts and
+balance-sheet composition live in that book's **Overview**. Opening a book
+in the sidebar does not change the books included in portfolio reports;
+use each report's inclusion controls for that.
 
 If your books don't all use the same currency, set a base currency
 (`iris api config set --base-currency JPY`). The consolidated P&L then shows
@@ -219,10 +245,28 @@ one door: your **avatar menu (top right) → Settings**.
 **Your settings** (avatar menu → Settings — available everywhere, even
 outside any book) hold what belongs to you, not to a book:
 
+- **Change password** — enter your current password and confirm a new one.
+  After saving, browser/CLI sessions, API tokens and connected apps are
+  revoked. Sign in with the new password and reconnect your tools.
+- **Sign-in email** — verify the new address with its email code. Until
+  verification finishes, your current address still works for login and
+  recovery. Use **I already have a verification code** after a page reload.
+- **Close account** — permanent. Export needed data and delete cloud books
+  you created or hold Owner access to first. Sign out and sign in again,
+  then close within five minutes by typing your email and confirming.
+  Personal settings/prices and shared-book access are removed; your sign-in
+  identity is deleted. Local files and others' shared books remain. Book
+  histories, deleted-book retention and security records follow the privacy
+  policy. If cleanup is incomplete, contact support privately with the
+  reference shown. A closed account cannot be reopened.
 - **Language** — switch the interface between English and 日本語.
 - **Appearance** — light, dark, or follow the system.
 - **Books** — every book you're a member of, with your role; each row opens
   that book's own settings page.
+- **Account security** — sign out every device and revoke all API tokens,
+  CLI sessions, connected apps, and pending sign-in approvals. Confirm the
+  action, then sign in again and reconnect your tools. Use this if a device
+  or credential may have been lost.
 - **Personal Access Tokens** — create tokens for the CLI and integrations.
 - **Connect your AI** — the remote connector URL and setup steps. See
   [Your AI on the go](remote-connector.md).
@@ -288,8 +332,9 @@ anytime. (Owners can also manage grants from the CLI — see
 [`iris api grants`](cli-reference.md#iris-api-grants).)
 
 This is how an **owner and an accountant** share a book: the owner invites the
-accountant (or the accountant invites the owner), and both work against the
-same cloud book — the owner often via CLI + AI, the accountant via the web app.
+accountant (or the accountant invites the owner). Each can work with AI on
+their own synced files, sharing the same cloud book. Web supports viewing,
+review and permitted approvals alongside that file work.
 
 ### Personal Access Tokens (PATs)
 
@@ -301,7 +346,14 @@ won't be shown again), and use it as `IRIS_API_TOKEN`. A token expires after
 their last-used time and expiry, and you can revoke any token immediately — here in
 Settings, or from the CLI with `iris api token list` / `iris api token revoke`
 (Full-access PATs can revoke tokens too; creating one stays web-only).
-Accountants use PATs to run `iris api …` across many client books from scripts.
+Select the books the token may access. Your role on each book remains the
+upper bound; listings and reports include only permitted books. **Allow creating
+books** also gives this token the same action permissions on books it creates,
+including the next year's book. Unrelated books created elsewhere are excluded.
+Year-end continuation requires Full scope and Owner on the source book. A
+restricted Full token can list/revoke itself; other tokens remain manageable in
+the web app. Older unrestricted credentials retain their existing access;
+revoke and recreate them to narrow it.
 
 ## Net Worth
 
@@ -327,7 +379,10 @@ included — so record them yourself with `iris price add`.
 
 ## For accountants — the daily shape
 
-If you manage many client books:
+Prepare and validate work with your own AI in a separate work folder and
+restricted assistant environment for each client. See the
+[file workflow](cli-and-llm.md) for folder, tool and credential boundaries.
+Use the web app to organize your review across clients:
 
 - **My Books** is your client directory — each book (one per client per
   fiscal year) with its year, draft count, last activity, and a **Year-end**
@@ -336,12 +391,14 @@ If you manage many client books:
   worklist — each badge links straight into that book's Year-end screen.
 - Switch into a client book to review and approve entries, check the
   **Activity** log for what staff did, and run reports.
-- Use **PATs** + `iris api …` to script repetitive work across books.
+- Run authorized **PAT** + `iris api …` batch scripts separately from
+  individual clients' AI sessions.
 - At year-end, close each client's fiscal year from **Year-end** (or the
   CLI) — see
   [Japan tax & compliance](japan-tax-and-compliance.md).
 
-Each client's files and permissions belong to a separate book. The dashboard's
+Cloud permissions are granted per book; a client may have several fiscal-year
+books. Keep that client's files together in their own workspace. The dashboard's
 **Consolidated P&L** includes all books you can access by default, including
 client books; use its book picker to choose the totals you want to see.
 **Net Worth** defaults to owned books only; invited books require opt-in in

@@ -2,20 +2,72 @@
 
 This is the file-first way to keep your books: you bring your own
 AI assistant (Claude, Cursor, Copilot, or any MCP-capable agent), it reads and
-writes the Markdown/YAML files, and the `iris` CLI checks the work and answers
-questions about the books. Everything here works offline.
+writes the book's files, and the `iris` CLI checks the work and calculates
+reports. Accounting records use Markdown with YAML frontmatter; configuration
+uses standalone YAML. Local `iris` works offline without an account; your
+chosen AI service may need its own internet connection.
+
+## CLI use and support
+
+The `iris` CLI is free and provided **as is**, without warranties. Individual
+support, bug fixes and continued updates are not guaranteed. Review its output
+and keep independent backups of your books. Questions and bug reports are
+welcome in the [Discord community](https://discord.gg/wZDsv9gyb9); replies are
+not guaranteed.
 
 ## The mental model
 
-You don't type ledger entries into a form. Instead:
+Start with what you want to record or understand:
 
-1. You drop **source documents** into `raw/`.
-2. Your **AI** reads them and proposes **journal entries** as files.
+1. Share a document, point your AI to an accessible file, or tell it what
+   happened. With the tools and access you grant, it can also retrieve a statement.
+2. Your **AI** files available originals under the book's `raw/`, interprets
+   the information and proposes **journal entries** and a summary.
 3. **`iris`** validates the structure and the math and computes reports.
-4. **You** review and approve (promote entries to `posted`).
+4. **You** review, approve or ask questions. Review before posting is the
+   default; follow the book's chosen policy if you authorize automatic posting.
 
-The AI does the tedious transcription; `iris` is the deterministic referee;
-you stay in control of what becomes final.
+The AI reasons and explains; `iris` checks and calculates. You do not need to
+organize files manually or learn the file formats. Validation checks encoded
+rules; it does not prove that a source was interpreted correctly.
+
+## Personal tracking can stay relaxed
+
+For everyday personal spending, keep as much detail as is useful to you.
+You do not need every receipt. Report your current cash and let your AI ask
+a few broad questions about spending since the last check-in, accounting for
+cash added or transferred. Or use a credit-card or bank statement: keep its
+amounts and let the AI infer broad categories. Estimates and unexplained
+differences should stay visible rather than become invented purchases.
+
+Business books need precise amounts, dates, classifications and supporting
+evidence; personal records used for tax or reimbursement need the same care.
+Ask your AI to save your preferred detail level in `notes/workflow.md` and
+keep assumptions in the entries or notes. These files also preserve decisions
+and questions for your next session or a different assistant. Optional sync
+adds a cloud mirror and server-side change history.
+
+## Accountants: use a separate work folder for each client
+
+Accountants should also prepare and validate work in book files with their
+own AI. Keep each client's books in a separate persistent folder. Give a
+dedicated assistant session or VM, such as a Cowork session for Client A,
+access only to Client A's folder. It can contain that client's books for
+several fiscal years; do not mount the firm's all-client parent folder.
+
+Clone existing shared books into that folder and sync through an authorized
+workflow. Read their guides and notes, prepare corrections, validate and
+follow the book's posting policy. Save context in the client's files so the
+next session can continue. Keep a persistent copy outside temporary VM storage.
+
+Check connected tools and credentials too. A shared host MCP server can have
+broader cloud access than its file root, and PAT roles do not limit a token
+to one client. Keep broad firm credentials and batch tools outside the client
+session; if needed, clone/sync separately and give the AI only the selected
+files and tools that cannot access other clients. Verify the actual boundary.
+
+Use the [web app](web-app.md) for reports, review, permitted approvals and
+history. It complements the accountant's file work.
 
 ## One-time setup: connect your AI
 
@@ -45,9 +97,9 @@ but it's why the AI knows the conventions (filenames, double-entry rules,
 where to flag uncertainty).
 
 > **Sandboxed assistants** (e.g. agents in a VM without the `iris` binary):
-> there is no bundled copy inside the book. The model is "one host `iris`,
-> reached over MCP" — the host runs `iris mcp serve` and the assistant calls
-> the verbs as MCP tools against the same folder.
+> there is no bundled copy inside the book. If using host MCP, the host runs
+> `iris mcp serve` and the assistant calls its tools against the same folder.
+> For client work, the host connection must respect the client boundary above.
 
 For Cowork's `.mcpb` extension, choose a **parent folder of books**, such as
 `~/IrisBooks`, with each book in its own immediate child folder. Give Cowork
@@ -57,6 +109,11 @@ It finds books with `list_books` and names the target book on every operation.
 Adding another child book requires no change to the global MCP settings.
 For manual setup, use `iris mcp serve --books-dir ~/IrisBooks`; `--book PATH`
 continues to serve a single book. See [MCP commands](cli-reference.md#iris-mcp).
+
+For accountant work, the parent must contain only one client's books, such
+as `~/IrisBooks/ClientA/2026` and `~/IrisBooks/ClientA/2027`. Configure that
+client's assistant connection to `~/IrisBooks/ClientA`, and check its cloud
+credentials separately. A separate chat alone does not restrict access.
 
 ## Check and update iris
 
@@ -89,24 +146,31 @@ an update unless the user has already authorized it.
 
 ## The everyday loop
 
-### 1. Drop a document into `raw/`
+### 1. Share information with your AI
 
-Put bank CSVs, receipt scans, or PDF invoices anywhere under `raw/`. Subfolders
-by date or vendor are fine — the AI figures out what each file is from its
-contents, not its location.
+You can attach a bank CSV, receipt scan or PDF invoice in chat, point to an
+accessible folder, or ask the AI to retrieve it with tools and access you
+grant. The AI can save the original under the book's `raw/`; you can also put
+files there yourself if you prefer. Subfolders by date or vendor are fine.
+For personal cash tracking, a reported balance and a short interview can be
+enough without a document.
 
 ### 2. Ask your AI to process it
 
-Tell your assistant something like *"process the new bank statement in raw/"*.
+Tell your assistant something like *"record this statement"* or
+*"help me catch up on my personal cash spending"*.
 Following `LLM-GUIDE.md`, it will:
 
-- Read the file in full and write a **parse cache** to
+- For a document, read it in full and write a **parse cache** to
   `notes/raw/<source>.md` — a durable table marking each row `journaled`,
   `ignored`, or `deferred`. This means re-opening the same statement later
   doesn't redo the work.
-- Propose one journal per real transaction as
-  `journals/YYYY-MM/…-NN.md` with `status: draft`.
-- File anything ambiguous in `notes/open-questions.md` instead of guessing.
+- For an interview, save what you reported and any assumptions in the entry's
+  body or book notes.
+- Propose journals as `journals/YYYY-MM/…-NN.md` with `status: draft` at the
+  agreed detail level.
+- Record unresolved business questions or material unknowns in
+  `notes/open-questions.md`; make personal estimates and inferred categories explicit.
 
 ### 3. Validate
 
@@ -173,10 +237,17 @@ iris api books link <book-id>
 iris sync                 # one explicit push + pull pass
 ```
 
+During browser approval, select the books this CLI may access. Enable
+**Allow creating books** to create your first book or next year's book: books
+created by this credential are automatically included with the same permissions.
+Other later books are excluded. Callback, downloaded-file and device approval
+use the same picker. Year-end continuation still requires Owner on the source
+book and Full token scope.
+
 After that:
 
 - `iris sync` pushes your local changes and pulls anything new (e.g. entries
-  your accountant added in the web app). It reports per-file accept/reject.
+  your accountant prepared and synced from their files). It reports per-file accept/reject.
 - `iris diff` shows exactly what *would* be pushed before you sync.
 - `iris api history --path journals/2026-05/...md <book-id>` shows the durable
   correction/deletion record for a file.
