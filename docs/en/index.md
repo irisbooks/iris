@@ -1,4 +1,4 @@
-# IrisBooks User Manual
+# IrisBooks Docs
 
 IrisBooks is local-first, double-entry bookkeeping with your own AI assistant.
 Your book is a **folder you keep**: journals and other accounting records use

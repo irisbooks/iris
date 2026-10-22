@@ -36,8 +36,8 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 ## 「iris: command not found」
 
 `iris` バイナリがまだこのマシンの `PATH` にありません。インストールして
-（macOS / Linux は `curl -fsSL https://irisbooks.jp/install.sh | sh`、
-Windows PowerShell は `irm https://irisbooks.jp/install.ps1 | iex`）、
+（macOS / Linux は `curl -fsSL https://irisbooks.io/install.sh | sh`、
+Windows PowerShell は `irm https://irisbooks.io/install.ps1 | iex`）、
 `iris version` で確認します。サンドボックスの AI 環境で作業して
 いる場合、帳簿内に同梱コピーは**ありません**。ホストが `iris mcp serve` を実行し、
 アシスタントが各動詞を MCP 経由で呼び出します。

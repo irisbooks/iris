@@ -14,12 +14,16 @@ in the way the current MCP specification asks for, and IrisBooks only accepts
 apps whose identity it recognises — so if your app can't complete the
 sign-in, that is usually why, rather than anything wrong with your account.
 
+After choosing a book, your assistant can call `read_book_guide` to read its
+synced `AGENTS.md`. The connector remains draft-only even when the book allows
+auto-posting locally.
+
 ## Set it up
 
 1. In your AI app, add a custom connector with this URL:
 
    ```text
-   https://irisbooks.jp/mcp
+   https://irisbooks.io/mcp
    ```
 
    (In Claude: Settings → Connectors → Add custom connector.)
@@ -72,7 +76,7 @@ draft into a book where you are only a Reviewer.
   instead of pretending it worked. If the document is already in your email,
   the AI hands you the book's [receiving address](email-inbox.md) instead.
 
-Cloud cross-book reports share one generation per user per UTC day with the web app. Later requests reuse the same inputs, even with different dates or books. Responses show `snapshot.generatedAt` and `snapshot.nextRefreshAt`; changes to journals or prices appear at the next generation. Reporting currency and inclusion preferences can re-render stored inputs immediately. Current access is always checked. A failed generation consumes the daily slot.
+Cloud cross-book reports share one automatic generation per user per UTC day with the web app. Later requests reuse the same inputs, even with different dates or books. Responses show `snapshot.generatedAt` and `snapshot.nextRefreshAt`; changes to journals or prices appear at the next generation. To include synced changes sooner, sign in to the web app and choose **Run aggregation** on Dashboard or Net Worth. Remote MCP then reads that updated snapshot; it cannot trigger aggregation itself. Reporting currency and inclusion preferences can re-render stored inputs immediately. Current access is always checked. A failed automatic generation consumes the daily slot, but the user can explicitly retry from the web app.
 
 ## What it deliberately can't do
 

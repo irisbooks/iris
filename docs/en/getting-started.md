@@ -18,13 +18,13 @@ continued updates are not guaranteed. See [CLI use and support](cli-and-llm.md#c
 `iris` is a single binary. On macOS or Linux:
 
 ```bash
-curl -fsSL https://irisbooks.jp/install.sh | sh
+curl -fsSL https://irisbooks.io/install.sh | sh
 ```
 
 On Windows (PowerShell):
 
 ```powershell
-irm https://irisbooks.jp/install.ps1 | iex
+irm https://irisbooks.io/install.ps1 | iex
 ```
 
 The installer downloads the binary for your platform, verifies its signature,
@@ -50,7 +50,7 @@ unless you pick another), the fiscal year the book covers (a book is one year �
 pick last year's if you're catching up on its filing), and whether your AI assistant should **post entries
 automatically** after validating (say no to review and post them yourself —
 you can change this later by editing the "Posting policy" section of
-`LLM-GUIDE.md`). Then it scaffolds the folder. You can also skip the prompts:
+`AGENTS.md`). Then it scaffolds the folder. You can also skip the prompts:
 
 ```bash
 iris init --name "Acme Design" --region JP --language en \
@@ -75,8 +75,9 @@ this.)
 
 ### 4. Connect your AI assistant
 
-The fastest way to actually do bookkeeping is to let your AI assistant read
-and write the files. Wire it up once:
+If your assistant can already run the CLI and access this folder, no additional
+integration is needed. Read `AGENTS.md` and start the requested work. To connect
+an MCP client or refresh missing local guides, run:
 
 ```bash
 iris onboard
@@ -86,7 +87,7 @@ This registers `iris mcp serve` with your MCP-capable clients (Claude Code,
 Claude Desktop, Codex, Cursor, Gemini CLI, VS Code) and writes a Claude Code
 skill so your assistant knows how to work in the book. See
 [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) for the full
-workflow. Your AI reads `LLM-GUIDE.md` at the book root before working.
+workflow. Your AI reads `AGENTS.md` at the book root before working.
 
 ### 5. The everyday loop
 
@@ -115,7 +116,7 @@ collaboration, and the durable server history. It needs an IrisBooks account.
 
 Cloud accounts are invitation-only. Request an invitation through the
 [Discord community](https://discord.gg/wZDsv9gyb9), then sign in to the
-[web app](https://irisbooks.jp/app/) with the invited email address.
+[web app](https://irisbooks.io/app/) with the invited email address.
 If your accountant shared a book, it will already be waiting.
 
 ### 2. Create a book
@@ -127,7 +128,7 @@ book. After linking and syncing, use **Refresh book list** in the wizard to open
 If you have no books yet, the app drops you into the **New book** wizard. Give
 the book a name and region, choose the fiscal year it covers, and pick the
 month its fiscal year starts (January unless you pick another). It's created in the cloud — already seeded
-with its `config/book.yaml` and a starter chart of accounts, so
+with its `config/book.yaml`, a starter chart of accounts and `AGENTS.md`, so
 `iris clone <book-id>` gives you a working local folder right away.
 
 Region and the fiscal-year start can't be changed once the first journal is
@@ -139,13 +140,13 @@ year covers, so check them there.
 Already have a book on disk from Path A? Connect the two so they sync:
 
 ```bash
-IRISBOOKS_APP_BASE=https://irisbooks.jp IRISBOOKS_API_BASE=https://irisbooks.jp/api iris api login
+IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login
 iris api books new             # or: iris api books link <book-id>
 iris sync                      # push your local files up
 ```
 
-In PowerShell, set `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.jp'` and
-`$env:IRISBOOKS_API_BASE = 'https://irisbooks.jp/api'` before `iris api login`.
+In PowerShell, set `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'` and
+`$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'` before `iris api login`.
 Successful login saves the service selection. Accounts and cloud books are
 separate between regional services.
 

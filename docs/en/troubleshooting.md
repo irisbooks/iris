@@ -38,8 +38,8 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 ## "iris: command not found"
 
 The `iris` binary isn't on this machine's `PATH` yet. Install it
-(`curl -fsSL https://irisbooks.jp/install.sh | sh` on macOS/Linux,
-`irm https://irisbooks.jp/install.ps1 | iex` on Windows PowerShell), then check
+(`curl -fsSL https://irisbooks.io/install.sh | sh` on macOS/Linux,
+`irm https://irisbooks.io/install.ps1 | iex` on Windows PowerShell), then check
 with `iris version`. If you're working in a sandboxed AI environment, there is
 **no** copy bundled inside the book — the host runs `iris mcp serve` and your
 assistant calls the verbs over MCP instead.

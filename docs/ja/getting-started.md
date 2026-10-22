@@ -18,13 +18,13 @@ CLI は無料で、**現状のまま（as is）**提供します。個別サポ�
 `iris` は単一のバイナリです。macOS / Linux では:
 
 ```bash
-curl -fsSL https://irisbooks.jp/install.sh | sh
+curl -fsSL https://irisbooks.io/install.sh | sh
 ```
 
 Windows（PowerShell）では:
 
 ```powershell
-irm https://irisbooks.jp/install.ps1 | iex
+irm https://irisbooks.io/install.ps1 | iex
 ```
 
 インストーラーがお使いのプラットフォーム向けバイナリをダウンロードし、
@@ -50,7 +50,7 @@ iris init
 この帳簿が扱う会計年度を順に尋ねます（帳簿は1年に1冊です。
 前年度の申告をこれから済ませるなら前年度を選びます）。最後に、検証を通った仕訳を AI アシスタントに
 **自動で記帳**させるかを聞きます（「いいえ」なら、自分で確認してから記帳します。
-あとで `LLM-GUIDE.md` の「記帳ポリシー」を編集すれば変えられます）。答え終わると
+あとで `AGENTS.md` の「記帳ポリシー」を編集すれば変えられます）。答え終わると
 フォルダが生成されます。質問を飛ばして一括指定もできます。
 
 ```bash
@@ -73,8 +73,9 @@ iris init --name "Acme Design" --region JP --language ja \
 
 ### 4. AI アシスタントをつなぐ
 
-実際に記帳を進める一番速い方法は、AI アシスタントにファイルを読み書きさせる
-ことです。最初に一度だけ設定します。
+AI が CLI を実行でき、このフォルダを読み書きできるなら追加の接続設定は不要です。
+`AGENTS.md` を読んで作業を始められます。MCP クライアントの接続や不足する案内の追加には、
+次を実行します。
 
 ```bash
 iris onboard
@@ -84,7 +85,7 @@ iris onboard
 Desktop・Codex・Cursor・Gemini CLI・VS Code）に登録され、アシスタントが
 帳簿内での作業手順を理解するための Claude Code スキルが書き込まれます。詳しい
 流れは [CLI と自分の LLM で記帳する](cli-and-llm.md) を参照。AI は作業前に
-帳簿ルートの `LLM-GUIDE.md` を読みます。
+帳簿ルートの `AGENTS.md` を読みます。
 
 ### 5. 毎日のループ
 
@@ -112,7 +113,7 @@ Web アプリは、GUI・クラウド同期・複数端末アクセス・共同�
 ### 1. サインインする
 
 クラウドは招待制です。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で
-招待を依頼し、招待されたメールアドレスで[Webアプリ](https://irisbooks.jp/app/)に
+招待を依頼し、招待されたメールアドレスで[Webアプリ](https://irisbooks.io/app/)に
 サインインします。税理士が帳簿を共有している場合は、その帳簿が表示されます。
 
 ### 2. 帳簿を作る
@@ -124,7 +125,7 @@ Web アプリは、GUI・クラウド同期・複数端末アクセス・共同�
 まだ帳簿が1つもなければ、アプリは **新規帳簿**ウィザードを表示します。帳簿名と
 地域を入力し、対象の会計年度と会計年度の開始月を選ぶと、クラウド上に帳簿が
 作られます（開始月の初期値は1月です）。作成時点で
-`config/book.yaml` とひな形の勘定科目表が入っているため、`iris clone <book-id>`
+`config/book.yaml`、ひな形の勘定科目表、`AGENTS.md` が入っているため、`iris clone <book-id>`
 だけで、すぐ使えるローカルフォルダが手に入ります。
 
 地域と会計年度の開始月は、最初の仕訳を記帳した後は変更できません。
@@ -135,14 +136,14 @@ Web アプリは、GUI・クラウド同期・複数端末アクセス・共同�
 経路 A でディスク上に帳簿がある場合、両者を接続して同期できます。
 
 ```bash
-IRISBOOKS_APP_BASE=https://irisbooks.jp IRISBOOKS_API_BASE=https://irisbooks.jp/api iris api login
+IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login
 iris api books new             # または: iris api books link <book-id>
 iris sync                      # ローカルファイルを push
 ```
 
 PowerShellでは、`iris api login`の前に
-`$env:IRISBOOKS_APP_BASE = 'https://irisbooks.jp'`と
-`$env:IRISBOOKS_API_BASE = 'https://irisbooks.jp/api'`を設定します。
+`$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'`と
+`$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'`を設定します。
 ログインに成功すると接続先が保存されます。地域別のサービスでは、
 アカウントとクラウド帳簿をそれぞれ管理します。
 

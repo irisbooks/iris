@@ -25,7 +25,7 @@ your-book/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<raw/ のミラー>.md      # パースキャッシュ
 ├── compiled/                      # AI 生成レポート（再生成可能）
-├── README.md  LLM-GUIDE.md  CLAUDE.md   # 人間・AI 向けガイド
+├── README.md  AGENTS.md  CLAUDE.md   # 人間・AI 向けガイド
 └── .iris/                         # 実行時状態 — 手で編集しない
 ```
 
@@ -305,6 +305,103 @@ tax:
 
 [日本の税務・コンプライアンス](japan-tax-and-compliance.md) を参照。
 
+## 省略できる項目と自動で決まる値
+
+共通の設定は `config/book.yaml` にまとめます。通常の仕訳には日付、ステータス、
+科目と金額を記録し、必要に応じて取引先、証憑、メモを添えます。
+次の値は、明細行ごとに繰り返す必要がありません。
+
+| 値 | IrisBooks が使う値 | 指定する場所 |
+| --- | --- | --- |
+| 金額の通貨 | 帳簿の `currency` | `config/book.yaml` に一度指定 |
+| 金額の小数桁数 | 帳簿の `scale`。省略時は通貨に組み込まれた桁数 | 帳簿作成時に指定。作成後は変更不可 |
+| 数量の小数桁数 | `units` の指定を優先。指定がなければ既知の通貨の桁数 | 独自の単位は `config/book.yaml` に一度定義。整数単位も `scale: 0` を明記 |
+| 数量の向き | `debit` または `credit` のキー | 各行にどちらか一方を指定。`quantity` は常に正の数 |
+| 仕訳の識別子 | ファイル名 | 仕訳 ID のフィールドは不要 |
+
+金額だけを記録する行では、`quantity` と `unit` を両方省略します。
+株式などの数量を管理する場合は、その数量が動く行に両方を加えます。
+たとえば JPY の帳簿で、`FUND` を `scale: 0` で定義し、次の2科目を
+勘定科目表に登録してあれば、`journals/2026-10/2026-10-20-fund-01.md`
+にこの仕訳を書けます。
+
+```markdown
+---
+schema_version: 1
+date: 2026-10-20
+status: draft
+lines:
+  - account: Assets:Investments
+    debit: 100000
+    quantity: 10
+    unit: FUND
+  - account: Assets:Bank
+    credit: 100000
+---
+```
+
+10単位を10万円で購入した仕訳です。通貨、数量の向き、単位の小数桁数を
+仕訳の属性として追加する必要はありません。日付とステータスは明記します。
+`draft` の間は、通常のレポートに載りません。
+
+[ポートフォリオ分析](cli-reference.md#iris-analytics)では、購入行から取得分を
+識別できるため、単純な購入に `lot` のラベルは不要です。売却時の原価配分は、
+**先に取得した分から使う先入先出法（FIFO）が既定**です。
+科目と単位の組み合わせごとに、独立して計算します。対象に一致する
+`inventory.params.method` の明示指定を優先し、指定がなければ分析では
+期首在庫に保存された方法を引き継ぎます。どちらもなければ FIFO を使います。
+対応する値は `fifo`、`specific`、`moving-average` です。
+個別法（`specific`）では、売却ごとにロットを選びます。
+取得履歴や期首の取得原価が不明なら、取得原価は不明のままです。
+
+ローカルの比較レポートでは、仕訳を編集・記帳せずに売却原価と損益を計算します。
+原価の調整が必要な場合は、損益の計上先を `config/book.yaml` に一度指定します。
+
+```yaml
+inventory:
+  params:
+    gain_account: Income:Gain
+```
+
+科目の存在を厳密に検証する帳簿では、この科目を勘定科目表に登録してください。
+FIFO なら方法の指定は不要です。移動平均に変える場合は、帳簿または選択する
+ビューに `method: moving-average` を指定します。`accounts.exact` の省略時は、
+数量を持つ資産科目が対象です。科目を絞る場合はこの項目を、単位を絞る場合は
+`commodity` を指定します。
+計算結果は `iris report pl --mode comparison` で確認できます。
+比較レポートの JSON は `selection.inventoryMethods`、分析用 SQL は
+`inventory_method` に方法を表示します。純資産画面でも、数量を持つ科目の横に
+方法を表示します。通常の検証と承認済みレポートは記録済みの仕訳を使い、
+比較で計算した仕訳は未承認のままです。
+
+売却の下書きを補完するには、入金額と数量を記録し、原価を `credit: null` に
+します。上の損益科目を設定し、購入仕訳を記帳済みにしたうえで、次を
+`journals/2026-10/2026-10-21-sale.md` に保存します。
+
+```markdown
+---
+schema_version: 1
+date: 2026-10-21
+status: draft
+lines:
+  - account: Assets:Bank
+    debit: 70000
+  - account: Assets:Investments
+    credit: null
+    quantity: 5
+    unit: FUND
+---
+```
+
+`iris autocomplete journals/2026-10/2026-10-21-sale.md` を実行すると、
+保有科目の貸方5万円と、利益の貸方2万円をプレビューします。
+`--apply` とプレビューの `--revision` で適用できます。
+`default` オーバーレイは自動で使われるため、仕訳の属性を追加する必要はありません。
+手数料があれば、費用の行に明記してください。金額だけの通常の仕訳も、
+貸借を合わせる1行を `debit: null` または `credit: null` にできます。
+補完後も下書きのままで、検証は記録された金額を確認します。
+操作は [iris autocomplete](cli-reference.md#iris-autocomplete) を参照してください。
+
 ## 勘定科目表 — `config/chart-of-accounts.yaml`
 
 ```yaml
@@ -573,15 +670,50 @@ counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 | 1  | 2026-04-01 | Amazon JP   |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
 ```
 
+パースキャッシュを再利用する前に、`source_sha` と現在の原本の `iris hash` を
+比較します。原本が変わった場合は、変更された行と既存の仕訳への参照を確認し、
+完了済みの行の状態を保ってから追加の仕訳を作成します。
+
 ## 同期されるもの・されないもの
 
 クラウド同期では、`iris sync` が**同期対象**のファイルをクラウドにミラーします。
 
 - **同期される:** `journals/`、`assets/`、`filings/`、`notes/`（パースキャッシュ
-  含む）、`raw/`（バイト列そのまま）、`config/book.yaml`、
+  含む）、`AGENTS.md`（共有の作業ガイド）、`raw/`（バイト列そのまま）、`config/book.yaml`、
   `config/chart-of-accounts.yaml`、`config/rules.yaml`、`config/overlays/`。
-- **同期されない:** `.iris/`（実行時状態）、`README.md` / `LLM-GUIDE.md` /
-  `CLAUDE.md`（ガイド）、`compiled/`（再生成可能）。
+- **同期されない:** `.iris/`（実行時状態）、`README.md` / `CLAUDE.md`（ローカルの案内）、`compiled/`（再生成可能）。
 
 関連: [基本コンセプト](concepts.md) ·
 [CLI コマンドリファレンス](cli-reference.md)。
+
+### 独立した年度帳簿と取得原価の期首情報
+
+`iris yearend` は翌年度の `config/book.yaml` に完全な期首保有情報を書きます。
+各年度の帳簿は単独で評価でき、過年度の帳簿とのリンクは不要です。
+過去の期間も表示する場合に、その年度の帳簿を選びます。
+
+```yaml
+opening_inventory:
+  - account: Assets:Fund
+    unit: FUND
+    method: fifo
+    quantity: 100
+    carrying_value_minor: 1200000
+    acquisition_cost_minor: 1000000
+    lots:
+      - id: original-purchase
+        date: 2025-11-01
+        quantity: 100
+        cost_minor: 1000000
+```
+
+数量は単位の scale に従う整数、金額は帳簿通貨の最小単位の整数です。
+簿価と取得原価は別々に保持します。簿価の情報により、同じ科目にある帳簿通貨の現金と
+単位付き保有残高も区別します。FIFO・個別法では元のロットと取得日を保持し、移動平均では
+ロットなしの数量・原価を保持します。取得原価の null は不明を表します。
+期首仕訳は引き続き金額と数量の残高を表し、この帳簿自身の期首保有情報と一致する
+必要があります。評価替え後の期首金額から取得原価を推測しないでください。
+
+明示したロット ID はそのまま保持します。購入時のロット ID が省略されている場合、
+分析処理は会計年度・仕訳パス・元の行番号から、その帳簿の保有情報内で使う ID を生成します。
+クラウドへのリンクで帳簿 ID が変わっても、ロット ID は変わりません。

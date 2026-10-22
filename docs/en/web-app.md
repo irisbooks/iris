@@ -11,10 +11,14 @@ requires sign-in and an online connection.
 
 Accounts start with email + password. From the sign-in screen you can:
 
-- **Log in** with your email and a registered passkey, or your password.
+- **Log in** by entering your email and choosing **Continue**. Passkey sign-in
+  starts automatically when available. If no passkey is available, enter your
+  password.
+  If the passkey prompt is cancelled or fails, retry it or choose
+  **Use password instead**.
+  If it keeps failing, include the displayed **Support reference** when contacting support.
   When authenticator protection is enabled, password login also requires
-  its six-digit code. If a passkey prompt is cancelled or unavailable,
-  choose password login and use your authenticator.
+  its six-digit code.
 - **Sign up** (when open) — submit your email and password, then confirm with
   the verification code emailed to you.
 - **Reset a password** via "Forgot password" — request a code, then set a new
@@ -54,6 +58,25 @@ Existing users choose when to enroll. Password reset does not remove
 authenticator protection, and self-service recovery after losing all factors
 is not available. Keep a working backup before relying on passkeys.
 
+## When no books appear
+
+The first-run screen explains how to set up a local book with your AI assistant
+and the `iris` CLI, then sync it to this account. **Copy message for your AI**
+includes this service's setup-guide URL and your signed-in email.
+Paste it into your assistant on your computer. **Read the setup guide** opens
+the manual if you prefer to follow the steps yourself.
+
+If you already have a local book, open its folder with your assistant and ask
+it to connect and sync that book. After sync finishes, choose **Refresh book
+list**; a book found there opens in Overview. If you expected a shared book,
+check that you signed in with the invited email address. The account menu
+remains available for language changes and logging out. The **Settings** gear
+and language icon beside it are visible directly in the top bar, including on
+phones. You can set up passkeys and an authenticator before syncing a book.
+
+The recommended creation workflow is through your AI and local files.
+**Add new book** remains available for explicitly creating a cloud book.
+
 ## Layout
 
 The sidebar stays available on both global and book pages:
@@ -79,6 +102,11 @@ The top bar stays visible as you scroll, with the sidebar or mobile drawer
 directly below it.
 On a phone, use the top-left menu button for the same navigation.
 
+The top-right **Settings** gear opens account settings, and the **language**
+icon switches between English and Japanese. Its tooltip names the language
+you will switch to ("日本語" / "English"). Both icons stay visible on global,
+book and first-run pages.
+
 Your **avatar** (top right) opens the account menu from anywhere: your
 **Settings** (see below), a language switch, and log out. The language
 item is always labeled in the *other* language ("日本語" / "English"),
@@ -99,6 +127,19 @@ and pending drafts for one or more books. Book-specific P&L flow charts and
 balance-sheet composition live in that book's **Overview**. Opening a book
 in the sidebar does not change the books included in portfolio reports;
 use each report's inclusion controls for that.
+
+Cross-book reports show their generation time. After syncing journals or recording
+prices, choose **Run aggregation** on the page you are viewing. Dashboard refreshes
+its P&L inputs and Net Worth generation together; the Net Worth page refreshes
+its own analytics file. Remote Net Worth reads
+that same Net Worth generation. Date and cash filters query the downloaded file
+locally. Changed book selections or reporting currency create a separate scope.
+Only synced data enters cloud generations. Net Worth keeps showing its last successful
+report while the next one is queued, running or waiting for an automatic retry.
+Repeated requests reuse that job. After success or failure, wait 60 seconds before
+starting another generation; the page shows the remaining wait. Failed refreshes
+retain the last completed figures and show a warning. The next daily generation
+is available after midnight UTC, once any current job and cooldown finish.
 
 If your books don't all use the same currency, set a base currency
 (`iris api config set --base-currency JPY`). The consolidated P&L then shows
@@ -239,8 +280,8 @@ the owner see the same year list read-only.
 
 ## Settings — your settings and book settings
 
-Settings are split by what they affect, and everything is reachable from
-one door: your **avatar menu (top right) → Settings**.
+Settings are split by what they affect. Open them with the top-right
+**Settings** gear or **avatar menu → Settings**.
 
 **Your settings** (avatar menu → Settings — available everywhere, even
 outside any book) hold what belongs to you, not to a book:
@@ -357,25 +398,40 @@ revoke and recreate them to narrow it.
 
 ## Net Worth
 
-**Net Worth** adds up what your books own minus what they owe — cash,
-receivables, fixed assets and loans at the value recorded in the books, and
-foreign currency, crypto, shares or metals at the prices you recorded — and
-shows a total, the change versus last month, a trend line, the biggest movers,
-and a composition breakdown. Accounts marked `owner: true` in the chart (事業主貸,
-事業主借) are left out: they are your own money, not the business's. The
-**Settings** tab there lets you choose which books count toward the
-consolidated total.
+**Net Worth** adds up assets minus liabilities across your included books.
+The headline shows that net amount. The chart separately shows **asset valuation**
+as a line and **acquisition cost of remaining holdings** as a teal shaded area,
+with their difference above it. When cash is included, an ochre area stacks
+cash/book-value assets above holdings cost, and the combined total is labelled
+**Acquisition cost + cash/book-value assets**. The legend, tooltips and dated table
+show the two components separately. Buying holdings with existing cash changes
+the split without changing the combined cost. Acquisition cost is not cumulative
+deposits or realized profit. The checkbox applies to the chart and totals together.
+Liabilities affect the Net Worth headline; they are not acquisition cost.
+Accounts marked `owner: true` and their descendants are excluded.
 
-A book counts for the months of its own fiscal year, so the trend line runs
-from one year's book into the next without counting anything twice. Once a
-book's year has ended, it stops counting until next year's book exists — Net
-Worth lists it as *year ended* until you run
-[`iris yearend`](cli-reference.md#iris-yearend).
+The **Settings** tab chooses included books. Each annual book contributes only
+within its own fiscal year. `iris yearend` carries complete opening lots and
+costs into the next book, which works independently. Include earlier books for
+their historical periods; missing years remain blank. The year boundary adds
+no purchase or deposit.
 
-It's a best-effort "how am I doing" number, not an audited figure. A unit
-without a recorded price counts at its book value and is listed so you know
-what to price. IrisBooks fetches no prices on your behalf — exchange rates
-included — so record them yourself with `iris price add`.
+Cloud generation reads current accepted DSQL projections in one consistent
+snapshot when the worker starts, then saves frozen inputs for retries. Journal
+edits during capture cannot mix old and new projections. Sync and run aggregation
+to include later changes.
+
+Prices are the observations you record, never future prices. Missing prices use
+book value and show a coverage warning. Missing acquisition basis or disposal
+policy leaves cost blank; book-value revaluations do not become acquisition cost.
+The chart samples weekly and includes the selected endpoint. Expand the date/value
+table for exact displayed observations, or download the DuckDB file for your own
+SQL and pivot analysis. Acquisition cost is supported for the posted root ledger;
+named alternative accounting views are not merged into it.
+
+No market data is fetched for you. Record prices, including FX, with `iris price
+add`; refresh after syncing them. Acquisition FX uses the acquisition date when
+available. These figures are a best-effort portfolio view.
 
 ## For accountants — the daily shape
 

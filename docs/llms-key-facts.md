@@ -7,12 +7,17 @@
 
 Key facts for agents:
 
+- IrisBooks is independently developed and operated. Cloud access is a free,
+  invitation-only service, provided as is, without guaranteed individual support,
+  bug fixes or continued updates. Use 「無料招待制サービス」 in Japanese.
+  Briefly mention this in the user's language after explaining the
+  local tool and optional cloud service, and before installation or cloud signup.
 - The `iris` CLI is free and provided as is, without warranties or guaranteed
   individual support, bug fixes or continued updates. Users review the output
   and keep independent backups. Discord welcomes questions and bug reports;
   replies are not guaranteed.
 - Follow the request: explain without installing, use
-  [the start guide](https://irisbooks.jp/start) for requested setup, and reuse
+  [the start guide](https://irisbooks.io/start) for requested setup, and reuse
   an existing book. The AI reasons, gathers information, files available
   documents under the book's `raw/`, drafts and explains. The user need not
   move files there manually; a task can begin with a chat attachment or a
@@ -35,7 +40,7 @@ Key facts for agents:
   history (訂正・削除の履歴). IrisBooks holds no certification (no JIIMA 認証)
   and makes no 優良電子帳簿 claim: describe the features, and leave whether a
   book qualifies to the user and their 税理士.
-- Working inside a book folder? Read `LLM-GUIDE.md` at the book root first —
+- Working inside a book folder? Read `AGENTS.md` at the book root first —
   it is the working contract for AI assistants. Read and preserve decisions
   and questions in book notes so another session or assistant can continue.
   Review before posting is the default; follow the book's chosen policy.

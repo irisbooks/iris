@@ -21,6 +21,34 @@ with a two-space indent. The output shapes below are written as key skeletons �
 
 ## Setup
 
+### iris docs
+
+Read the English LLM reference bundled with the running executable. No book,
+login, network or downloaded cache is required. Chapters match that binary's
+release; Japanese human-facing docs remain online.
+
+```bash
+iris docs                                      # list topics
+iris docs cli-reference                         # list section IDs and word counts
+iris docs cli-reference --full                  # explicitly read the whole chapter
+iris docs cli-reference --section iris-sync     # one section + its subsections
+iris docs --json cli-reference --section iris-sync
+```
+
+Flags may precede or follow the topic. A topic returns its section outline by
+default; `--list` explicitly requests the same outline. `--section` reads one
+section and its children; `--full` explicitly reads the chapter. These modes
+cannot be combined. Topic/section lists include word counts. JSON includes
+`version`, `source: "bundled"`, `language: "en"`, `words`, and `topics`,
+`sections` or `markdown` according to the request. Unknown selectors
+exit 2 with discovery guidance; they never fall back to the full manual.
+Use `iris <command> --help` for invocation details and current online docs for
+changing cloud access/authorization. Docs are reference, not permission to act.
+Local MCP exposes the same lookup as `read_docs(topic?, section?, outline?, full?)`,
+without a book selector. A topic defaults to its outline; `full=true` opts into
+the complete chapter. Offline cross-references show `iris docs` commands; use
+the same topic and section with MCP.
+
 ### iris update
 
 ```bash
@@ -39,7 +67,7 @@ Status is `update_available`, `up_to_date`, `newer_than_latest`, `development`,
 no update needed); exit 1 means failure; exit 2 means invalid arguments.
 
 No implicit network checks occur during book operations. `IRIS_DL_BASE`
-selects the download base (default `https://irisbooks.jp/dl`); the release
+selects the download base (default `https://irisbooks.io/dl`); the release
 signature is always checked against the built-in key, without requiring
 `minisign` to be installed. A failed verification preserves the old executable.
 No downgrade or development-build replacement is automatic.
@@ -70,7 +98,7 @@ iris init [flags] <path>
 | `--fiscal-start-month` | Fiscal-year start month 1–12 (default 1, January — pass `4` for a year that starts in April) |
 | `--fiscal-year` | The fiscal year the book covers (YYYY; default: the one holding today) — e.g. last year's, when you're catching up on its filing |
 | `--sample` | Seed ~40 demo journals to explore |
-| `--posting` | Posting policy written into LLM-GUIDE.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
+| `--posting` | Posting policy written into AGENTS.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
 | `--book-id` | Pre-link to an existing server book (advanced) |
 
 ### iris onboard
@@ -135,12 +163,12 @@ iris uninstall [--yes] [--dry-run]
 Fetch a server book to disk (the lifecycle peer of `init`). Requires
 sign-in. Works immediately on a brand-new book created in the web app or
 with `iris api books new` outside a book folder — those are born with
-`config/book.yaml` and a starter chart of accounts. (A cloud book created
+`config/book.yaml`, a starter chart of accounts and `AGENTS.md`. (A cloud book created
 from inside a local book starts empty and receives that folder's files on its
-first `iris sync`.) It also writes the local
-guides for your AI assistant (`LLM-GUIDE.md`, `CLAUDE.md`, `README.md`) when
-the book has none — they never sync, so a book created in the web app arrives
-without them.
+first `iris sync`.) Cloning preserves the synced `AGENTS.md`, including its
+posting policy. Missing contracts in older books are filled before the clone
+is published; local `CLAUDE.md` and `README.md` entry files are added when absent.
+Existing custom files are preserved.
 
 ```bash
 iris clone [--force] <book-id> [dest]
@@ -198,6 +226,51 @@ on errors.
 `chart.alias-shadow-path`, `asset.ikkatsu-cost-range`, and so on. Branch on it
 rather than on `message`, which is translated. `ok` is `errors == 0`; warnings
 and hints affect neither `ok` nor the exit code.
+
+### iris autocomplete
+
+Preview completion of an existing draft journal, using the book's overlays and
+built-in rules. Money-only journals can leave one balancing amount as `null`.
+The inventory overlay fills disposal cost and proposes a gain/loss line from
+recorded quantities, settlement amounts and earlier posted acquisitions.
+
+```bash
+iris autocomplete [--book PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris autocomplete journals/2026-10/2026-10-21-sale.md
+iris autocomplete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
+```
+
+The path is relative to the book. Omitted `--book` finds the current book;
+omitted `--view` uses its default view. A selected view receives its own lines,
+leaving shared lines and other views intact.
+
+Output is always JSON: `proposal` contains the complete Markdown, `allocations`
+lists quantities, costs, lots and effective methods, and `revision` identifies
+the inputs and proposal. Preview writes nothing. `--apply` recalculates before
+writing and refuses a stale revision; it keeps the journal a draft. It does
+not post or sync. Archived books and known sealed years refuse apply.
+
+**FIFO is implicit.** Configure `inventory.params.gain_account` once in
+`config/book.yaml`; no journal-level method or automatic lot labels are needed.
+Matching `inventory.params.method` overrides the opening method, then FIFO
+applies. `accounts.exact` and `commodity` optionally narrow the scope. See
+[defaults and inferred values](book-format-reference.md#defaults-and-inferred-values)
+for a minimal sale example. Completion leaves recorded amounts intact and
+rejects conflicts, missing settlement/fee amounts, insufficient holdings and
+unknown opening acquisition basis. Use `null` on an amount you want calculated.
+Fees stay explicit; short positions and zero-cost disposals are unsupported.
+
+The `default` package in the public [overlays repository](https://github.com/irisbooks/overlays)
+holds these rules. IrisBooks bundles and includes it automatically; no default
+pin is required. An explicit `default@<version>` in `overlays` selects that
+available version without mixing in newer defaults. Specialist or trusted
+book-local completions can override matching default IDs.
+
+`iris overlay list --json` and local MCP `describe_overlay` list completions.
+Trusted book-local or selected published `completions/*.yaml` definitions can
+choose native `balance` or `inventory` primitives. A matching ID replaces the
+built-in rule; conflicting active proposals fail. Unavailable or untrusted
+selected policy must be repaired before completing a journal.
 
 ### iris hash
 
@@ -441,6 +514,15 @@ entries, generated depreciation). Drafts that fail validation are reported
 and left as drafts. This is the ritual for books with the `auto` posting
 policy.
 
+Posting edits `status` in the source document, retaining other fields,
+attachments, quantities, annotations and Markdown. YAML indentation may change;
+scripts must parse YAML rather than match its formatting. The obsolete journal
+fields `source` and `source.ref` are rejected before writing. Use an attachment
+with `path: raw/bank/x.csv`, `type: bank_statement` and `locator: L2` instead
+for the first data record after a one-line header. CSV `L` locators identify
+physical lines, including headers and quoted record line breaks. Unknown units are
+rejected without changing the journal; declare them in `config/book.yaml`.
+
 ### iris diff
 
 Show what would be pushed — local changes versus the last-synced snapshot.
@@ -461,6 +543,13 @@ accept/reject. Needs the book linked to the cloud and you signed in.
 ```bash
 iris sync [--quiet] [--json] [--allow-bulk-delete] [path]
 ```
+
+Sync includes `AGENTS.md`, the three config files (`book.yaml`, `chart-of-accounts.yaml`,
+`rules.yaml`), YAML under `config/overlays/`, Markdown under `journals/`,
+`assets/`, `notes/` and `filings/`, and source bytes under `raw/`. It excludes
+`.iris/`, conflict sidecars, editor/OS residue, generated `compiled/` output,
+exports, and local entry files such as `README.md` and `CLAUDE.md`.
+`AGENTS.md` holds shared book policy; only an Owner may change it in the cloud.
 
 Exit codes: `0` clean · `1` rejections/conflicts/IO · `2` usage/setup · `3`
 terminal disconnect (book deleted, access revoked, session expired).
@@ -539,7 +628,7 @@ standalone copy, in a new folder beside this one (`acme-2025` →
 
 - `config/` — `book.yaml` with `fiscal_year` advanced and its own book ID,
   the chart of accounts, `rules.yaml` and `config/overlays/`;
-- the guides (`README.md`, `LLM-GUIDE.md`, `CLAUDE.md`) and the policy notes
+- the guides (`README.md`, `AGENTS.md`, `CLAUDE.md`) and the policy notes
   (`decisions.md`, `workflow.md`, `todos.md`, `open-questions.md`);
 - the fixed assets still held when the new year starts;
 - an opening-balances journal (期首残高) at
@@ -576,8 +665,16 @@ are warned about (they don't carry).
 naming any other year is refused.
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [--dry-run] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
 ```
+
+`--link-existing BOOK_ID` reuses an untouched next-year cloud starter you own.
+It checks the target before local moves and attaches config/chart/AGENTS.md before moving
+entries. The existing target keeps its grants and inbound address; the preview
+sets `copy_grants` and `transfer_inbox` to false. It creates no cloud book and
+cannot be combined with `--local`. Re-running against the same linked successor
+verifies its cloud settings and seals, then refreshes it. The successor syncs
+successfully before the old linked book syncs its removals.
 
 `--dry-run` returns a JSON preview of opening balances, moves and cloud
 actions, plus the count of unposted drafts excluded. It writes nothing.
@@ -610,10 +707,45 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 
 Values posted local journals and the local price log without network access.
 Select immediate child books of a parent folder or supply explicit book folders.
-Mixed currencies require `--currency`. Each book counts only within its fiscal
-year; drafts are excluded. Missing prices use book value and appear in `unpriced`.
+Mixed currencies require `--currency`. Explicitly linked annual books form one
+continuous position history; successor openings must reconcile and replace prior
+checkpoints. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
 Output is JSON. Cloud inclusion settings do not apply.
+
+### iris analytics
+
+```bash
+iris analytics export --books-dir ~/IrisBooks --out portfolio.duckdb --currency JPY
+duckdb -readonly portfolio.duckdb
+```
+
+`export` reads posted local journals and the local price log, including unsynced
+edits. Install the native DuckDB CLI or pass `--duckdb /path/to/duckdb`.
+Supply either `--books-dir` or explicit book folders. The output must be a new
+file. Resolve local price conflicts before exporting.
+
+The file contains sources, journal flows, position checkpoints, prices and
+coverage issues, plus a `portfolio_at` table macro. You can query or pivot it:
+
+```sql
+SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
+PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
+```
+
+`iris yearend` carries complete opening lots and costs into each new book.
+Each annual book works alone and contributes only within its fiscal year.
+Select historical books to include their historical periods. Missing years
+remain gaps; no relationship between books is stored or required.
+
+Acquisition cost is the cost of remaining holdings. It is separate from book
+value, cumulative contributions and realized profit. FIFO is the default;
+an explicit matching root inventory method overrides a persisted opening
+method. Moving average and specific identification are also supported, with
+explicit lot selection required for specific disposals. Missing acquisition
+history or opening basis remains unknown. `inventory_method` states the
+effective method per position. Named alternative views are outside this
+export's supported ledger contract.
 
 ### iris price
 
@@ -659,142 +791,136 @@ record the replacement before syncing. Stale resolution choices fail.
 
 ### iris mcp
 
-Run a Model Context Protocol server that exposes the `iris` verbs to a BYO
-agent, for one book or a parent folder containing several books.
+Run a local Model Context Protocol server for one book or a parent folder of books:
 
 ```bash
 iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
-Local tools: `validate`, `diff`, `balance`, `report`, `status`, `check_update`. Asset tools:
-`asset_schedule` (the engine's per-asset figures) plus three depreciation
-calculators — `declining_table`, `flat_table`, `straight_line_table` — your AI
-composes into a recorded `schedule:` for methods no recipe covers. Recipe
-tools: one per recipe of the book's overlay (`jp_teiritsu`,
-`jp_shouhizei-general`, `jp_shouhizei-simplified`), each recording its result
-with provenance when given a `write` path. Cloud tools (when authenticated):
-`sync`, `seal`, `export_from_cloud`, `create_cloud_book`, `link_book`.
-Host sign-in tools: `login`, `auth_status`, `logout`. `list_cloud_books` lists
-accessible cloud books, separately from local folder discovery.
+Use the live tool schemas for arguments. The following sections cover one workflow each.
 
-Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
-routine file listing, reading, text searches and draft/note edits when the
-book folder is accessible. Keep operations within the selected book and run
-validation after bookkeeping edits. Local MCP is for accounting calculations,
-validation, authentication, sync and guarded workflows
-such as posting, seals, depreciation and year-end. Structured search and other
-inspection tools are optional helpers, useful for structured filters,
-derived closed status or when the client cannot access files directly.
+#### Select a local book
 
-Local MCP has no `show` tool. Use filesystem searches to inspect document/journal
-references; the CLI `iris show` command remains available.
+With `--books-dir`, choose an existing parent such as `~/IrisBooks`; its immediate
+children are books. Call `list_books`, then pass the child folder name as `book`
+on each book operation, for example `validate(book="freelance-2026")`. New books
+appear without restarting. Book references cannot be paths; escaping symlinks
+are refused. For accountants, restrict the parent and credentials to one client.
 
-Bookkeeping tools: `search_journals` (date, amount, payee, status, account and tag
-filters), `post` (`paths` or `all`,
-with `dry_run=true` to preview), `list_conflicts`, `resolve_conflict`
-(`path`, `keep="mine"|"cloud"`), `list_attention`, `retry_attention` (optional
-`path`) and `export_local` (`kind="journals"|"assets"`, optional `year`,
-`as_of` for journals and `out_dir`, default `exports/`). Exports stay inside
-the selected book. Keeping mine during conflict resolution immediately syncs;
-keeping cloud removes the sidecar. Retrying attention clears rejections for
-the next explicit `sync`.
+`--book` serves one book and omits the selector. An absent/empty target is
+initialized automatically. The directory flags cannot be combined. Host paths
+may differ from assistant-mounted paths; file access is separate from tool access.
 
-Lifecycle tools: `asset_depreciate` (`month` or `year`, creates drafts without
-posting), `fiscal_years`, `history` (optional `path`, `from`, `to`, `limit`,
-`all`) and `reopen` (`year`, server-enforced owner access). The latter three
-require a linked book and sign-in. Parent mode additionally offers
-`yearend(book="freelance-2025", next_book="freelance-2026")`: it previews the
-opening entry, journal moves and cloud actions by default. Use `preview=false`
-to execute, or `local_only=true` to skip cloud creation/sync. It may move
-journals, copy grants and transfer the inbound address; it does not seal the
-old year. `next_book` is an immediate child folder, with the same confinement
-rules as book creation. The CLI also supports `iris yearend --dry-run`.
+#### Create a local book
 
-Portfolio reads: `get_holdings` reads the selected linked cloud book.
-`get_networth` values local folders, including unsynced posted edits, without
-login or network: use `books_dir="."` for child books of the configured root,
-or `books=["business-2026", "personal-2026"]`. Paths stay inside that root.
-It accepts `as_of`, `currency`, and `mode="current"|"history"|"movers"`
-(with `months` for history or `compare` for movers). It uses the local price
-log; mixed currencies require `currency`. A single-book server can select only
-folders inside its pinned book; use parent mode for sibling books. `list_prices`
-defaults to cloud, or accepts `source="local"` for the offline log.
-`record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
-records an observation locally; price must be a decimal string with at most
-six fractional digits. `sync_prices` publishes it and pulls other-device
-observations, separately from book sync. Prices live in the user's config
-folder, outside tax book files. Except `get_holdings`, these portfolio tools
-need no local `book` selector; local valuation requires book folders.
+An empty parent is valid. Use `create_book(book="freelance-2026", name="Acme",
+region="JP", fiscal_start_month=1, fiscal_year=2026)` for a new child. Existing
+books or non-empty folders are never overwritten; the parent is never a book.
+For an existing cloud book, use the clone workflow below instead of creating locally.
 
-Cloud `list_prices` accepts `unit`, `currency`, `year`, `limit` and `cursor`,
-and returns one page; follow `nextCursor` with the same filters. Local reads
-flag known conflicts and return the effective report price. Use `price_conflicts`
-to inspect both candidates, and `resolve_price_conflict(unit, currency, date,
-choose="local"|"server", revision, edit)` only with the user's explicit choice
-and the displayed identifiers. Resolution is local; sync afterward to publish a
-retained correction. Identical price/source edits converge without a prompt.
+#### Author and validate records
 
-With `--books-dir`, select an existing parent folder, such as `~/IrisBooks`,
-whose immediate children are book folders. Call `list_books` to discover them,
-then pass the child folder name as `book` on each book operation, such as
-`validate(book="freelance-2026")`. New books appear without restarting.
-An empty parent is supported: `create_book(book="freelance-2026")` creates a
-child book; optional `name`, `region`, `fiscal_start_month` and `fiscal_year`
-customize it. The parent itself is never initialized as a book,
-and existing books or non-empty child folders are never overwritten.
+Read `AGENTS.md` and use native file tools for source inspection and draft/note
+edits. Use MCP for calculations, validation and guarded workflows. `validate`,
+`balance`, `report`, `status`, `diff` and `autocomplete_journal` operate on the
+selected book; autocomplete previews before revision-checked draft application.
+`post` accepts paths or an explicit all-draft sweep, respecting owner policy and
+server approval. It supports `dry_run`.
 
-In parent mode, use `list_recipes(book="freelance-2026")` to discover that
-book's recipe names and input schemas, then `run_recipe(book="freelance-2026",
-recipe="jp_teiritsu", params={...})`. The three arithmetic calculators and
-`check_update` need no book. Book references cannot be paths, and symlinks
-escaping the selected book are refused. `export_from_cloud` writes inside the
-selected book, including when `out_dir` is omitted.
+Discover the selected overlay with `describe_overlay`. In parent mode,
+`list_recipes(book=...)` returns names/schemas and `run_recipe` executes the
+selected recipe with `params`. Single-book mode exposes individual recipe tools.
+The arithmetic calculators, `check_update` and `read_docs` need no book selector.
+`read_docs` returns topic/section outlines by default; select a section to read it.
+Local MCP has no `show` tool; use file tools or CLI `iris show` for references.
 
-For Cowork or another MCP client, connect a local book without a terminal:
+#### Authorize cloud access
 
-1. Call `create_book(book="freelance-2026")`, or select a folder from `list_books`.
-2. Call `login`. It opens the host browser and returns immediately with an
-   `authorization_url` and a five-minute expiry. If the browser did not open,
-   open that URL yourself. Sign in and approve access.
-3. Call `auth_status` to confirm `status="signed_in"`. This checks the server;
-   `validate=false` checks only local credential presence. Repeating `login`
-   while approval is pending returns the same URL.
-4. Call `create_cloud_book(book="freelance-2026")`. It uses the local book's
-   settings, creates its cloud mirror and saves the link. Retrying an uncertain
-   creation uses the same retry key. For an existing cloud book, call
-   `list_cloud_books`, then `link_book(book="freelance-2026", cloud_book_id="bk_...")`.
-5. Call `sync(book="freelance-2026")` and read its accepted/rejected results.
+Call `auth_status` first and reuse `signed_in`. Otherwise call `login`, have the
+user approve in the host browser, then require `status="signed_in"` from
+`auth_status`. `login` returns an `authorization_url` and a five-minute expiry;
+repeating it while pending returns the same URL. `validate=false` on
+`auth_status` checks credential presence only.
 
-`login`, `auth_status`, `logout` and `list_cloud_books` need no `book` argument.
-Sign-in is saved on the host and shared with the CLI and other local MCP
-instances; credentials never appear in tool results. `logout` cancels this
-server's pending login and revokes/removes the saved device session. An
-`IRIS_API_TOKEN` environment credential takes precedence: remove it from the
-host MCP configuration and restart before using browser sign-in.
-Cloud creation/linking refuse archives and already-linked books. Linking an
-existing cloud book can produce file conflicts on sync; for a new cloud mirror
-of your folder, use `create_cloud_book`.
+`login`, `auth_status`, `logout` and `list_cloud_books` need no book selector.
+Credentials stay on the host and are shared with CLI/local MCP instances.
+`logout` revokes the saved session and cancels pending approval. An
+`IRIS_API_TOKEN` environment credential takes precedence; use its existing
+permissions, or remove it from host configuration and restart to choose browser
+sign-in. Current service authorization guidance is at `/start/cloud/`.
 
-To download an existing cloud book in parent-folder mode, use
-`login → auth_status → list_cloud_books → clone_book(book="freelance-2026", cloud_book_id="bk_...")`.
-Choose an absent or empty child folder; do not call `create_book` first.
-`clone_book` downloads the files, installs the local AI guides and initializes
-sync state and snapshots, so `diff` starts with no pending changes. The result
-includes the host path and book identity, and `list_books` discovers it without
-a restart. It refuses existing content, symlinks, archives and any pre-existing
-`<book>.partial` staging entry. There is no force option. It is available only
-with `--books-dir`.
+#### Create or attach a cloud mirror
 
-`--book` keeps the single-book tools described above; an empty or absent target
-is initialized automatically. The two directory flags cannot be combined.
+Choose the situation before changing identity:
 
-With `--http`, the server listens on a localhost address instead of stdio and
-accepts only requests carrying the header `Authorization: Bearer <token>`. The
-token is created the first time you start it, in
-`~/.config/irisbooks/mcp-http.token` (readable only by you), and stays the same
-after restarts, so set it once as a header in your MCP client. Delete the file
-to get a new token on the next start, then update the header in your MCP client
-to match.
+| Situation | Tool |
+| --- | --- |
+| Already linked local book | `sync(book=...)` |
+| Unlinked local book, new cloud mirror wanted | `create_cloud_book(book=...)`, then `sync` |
+| Unlinked local book, untouched existing cloud target wanted | `list_cloud_books`, then `link_book(book=..., cloud_book_id=...)` |
+| Existing cloud book, no local folder | Use `clone_book` as described below |
+
+Creation uses the local book's settings and retains a retry key for uncertain
+responses. Attachment requires Owner access, compatible fiscal/region/currency
+settings and an untouched starter or target without file history. Config, chart
+and `AGENTS.md` are adopted atomically before the local link changes. Populated,
+edited, sealed or concurrently changed targets refuse; clone them to another
+folder for comparison. No force option bypasses these checks. Creation/attachment
+refuse archives and already-linked books. Inspect sync rejections and errors.
+
+#### Clone an existing cloud book
+
+After authorization, use `list_cloud_books`, then
+`clone_book(book="freelance-2026", cloud_book_id="bk_...")` into an absent/empty
+child. Do not call `create_book` first. Clone preserves synced files and policy,
+adds missing local guides and initializes sync state/snapshots before publishing
+the folder. Ordinary clones start clean; an older book missing `AGENTS.md` gains
+a contract that remains pending for its first sync.
+
+The result identifies the host path and book; `list_books` discovers it without
+restart. Existing content, symlinks, archives or a pre-existing `<book>.partial`
+entry are refused. There is no force option. Clone requires `--books-dir`.
+
+#### Guarded changes and year-end
+
+`list_conflicts` and `resolve_conflict` inspect/resolve sync conflicts. Keeping
+mine immediately syncs; keeping cloud removes the sidecar. `list_attention` and
+`retry_attention` inspect/clear rejection suppression; sync explicitly afterward.
+Preview destructive changes and follow the book's policy.
+
+`asset_depreciate` creates drafts. Linked-book `fiscal_years`, `history`, `seal`
+and `reopen` require sign-in and the applicable server permissions. Parent-mode
+`yearend(book=..., next_book=...)` previews by default; `preview=false` executes,
+`local_only=true` skips cloud actions. It may move journals, copy grants and
+transfer the inbox; it does not seal the old year. `link_existing` attaches only
+an untouched compatible next-year target, retaining its grants/inbox. See
+[year-end](cli-reference.md#iris-yearend) for the complete lifecycle.
+
+#### Portfolio and prices
+
+`get_networth` values local posted records, including unsynced edits, without
+network/login. Use `books_dir="."` or `books=["business-2026", "personal-2026"]`
+inside the configured root. Single-book mode cannot select siblings. Optional
+`as_of`, `currency`, `mode="current"|"history"|"movers"`, `months` and `compare`
+control the read; mixed currencies require `currency`. `get_holdings` instead
+reads the selected linked cloud book.
+
+`list_prices` defaults to cloud; `source="local"` reads offline prices.
+`record_price` records a decimal-string observation (at most six fractional
+digits); `sync_prices` publishes/pulls prices separately from book sync.
+Prices stay in user config, not tax book files. Cloud lists return one page;
+follow `nextCursor` with the same filters. `price_conflicts` shows candidates;
+use `resolve_price_conflict` only with the user's choice and displayed revision
+and edit identifiers, then sync. Identical price/source edits converge.
+Except `get_holdings`, these portfolio tools need no local book selector.
+
+#### Local HTTP transport
+
+`--http` listens on localhost instead of stdio and requires
+`Authorization: Bearer <token>`. The token is created in
+`~/.config/irisbooks/mcp-http.token`, readable only by its owner and stable across
+restarts. Configure the client header once; deleting the file rotates the token
+on next start and requires updating that header.
 
 ### iris version
 
@@ -880,7 +1006,7 @@ iris api books link [--force] <book-id> [path]
 ```
 
 Run `new` from inside a local book that has no cloud id yet and the new book
-is linked to that folder automatically — the same effect as `books link`, so
+is linked to that folder automatically — so
 the next `iris sync` just works. The cloud book is created from that folder's
 `config/book.yaml` (name, fiscal year, region, currency and fiscal-year
 start), so no flags are needed; a flag that contradicts the file is
@@ -900,6 +1026,30 @@ Other flags are `--currency`, `--scale`, `--no-link`, and
 and reuse `--idempotency-key <key>` if the result is uncertain, to avoid a
 duplicate book. Inside a local book, the default key is derived from its
 stable local ID, so retrying the same creation uses the same key.
+
+`books link` requires Owner access (and a `role:full` scope when using a PAT).
+It accepts an untouched server starter or a cloud book with no file history.
+Fiscal year, region, currency, scale and fiscal start must match. The server
+adopts local `config/book.yaml` (including units), the chart and `AGENTS.md` together in one
+revision-guarded transaction. The local ID changes only after acknowledgement.
+A populated, edited, sealed or concurrently changed target refuses: clone it to
+a separate folder and compare before choosing which content to keep. `--force`
+only permits changing the local identity; it does not override these checks.
+An identical attachment can be retried after a lost response. An older server
+without the attachment endpoint refuses without changing the local link.
+
+Sync state is bound to both the selected API endpoint and cloud book ID in
+`.iris/sync/binding.json`. Changing either, or opening legacy state whose endpoint
+cannot be verified, retains the entire old `.iris/sync/` directory as
+`.iris/sync-before-link-<suffix>/` and starts fresh. The backup includes queued
+operations, receipts, cursor, attention, snapshots and offline settings/seals.
+Inspect it for recovery; never copy old receipts into a different connection.
+Failed ID writes restore old state. The same ID on the same endpoint retains
+state. A running sync/attachment holds a working-tree lock; another command
+must finish or be retried after it exits. Local identity and book files remain.
+Offline diff and guards only use state matching the current connection; run
+`iris sync` after switching endpoints to establish a new baseline.
+A cloud book's fiscal year is fixed; a different year requires another book.
 
 ### iris api token
 
@@ -1060,9 +1210,11 @@ conflict; identical value/source retries acknowledge the accepted row.
 `iris api networth` values one explicitly selected cloud book.
 Cloud cross-book totals, history, movers and inclusion settings were removed
 from the CLI. Use local `iris networth` or the web app instead.
-Web and remote MCP cloud cross-book reports share one snapshot generation per
-user per UTC day. Changing dates or book selections does not regenerate it.
-Responses include the generation time and next refresh time.
+Web and remote MCP cloud cross-book reports share at most one automatic snapshot
+generation per user per UTC day. Changing dates or book selections does not
+regenerate it. To include synced changes sooner, choose **Run aggregation** on
+the web app's Dashboard or Net Worth page. Responses include the generation time
+and next automatic refresh time.
 
 ## Environment variables
 
@@ -1071,7 +1223,7 @@ Responses include the generation time and next refresh time.
 | `IRIS_API_TOKEN` | Personal Access Token; takes precedence over the cached login token |
 | `IRIS_BOOK` | Default book ID for cloud commands (a positional arg still wins) |
 | `IRIS_API_ENDPOINT` | API endpoint override; takes precedence over everything below |
-| `IRISBOOKS_APP_BASE` | App base URL (default `https://irisbooks.jp`) |
+| `IRISBOOKS_APP_BASE` | App base URL (default `https://irisbooks.io`) |
 | `IRISBOOKS_API_BASE` | API base URL (default `<app-base>/api`) |
 
 When none of the endpoint variables are set, commands use the endpoint

@@ -120,8 +120,9 @@ rate matches its category (e.g. `taxable_sale` needs a positive rate, an
 `export_sale` is 0%), and that a simplified-method sale has a valid business
 class. The detailed classification rules (区分判定, 簡易課税 事業区分, invoice
 経過措置) are tax law, not product behavior — your AI checks the NTA's current
-pages when classifying, and the AI-facing manual (served at `/llms-full.txt`)
-summarizes them with the authoritative citations. IrisBooks doesn't ship a
+pages for the relevant classification and period. Discover the selected
+overlay's fields and guides for product inputs; use current primary guidance
+for legal treatment rather than fetching the complete AI manual by default. IrisBooks doesn't ship a
 frozen copy of rules that change; iris validates, it doesn't legislate.
 
 ### The year-end figures

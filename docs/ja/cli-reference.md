@@ -19,6 +19,32 @@ JSON を出すコマンドには共通の約束があります。**金額は帳�
 
 ## セットアップ
 
+### iris docs
+
+使用中の実行ファイルに同梱された、LLM 向けの英語資料を読みます。帳簿・ログイン・
+通信・キャッシュのダウンロードは不要です。各章はその実行ファイルのリリースに
+対応します。人向けの日本語マニュアルはオンラインで参照できます。
+
+```bash
+iris docs                                      # トピック一覧
+iris docs cli-reference                         # 節 ID と語数の一覧
+iris docs cli-reference --full                  # 章の全文を明示的に読む
+iris docs cli-reference --section iris-sync     # 指定した節とその下位の節
+iris docs --json cli-reference --section iris-sync
+```
+
+フラグはトピックの前後に置けます。トピックを指定すると、既定で節の一覧を返します。
+`--list` でも同じ一覧を明示的に指定できます。`--section` は指定した節と下位の節、
+`--full` は章の全文を読みます。これらの指定は併用できません。一覧には語数も含みます。
+JSON には `version`・`source: "bundled"`・`language: "en"`・`words` と、指定に応じて
+`topics`・`sections`・`markdown` が含まれます。存在しない指定は終了コード 2 で
+確認方法を案内し、全マニュアルへ切り替えることはありません。
+実行方法は `iris <command> --help`、クラウドの利用条件や認証手順は現在の
+オンライン情報も確認してください。資料の参照は操作の許可にはなりません。
+ローカル MCP の `read_docs(topic?, section?, outline?, full?)` も同じ内容を返し、
+帳簿の指定は不要です。トピックだけなら節の一覧、`full=true` なら章の全文です。
+オフライン資料の参照先には `iris docs` コマンドを示し、MCP でも同じ topic と section を使えます。
+
 ### iris update
 
 ```bash
@@ -36,7 +62,7 @@ MCP の登録先は変わりません。JSON には `currentVersion`、`latestVe
 終了コードは正常時が 0、失敗時が 1、引数の誤りが 2 です。更新不要の場合も 0 です。
 
 帳簿の操作中に自動で通信することはありません。`IRIS_DL_BASE` でダウンロード元を
-指定できます（既定は `https://irisbooks.jp/dl`）。署名は組み込みの公開鍵で必ず検証し、
+指定できます（既定は `https://irisbooks.io/dl`）。署名は組み込みの公開鍵で必ず検証し、
 `minisign` のインストールは不要です。検証に失敗した場合、古い実行ファイルは残ります。
 開発版の置き換えや、古いバージョンへの更新は自動では行いません。
 
@@ -66,7 +92,7 @@ iris init [flags] <path>
 | `--fiscal-start-month` | 会計年度開始月 1〜12（既定は 1 月。4 月に始まる年度なら `4`） |
 | `--fiscal-year` | この帳簿が扱う会計年度（YYYY。既定は今日を含む年度）— 前年度の申告をこれから済ませる場合は前年度など |
 | `--sample` | 試せるデモ仕訳を約40件追加 |
-| `--posting` | LLM-GUIDE.md に書き込む記帳ポリシー: `approve`(既定 — あなたが確認して記帳)/ `auto`(検証を通った仕訳をアシスタントが自動記帳) |
+| `--posting` | AGENTS.md に書き込む記帳ポリシー: `approve`(既定 — あなたが確認して記帳)/ `auto`(検証を通った仕訳をアシスタントが自動記帳) |
 | `--book-id` | 既存のサーバー帳簿に事前リンク（上級） |
 
 ### iris onboard
@@ -130,11 +156,11 @@ iris uninstall [--yes] [--dry-run]
 サーバー帳簿をディスクに取得します（`init` のライフサイクル上の対）。サインインが
 必要です。Web アプリや、帳簿フォルダの外で実行した `iris api books new` で
 作ったばかりの帳簿でもすぐに使えます。これらの帳簿には、最初から
-`config/book.yaml` とひな形の勘定科目表が入っています（ローカル帳簿の中で作った
+`config/book.yaml`、ひな形の勘定科目表、`AGENTS.md` が入っています（ローカル帳簿の中で作った
 クラウド帳簿は空の状態で作られ、最初の `iris sync` でそのフォルダのファイルが
-入ります）。AI アシスタント向けのローカルのガイド（`LLM-GUIDE.md`、
-`CLAUDE.md`、`README.md`）が帳簿に無ければ、それも書き込みます。これらは同期
-されないため、Web アプリで作った帳簿には最初は含まれていません。
+入ります）。同期済みの `AGENTS.md` と記帳ポリシーはそのまま取得します。
+古い帳簿でガイドが不足する場合は、クローンの完了前に追加します。ローカルの
+`CLAUDE.md` と `README.md` も不足していれば追加し、既存の内容は上書きしません。
 
 ```bash
 iris clone [--force] <book-id> [dest]
@@ -187,6 +213,53 @@ iris validate [--v] [--json] [--fix] [path]
 `chart.alias-shadow-path`、`asset.ikkatsu-cost-range` など）。`message` は翻訳
 されるので、分岐にはコードを使ってください。`ok` は `errors == 0` と同義で、
 警告とヒントは `ok` にも終了コードにも影響しません。
+
+### iris autocomplete
+
+既存の下書き仕訳を補完し、結果をプレビューします。帳簿のオーバーレイと
+組み込みのルールを使います。金額だけの仕訳では、貸借を合わせる1行の金額を
+`null` にできます。在庫のオーバーレイは、記録済みの数量・決済額と過去の
+記帳済み取得仕訳から売却原価を計算し、損益の行を提案します。
+
+```bash
+iris autocomplete [--book PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris autocomplete journals/2026-10/2026-10-21-sale.md
+iris autocomplete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
+```
+
+パスは帳簿からの相対パスです。`--book` の省略時は現在の帳簿を探し、
+`--view` の省略時は既定のビューを使います。ビューを指定すると、そのビューの
+行だけを更新し、共通の行と他のビューを保持します。
+
+出力は常に JSON です。`proposal` に Markdown 全文、`allocations` に数量・原価・
+ロット・適用方法、`revision` に入力と提案を識別する値を返します。
+プレビューでは書き込みません。`--apply` は書き込む前に再計算し、指定した
+リビジョンが古ければ拒否します。適用後も下書きで、記帳・同期は行いません。
+アーカイブ帳簿と、締め済みと確認できる年度には適用できません。
+
+**原価配分は先入先出法（FIFO）が既定**です。損益の計上先を
+`config/book.yaml` の `inventory.params.gain_account` に一度指定します。
+仕訳ごとの方法指定や、自動採番したロットの記入は不要です。
+対象に一致する `inventory.params.method` を優先し、なければ期首の方法、
+それもなければ FIFO を使います。`accounts.exact` と `commodity` で対象を
+絞れます。売却仕訳の最小例は
+[省略できる項目と自動で決まる値](book-format-reference.md#省略できる項目と自動で決まる値)
+を参照してください。記録済みの金額と計算結果の不一致、決済額・手数料の未記入、
+保有数量不足、期首の取得原価不明はエラーになります。
+計算する金額には `null` を指定します。手数料は明記してください。
+空売りと取得原価ゼロの売却には対応していません。
+
+これらのルールは公開[オーバーレイリポジトリ](https://github.com/irisbooks/overlays)の
+`default` パッケージで管理します。IrisBooks に同梱されて自動で使われるため、
+既定の固定バージョンを書く必要はありません。`overlays` に `default@<version>`
+を明記すると、取得済みまたは同梱済みのそのバージョンだけを使い、新しい既定値は
+混ぜません。専門パッケージや信頼済みの帳簿ローカル定義で、同じ ID を置き換えられます。
+
+`iris overlay list --json` とローカル MCP の `describe_overlay` で補完ルールを
+確認できます。信頼済みの帳簿ローカル定義や選択済み公開パッケージの
+`completions/*.yaml` から、組み込み計算の `balance` または `inventory` を呼べます。
+同じ ID の定義は組み込みルールを置き換えます。有効な提案同士が食い違う場合は
+処理を止めます。選択したポリシーが取得できない場合や未信頼の場合は、先に修正が必要です。
 
 ### iris hash
 
@@ -421,6 +494,15 @@ iris post [--dry-run] --all
 自動生成の減価償却)も対象です。検証に失敗した下書きは報告のうえ下書きの
 まま残ります。記帳ポリシー `auto` の帳簿での定型操作です。
 
+記帳時は元の文書の `status` を変更し、ほかのフィールド・添付・数量・注記・
+Markdown 本文を残します。YAML の字下げは変わることがあるため、スクリプトでは
+文字列の書式に依存せず YAML を解析してください。仕訳の旧フィールド `source` と
+`source.ref` は書き込み前に拒否します。代わりに `attachments` に
+`path: raw/bank/x.csv`、`type: bank_statement`、`locator: L2` を指定すると、
+1行のヘッダーに続く最初のデータレコードを指します。CSV の `L` はヘッダーや
+引用符内の改行も含めた物理行の番号です。不明な単位も仕訳を変更せず拒否します。
+単位は `config/book.yaml` に宣言してください。
+
 ### iris diff
 
 push される内容 — ローカル変更と最後の同期スナップショットの差 — を表示します。
@@ -442,6 +524,13 @@ iris diff --paths        # 名前と種別のみ
 ```bash
 iris sync [--quiet] [--json] [--allow-bulk-delete] [path]
 ```
+
+同期対象は `AGENTS.md`、`config/` の `book.yaml`・`chart-of-accounts.yaml`・`rules.yaml`、
+`config/overlays/` の YAML、`journals/`・`assets/`・`notes/`・`filings/` の
+Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカー、OS・エディタの
+一時ファイル、生成した `compiled/`、エクスポート、ローカルの `README.md`・
+`CLAUDE.md` は同期しません。`AGENTS.md` は帳簿の共有方針であり、
+クラウドでの変更には Owner 権限が必要です。
 
 終了コード: `0` クリーン · `1` 拒否/コンフリクト/IO · `2` 使い方/設定 · `3` 終端的
 切断（帳簿削除、アクセス取消、セッション失効）。
@@ -520,7 +609,7 @@ iris attention retry --path <relpath> [path]   # 1ファイルのみ
 
 - `config/` — `fiscal_year` を翌年度に進め、独自の帳簿 ID を持つ `book.yaml`、
   勘定科目表、`rules.yaml`、`config/overlays/`
-- ガイド（`README.md`・`LLM-GUIDE.md`・`CLAUDE.md`）と方針のノート
+- ガイド（`README.md`・`AGENTS.md`・`CLAUDE.md`）と方針のノート
   （`decisions.md`・`workflow.md`・`todos.md`・`open-questions.md`）
 - 新年度の開始時点でまだ保有している固定資産
 - 期首残高の仕訳。`journals/<YYYY-MM>/0000-opening-balances.md` に、新年度の
@@ -555,8 +644,16 @@ iris attention retry --path <relpath> [path]   # 1ファイルのみ
 指定すると拒否されます。
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes | --local] [--dry-run] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
 ```
+
+`--link-existing BOOK_ID` は Owner 権限のある新年度の初期クラウド帳簿を再利用します。
+移動前にリンク先を確認し、設定と勘定科目表の反映が成功してから仕訳を移動します。
+リンク先の権限と受信アドレスは保持し、プレビューの `copy_grants` と
+`transfer_inbox` は false です。クラウド帳簿の新規作成は行いません。
+`--local` とは併用できません。同じリンク済み新年度へ再実行する場合はクラウドの
+設定と締めを確認して更新します。新年度の同期が成功してから旧年度を同期します。
+親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
 
 `--dry-run` は開始仕訳、移動、クラウド操作、繰越から除外する未記帳の下書き件数を
 JSON で表示します。ファイルやクラウドには書き込みません。
@@ -588,10 +685,45 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 
 ローカルの記帳済み仕訳と価格記録を使い、通信せずに帳簿を横断して評価します。
 親フォルダ直下の帳簿、または明示的なフォルダ一覧を選びます。
-通貨が異なる場合は `--currency` が必要です。各帳簿は自分の会計年度内だけで
-集計し、下書きは除外します。価格がない保有は簿価を使い、`unpriced` に示します。
+通貨が異なる場合は `--currency` が必要です。年度間のリンクを明示した帳簿は、
+期首残高を照合して一続きの履歴として扱います。翌年度の期首残高は前年度の残高に
+置き換わり、二重に加算しません。翌年度がない場合も最後の保有残高を引き継ぎます。
+下書きは除外します。価格がない保有は簿価を使い、`unpriced` に示します。
 帳簿のコピーを二重に数えないよう、重複するフォルダ・帳簿 ID は拒否します。
 出力は JSON です。クラウドの集計対象設定は使いません。
+
+### iris analytics
+
+```bash
+iris analytics export --books-dir ~/IrisBooks --out portfolio.duckdb --currency JPY
+duckdb -readonly portfolio.duckdb
+```
+
+`export` は未同期の編集を含むローカルの記帳済み仕訳と価格記録から、分析用ファイルを
+作ります。DuckDB CLI をインストールするか、`--duckdb /path/to/duckdb` で指定して
+ください。`--books-dir` または帳簿フォルダの一覧を指定します。出力先に既存のファイルは
+使えません。価格の競合がある場合は、解消してから実行してください。
+
+ファイルには出典、仕訳の増減、保有残高の履歴、価格、不足情報と、時点評価用の
+`portfolio_at` マクロが入ります。SQL やピボットで分析できます。
+
+```sql
+SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
+PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
+```
+
+`iris yearend` は完全な期首ロットと取得原価を翌年度の帳簿に引き継ぎます。
+各年度の帳簿は単独で使え、その会計年度の期間だけ集計に含まれます。
+過去の期間を見る場合は過年度の帳簿も選びます。帳簿のない年度は空白です。
+帳簿間の関係は保存せず、リンクも不要です。
+
+取得額は現在保有する分の取得原価です。簿価、累計入金額、実現損益とは別の値です。
+原価配分は FIFO が既定です。対象に一致する帳簿直下の方法指定を優先し、
+指定がなければ期首在庫の方法を引き継ぎます。個別法・移動平均にも対応し、
+個別法の売却ではロットを選ぶ必要があります。取得履歴や期首の取得原価が
+不明なら、不明のまま表示します。`inventory_method` で保有残高ごとの方法を
+確認できます。
+名前付きの代替ビューは、このエクスポートの対象外です。
 
 ### iris price
 
@@ -636,139 +768,128 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 
 ### iris mcp
 
-`iris` の各動詞を BYO エージェントに公開する Model Context Protocol サーバーを、
-1 つの帳簿、または複数の帳簿をまとめた親フォルダに対して実行します。
+1 つの帳簿、または帳簿をまとめた親フォルダに対してローカル MCP サーバーを実行します。
 
 ```bash
 iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
-ローカルツール: `validate`・`diff`・`balance`・`report`・`status`・`check_update`。資産ツール:
-`asset_schedule`（エンジンによる資産別の数値）と 3 つの償却計算ツール
-`declining_table`・`flat_table`・`straight_line_table` — レシピのない方法について、
-AI がこれらを組み合わせて `schedule:` に記録します。レシピツール: 帳簿の
-オーバーレイのレシピごとに 1 つ（`jp_teiritsu`・`jp_shouhizei-general`・
-`jp_shouhizei-simplified`）。`write` にパスを渡すと結果を根拠付きで記録します。
-クラウドツール（認証時）: `sync`・`seal`・`export_from_cloud`・`create_cloud_book`・`link_book`。
-サインインには `login`・`auth_status`・`logout` を使います。
-`list_cloud_books` はアクセスできるクラウド帳簿を一覧表示します。
-ローカルフォルダの一覧とは別です。
+引数は利用中のツールの入力形式で確認してください。以下は作業ごとの案内です。
 
-帳簿フォルダにアクセスできる場合、通常のファイル一覧・読み取り・文字列検索・
-下書きやノートの編集には `rg`・`grep`・`find`・`cat`・`sed` やエディタを使います。
-操作は選択した帳簿内で行い、記帳データを編集した後は検証します。ローカル MCP は
-会計計算、検証、認証、同期、記帳・締め・償却・翌年度帳簿の
-作成などの専用処理に使います。検索などの参照ツールは任意の補助です。
-構造化した条件や締め済み状態での検索、ファイルに直接アクセスできないクライアント
-で利用できます。
+#### ローカル帳簿を選ぶ
 
-ローカル MCP に `show` ツールはありません。書類と仕訳の参照関係は
-ファイル検索で確認します。CLI の `iris show` は引き続き使えます。
+`--books-dir` には `~/IrisBooks` などの既存の親フォルダを指定し、その直下に帳簿を置きます。
+`list_books` で確認し、各操作の `book` に子フォルダ名を渡します
+（例: `validate(book="freelance-2026")`）。帳簿を追加しても再起動は不要です。
+帳簿名にパスは指定できず、外部を指すシンボリックリンクも拒否します。
+税理士の作業では、親フォルダと認証情報の範囲を顧客ごとに限定してください。
 
-記帳ツール: `search_journals`（日付・金額・取引先・状態・科目・タグの検索）、
-`post`（`paths` または `all`、
-`dry_run=true` でプレビュー）、`list_conflicts`、`resolve_conflict`
-（`path` と `keep="mine"|"cloud"`）、`list_attention`、`retry_attention`
-（`path` は任意）、`export_local`（`kind="journals"|"assets"`、任意の
-`year`・仕訳用の `as_of`・`out_dir`、既定の出力先は `exports/`）。
-出力先は対象帳簿の内側に限定します。競合で mine を残すと直後に同期し、
-cloud を残すとサイドカーファイルを削除します。attention の再試行は拒否記録を
-消す操作です。修正後に明示的に `sync` を呼んでください。
+`--book` は単一帳簿を扱い、各操作の帳簿指定は不要です。未作成または空の指定先は
+自動作成します。2 つのフォルダ指定は併用できません。ホストと AI に見えるパスは
+異なる場合があり、ファイルへのアクセス権とツールへの接続は別に必要です。
 
-年度・資産ツール: `asset_depreciate`（`month` または `year`、記帳せず下書きを
-生成）、`fiscal_years`、`history`（任意の `path`・`from`・`to`・`limit`・
-`all`）、`reopen`（`year`、オーナー権限はサーバーが確認）。後者 3 つは
-クラウドに接続した帳簿とサインインが必要です。親フォルダモードでは
-`yearend(book="freelance-2025", next_book="freelance-2026")` も使えます。
-既定では開始仕訳、仕訳の移動、クラウドの操作をプレビューするだけです。
-`preview=false` で実行し、`local_only=true` でクラウド作成・同期を省略できます。
-仕訳の移動、権限のコピー、受信アドレスの移管が発生する場合がありますが、
-旧年度は締めません。`next_book` は親フォルダ直下の子フォルダ名で、帳簿作成と
-同じパス制限が適用されます。CLI でも `iris yearend --dry-run` を使えます。
+#### ローカル帳簿を作る
 
-資産価値の参照: `get_holdings` は選択した接続済み帳簿を読み、
-`get_networth` はローカルフォルダを集計し、未同期の記帳済み編集も含めます。
-認証や通信は不要です。`books_dir="."` または
-`books=["business-2026", "personal-2026"]` を指定します。
-パスはサーバーの設定ルート内に限定されます。単一帳簿モードでは兄弟フォルダを
-選べないため、複数帳簿には親フォルダモードを使います。
-`as_of`・`currency`・`mode="current"|"history"|"movers"`、推移には `months`、
-変動要因には `compare` を指定できます。価格はローカルの記録を使い、
-通貨が異なる場合は `currency` が必要です。
-`list_prices` は既定でクラウドを読み、`source="local"` でオフラインの記録を読みます。
-`record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
-で価格をローカルに記録します。`price` は小数点以下 6 桁以内の文字列です。
-`sync_prices` で公開し、他のデバイスの価格も取得します。帳簿の同期とは別の操作です。
-価格はユーザーの設定フォルダに保存し、税務用の帳簿ファイルには入れません。
-`get_holdings` 以外の価格・資産価値ツールにはローカルの `book` 指定が不要で、
-ローカルの価値集計には帳簿フォルダが必要です。
+空の親フォルダでも利用できます。新規作成には
+`create_book(book="freelance-2026", name="Acme", region="JP", fiscal_start_month=1,
+fiscal_year=2026)` を使います。既存の帳簿や空でないフォルダは上書きせず、親自体も
+帳簿にしません。既存のクラウド帳簿を使う場合は、先に作成せず、後述の clone を使います。
 
-クラウドの `list_prices` は `unit`・`currency`・`year`・`limit`・`cursor`
-を受け取り、1 ページを返します。同じ条件で `nextCursor` を渡して続きを取得します。
-ローカルの参照は既知の競合を示し、集計に使う価格を返します。
-`price_conflicts` で両候補を確認し、ユーザーが選んだ場合にだけ
-`resolve_price_conflict(unit, currency, date, choose="local"|"server", revision, edit)`
-に表示された識別子を渡します。解決はローカルで行い、残した訂正は次の同期で公開します。
-価格と出典が一致する編集は自動で合流します。
+#### 記録を作成して検証する
 
-`--books-dir` には、帳簿フォルダを直下にまとめた既存の親フォルダ（例:
-`~/IrisBooks`）を指定します。`list_books` で帳簿を確認し、各操作の `book` に
-子フォルダ名を渡します（例: `validate(book="freelance-2026")`）。帳簿を追加しても
-サーバーの再起動は不要です。空の親フォルダでも起動でき、
-`create_book(book="freelance-2026")` で子フォルダに新しい帳簿を作成できます。
-`name`・`region`・`fiscal_start_month`・`fiscal_year` も指定できます。
-親フォルダ自体は帳簿にせず、既存の帳簿や空でない子フォルダは上書きしません。
+`AGENTS.md` を読み、元資料の確認や下書き・ノートの編集には通常のファイルツールを
+使います。MCP は計算、検証、専用の更新処理に使います。`validate`・`balance`・
+`report`・`status`・`diff`・`autocomplete_journal` は対象帳簿に対する操作です。
+autocomplete はプレビュー後、版を確認して下書きへ適用します。`post` は対象パス、
+または明示的な全下書きの処理を受け取り、記帳ポリシーとサーバーの承認条件に従います。
+`dry_run` でプレビューできます。
 
-親フォルダモードでは `list_recipes(book="freelance-2026")` で帳簿のレシピ名と
-入力形式を確認し、`run_recipe(book="freelance-2026", recipe="jp_teiritsu",
-params={...})` で実行します。3 つの償却計算ツールと `check_update` には
-`book` は不要です。`book` にパスは指定できず、対象の帳簿の外を指すシンボリック
-リンクも拒否します。`export_from_cloud` は `out_dir` を省略した場合も、
-対象の帳簿内に出力します。
+選択中のオーバーレイは `describe_overlay` で確認します。親モードでは
+`list_recipes(book=...)` で名前と入力形式を調べ、`run_recipe` に `params` を渡して実行します。
+単一帳簿モードではレシピごとのツールを公開します。償却の計算ツール、`check_update`、
+`read_docs` には帳簿の指定が不要です。`read_docs` は既定でトピックや節の一覧を返し、
+節を指定すると本文を読みます。ローカル MCP に `show` はなく、参照関係の確認には
+ファイルツールまたは CLI の `iris show` を使います。
 
-Cowork などの MCP クライアントから、ターミナルを使わずにクラウドへ接続できます。
+#### クラウドの利用を承認する
 
-1. `create_book(book="freelance-2026")` で帳簿を作るか、`list_books` から既存の帳簿を選びます。
-2. `login` を呼びます。ホストのブラウザが開き、待機中の状態と
-   `authorization_url`、5 分後の有効期限がすぐに返ります。ブラウザが開かなければ
-   この URL を自分で開き、サインインしてアクセスを許可してください。
-3. `auth_status` を呼び、`status="signed_in"` を確認します。通常はサーバーに
-   認証状態を確認します。`validate=false` では保存済みの認証情報の有無だけを
-   調べます。許可待ちの間に `login` を再度呼ぶと、同じ URL が返ります。
-4. `create_cloud_book(book="freelance-2026")` を呼びます。ローカル帳簿の設定で
-   クラウド帳簿を作り、接続先を保存します。結果が不明な場合も、同じキーで
-   再試行できます。既存のクラウド帳簿に接続する場合は、`list_cloud_books` で
-   ID を確認し、`link_book(book="freelance-2026", cloud_book_id="bk_...")` を呼びます。
-5. `sync(book="freelance-2026")` を呼び、受理・拒否の結果を確認します。
+最初に `auth_status` を呼び、`signed_in` ならその認証を使います。それ以外は `login` を
+呼び、ホストのブラウザでユーザーが許可した後、`auth_status` の
+`status="signed_in"` を確認します。`login` は `authorization_url` と 5 分後の有効期限を
+返し、許可待ちの再呼び出しでは同じ URL を返します。`auth_status` の
+`validate=false` は認証情報の有無だけを調べます。
 
-`login`・`auth_status`・`logout`・`list_cloud_books` に `book` は不要です。
-認証情報はホストに保存され、CLI や他のローカル MCP インスタンスと共有されます。
-ツールの結果に認証情報は含めません。`logout` はこのサーバーの許可待ちを取り消し、
-保存済みのデバイスセッションを失効・削除します。環境変数 `IRIS_API_TOKEN` が
-ある場合はそちらが優先されます。ブラウザでサインインする前に、ホスト側の MCP 設定から
-この変数を外して再起動してください。
-アーカイブや接続済みの帳簿には、クラウド作成・接続を実行できません。
-既存のクラウド帳簿へ接続すると、同期時にファイルが競合する場合があります。
-手元のフォルダ用に新しいクラウド帳簿を作る場合は `create_cloud_book` を使います。
+`login`・`auth_status`・`logout`・`list_cloud_books` に帳簿の指定は不要です。
+認証情報はホスト内で CLI とローカル MCP の間で共有し、ツール結果には出しません。
+`logout` は保存したセッションを失効し、許可待ちも取り消します。環境変数
+`IRIS_API_TOKEN` があればそちらを優先します。その権限を使うか、ブラウザでの認証を
+選ぶ場合はホスト設定から変数を外して再起動してください。現在のサービスの認証手順は
+`/start/cloud/` にあります。
 
-既存のクラウド帳簿をダウンロードする場合は、親フォルダモードで
-`login → auth_status → list_cloud_books → clone_book(book="freelance-2026", cloud_book_id="bk_...")`
-を実行します。未作成または空の子フォルダを選び、先に `create_book` は呼ばないでください。
-`clone_book` はファイルとローカルの AI ガイドを配置し、同期状態とスナップショットを
-設定します。そのため、直後の `diff` には未同期の変更がありません。結果にはホスト側の
-パスと帳簿情報が含まれ、再起動せずに `list_books` から見つけられます。
-既存の内容、シンボリックリンク、アーカイブ、既存の `<book>.partial` 作業用フォルダは
-拒否します。強制上書きはできません。`--books-dir` の場合だけ利用できます。
+#### クラウドのミラーを作成・接続する
 
-`--book` では従来どおり 1 つの帳簿に対して上記のツールを公開し、指定先が
-空または未作成なら帳簿を自動作成します。2 つのフォルダ指定は併用できません。
+帳簿の識別情報を変える前に、状況を確認します。
 
-`--http` を付けると、stdio の代わりに localhost のアドレスで待ち受け、
-`Authorization: Bearer <トークン>` ヘッダーの付いたリクエストだけを受け付けます。
-トークンは初回の起動時に `~/.config/irisbooks/mcp-http.token`（本人だけが読める
-ファイル）に作られ、再起動しても変わりません。MCP クライアントには、このトークンを
-ヘッダーとして設定しておいてください。ファイルを削除すると次の起動で新しい
-トークンが作られ、MCP クライアント側の設定も書き換えが必要になります。
+| 状況 | ツール |
+| --- | --- |
+| 接続済みのローカル帳簿 | `sync(book=...)` |
+| 未接続のローカル帳簿を新しいクラウドへ | `create_cloud_book(book=...)`、その後 `sync` |
+| 未接続のローカル帳簿を未編集の既存クラウドへ | `list_cloud_books`、その後 `link_book(book=..., cloud_book_id=...)` |
+| 既存のクラウド帳簿を手元へ | 後述の `clone_book` |
+
+作成時はローカル帳簿の設定を使い、応答が不明な場合の再試行キーも保持します。
+接続には Owner 権限、年度・地域・通貨などの一致、未編集の初期帳簿またはファイル履歴のない
+接続先が必要です。設定・科目表・`AGENTS.md` を一括で採用してからローカルの接続先を変えます。
+記録済み・編集済み・締め済み・同時変更された接続先は拒否します。別フォルダへ clone して
+比較してください。強制指定でこの条件を回避することはできません。アーカイブと接続済み帳簿の
+新規作成・接続も拒否します。同期の拒否やエラーは別途確認します。
+
+#### 既存のクラウド帳簿を clone する
+
+認証後に `list_cloud_books` で対象を確認し、未作成または空の子フォルダへ
+`clone_book(book="freelance-2026", cloud_book_id="bk_...")` を実行します。
+先に `create_book` は呼びません。同期済みファイルとポリシーを保持し、不足する案内を追加し、
+同期状態とスナップショットを設定してからフォルダを公開します。通常は未同期の差分がありません。
+古い帳簿に `AGENTS.md` がなければ追加し、そのファイルは初回同期の対象として残ります。
+
+結果にはホスト側のパスと帳簿情報が含まれ、再起動せず `list_books` から見つけられます。
+既存の内容、シンボリックリンク、アーカイブ、既存の `<book>.partial` は拒否します。
+強制上書きはできません。clone は `--books-dir` の場合に利用できます。
+
+#### 競合の解決と翌年度の作成
+
+`list_conflicts` と `resolve_conflict` で競合を確認・解決します。mine を残すと直後に同期し、
+cloud を残すとサイドカーを削除します。`list_attention` と `retry_attention` は拒否記録の
+確認と抑制解除です。その後に明示的に同期します。削除などは事前にプレビューし、帳簿の方針に従います。
+
+`asset_depreciate` は下書きを作ります。クラウド接続済み帳簿の `fiscal_years`・`history`・
+`seal`・`reopen` には認証と対応するサーバー権限が必要です。親モードの
+`yearend(book=..., next_book=...)` は既定でプレビューし、`preview=false` で実行、
+`local_only=true` でクラウド処理を省略します。仕訳の移動、権限のコピー、受信先の移管が発生する
+場合がありますが、旧年度は締めません。`link_existing` は未編集で設定の一致する翌年度帳簿だけに
+接続し、既存の権限と受信先を保持します。詳しくは [年度更新](cli-reference.md#iris-yearend) を参照してください。
+
+#### 資産価値と価格
+
+`get_networth` はローカルの記帳済み記録を未同期の編集も含めて集計し、通信や認証は不要です。
+設定ルート内の `books_dir="."` または `books=["business-2026", "personal-2026"]` を指定します。
+単一帳簿モードでは兄弟フォルダを選べません。`as_of`・`currency`・
+`mode="current"|"history"|"movers"`・`months`・`compare` で参照を指定し、通貨が異なる場合は
+`currency` が必要です。`get_holdings` は代わりに接続済みクラウド帳簿を読みます。
+
+`list_prices` は既定でクラウドを読み、`source="local"` でオフラインの価格を読みます。
+`record_price` は小数点以下 6 桁以内の文字列で価格を記録し、`sync_prices` は帳簿とは別に
+価格を送受信します。価格は税務用帳簿ではなくユーザー設定に保存します。クラウド一覧は
+1 ページを返すので、同じ条件で `nextCursor` を渡して続きを読みます。`price_conflicts` で候補を
+確認し、ユーザーが選んだ場合にだけ、表示された版と編集 ID で `resolve_price_conflict` を実行して
+同期します。価格と出典が同じ編集は自動で合流します。`get_holdings` 以外にはローカルの帳簿指定は不要です。
+
+#### ローカル HTTP 接続
+
+`--http` は stdio の代わりに localhost で待ち受け、`Authorization: Bearer <トークン>` を要求します。
+トークンは初回に `~/.config/irisbooks/mcp-http.token` に作成し、所有者だけが読めます。
+再起動しても同じ値なのでクライアントのヘッダーは一度設定すれば使えます。ファイルを削除すると
+次回起動で新しい値になり、ヘッダーの更新が必要です。
 
 ### iris version
 
@@ -873,6 +994,28 @@ iris api books new --name "Acme Design" --fy 2026 --region JP
 成功したか分からない場合は、同じ `--idempotency-key <key>` で再試行すると、帳簿の
 重複作成を防げます。ローカル帳簿の中では、安定したローカル ID から既定のキーを
 作るため、同じ帳簿での再試行には同じキーが使われます。
+
+`books link` にはリンク先の Owner 権限が必要です。PAT を使う場合は
+`role:full` スコープも必要です。リンクできるのは、未変更の初期帳簿、または
+ファイル履歴がないクラウド帳簿です。会計年度・地域・通貨・小数桁数・年度開始月を
+照合し、ローカルの `config/book.yaml`（単位定義を含む）、勘定科目表、`AGENTS.md` を一つの
+トランザクションで反映します。ローカル ID はサーバーの成功応答後に変更します。
+使用済み・編集済み・締め済み、または確認後に更新されたリンク先は拒否されます。
+別フォルダへ clone して比較し、残す内容を決めてください。`--force` でも、この
+確認は省略しません。応答が失われた場合は、同じ内容で再試行できます。
+対応する attachment エンドポイントがない旧サーバーではローカルのリンクを変更しません。
+
+同期状態は `.iris/sync/binding.json` に記録した API 接続先とクラウド帳簿 ID の組で
+管理します。どちらかの変更時や、接続先を確認できない旧形式の状態を開く際には、
+旧 `.iris/sync/` 全体を `.iris/sync-before-link-<suffix>/` に保存して新しく始めます。
+保存先にはキュー・受領情報・カーソル・要確認記録・スナップショット・設定と締めの
+オフライン情報が含まれます。復旧時は内容を確認し、別の接続先へ旧受領情報を
+コピーしないでください。ID の書き込みに失敗した場合は旧状態を復元します。
+同じ接続先と ID では状態を保持します。同期・リンク処理中は帳簿をロックするため、
+ほかの処理が終了してから再試行してください。ローカル ID と帳簿ファイルは保持します。
+オフラインの差分・確認処理は現在の接続先に一致する状態だけを参照します。
+接続先を変えた後は `iris sync` で新しい基準を作ってください。
+クラウド帳簿の会計年度は固定です。別の年度には別の帳簿を使います。
 
 ### iris api token
 
@@ -1031,8 +1174,9 @@ iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
 帳簿横断の合計・推移・変動要因・集計対象設定は CLI から削除しました。
 横断集計にはローカルの `iris networth` または Web アプリを使います。
 Web とリモート MCP のクラウド横断集計は、ユーザーごとに UTC 日付あたり
-1 回だけ作る共通スナップショットを使います。日付や帳簿の選択を変えても、
-再生成はしません。集計時点と次回更新時刻が応答に含まれます。
+最大1回自動生成する共通スナップショットを使います。日付や帳簿の選択を変えても、
+再生成はしません。同期済みの変更を今すぐ反映するには、Web アプリのダッシュボード
+または純資産で「**集計を実行**」を選びます。集計時点と次回の自動更新時刻が応答に含まれます。
 
 ## 環境変数
 
@@ -1041,7 +1185,7 @@ Web とリモート MCP のクラウド横断集計は、ユーザーごとに U
 | `IRIS_API_TOKEN` | パーソナルアクセストークン。キャッシュ済みログイントークンより優先 |
 | `IRIS_BOOK` | クラウドコマンドの既定帳簿 ID（位置引数があればそちらが優先） |
 | `IRIS_API_ENDPOINT` | API エンドポイントの上書き。以下のすべてより優先 |
-| `IRISBOOKS_APP_BASE` | アプリのベース URL（既定 `https://irisbooks.jp`） |
+| `IRISBOOKS_APP_BASE` | アプリのベース URL（既定 `https://irisbooks.io`） |
 | `IRISBOOKS_API_BASE` | API のベース URL（既定 `<app-base>/api`） |
 
 エンドポイント系の変数が未設定のときは、最後の `iris api login` で保存

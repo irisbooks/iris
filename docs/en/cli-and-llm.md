@@ -71,6 +71,10 @@ history. It complements the accountant's file work.
 
 ## One-time setup: connect your AI
 
+If your assistant already has CLI execution and file access, it can work without
+MCP registration. Use `iris onboard` when you want an MCP integration or need
+to add missing local guide files.
+
 ```bash
 iris onboard
 ```
@@ -91,10 +95,14 @@ This wiring is for the machine the book folder lives on. With a cloud-linked
 book you can also talk to it away from that machine — see
 [Your AI on the go (remote connector)](remote-connector.md).
 
-Every book also ships an `LLM-GUIDE.md` at its root: a complete working
-contract your AI reads before touching anything. You don't need to read it,
-but it's why the AI knows the conventions (filenames, double-entry rules,
-where to flag uncertainty).
+Every new book has an English `AGENTS.md` at its root: a concise working
+contract with the posting policy, integrity rules, a minimal journal and
+reference lookup. Local CLI/MCP creation and web/API creation use the same
+template. The file syncs with the book, and cloning preserves its contents.
+`README.md` briefly explains the folder; `CLAUDE.md` points agents to `AGENTS.md`.
+An Owner can customize the contract; changing it in the cloud requires Owner access.
+For an older local book, `iris onboard` adds missing entry files and preserves
+an existing `LLM-GUIDE.md` policy in `AGENTS.md`, without overwriting custom guides.
 
 > **Sandboxed assistants** (e.g. agents in a VM without the `iris` binary):
 > there is no bundled copy inside the book. If using host MCP, the host runs
@@ -114,6 +122,23 @@ For accountant work, the parent must contain only one client's books, such
 as `~/IrisBooks/ClientA/2026` and `~/IrisBooks/ClientA/2027`. Configure that
 client's assistant connection to `~/IrisBooks/ClientA`, and check its cloud
 credentials separately. A separate chat alone does not restrict access.
+
+## Online docs and optional downloads
+
+Your assistant reads the book's `AGENTS.md`, its current workflow summary and
+relevant questions/decisions. It can then use installed command help or tool
+schemas. `iris docs` lists bundled English topics; `iris docs <topic>` lists
+sections and sizes. `--section <id>` reads one; `--full` explicitly reads the
+chapter. Local MCP `read_docs` has equivalent `topic`, `section` and `full`
+selectors without a book argument. No login, download or network is required.
+
+For requested setup, use the [start guide](/start/); current cloud authorization
+is in [cloud setup](/start/cloud/). Older tools without bundled lookup can use
+the [docs index](/llms.txt). The [complete AI manual](/llms-full.txt) is optional.
+An optional Markdown cache belongs outside bookkeeping records, with source URL
+and release tag: `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
+Match `iris version` where available and search only needed sections. Use the
+book's selected overlays for its rules; reference material does not authorize actions.
 
 ## Check and update iris
 
@@ -159,7 +184,7 @@ enough without a document.
 
 Tell your assistant something like *"record this statement"* or
 *"help me catch up on my personal cash spending"*.
-Following `LLM-GUIDE.md`, it will:
+Following `AGENTS.md`, it will:
 
 - For a document, read it in full and write a **parse cache** to
   `notes/raw/<source>.md` — a durable table marking each row `journaled`,

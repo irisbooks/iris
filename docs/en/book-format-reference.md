@@ -25,7 +25,7 @@ your-book/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<mirror of raw/>.md    # parse caches
 ├── compiled/                      # AI-generated reports (regeneratable)
-├── README.md  LLM-GUIDE.md  CLAUDE.md   # human + AI guides
+├── README.md  AGENTS.md  CLAUDE.md   # human + AI guides
 └── .iris/                         # runtime state — never hand-edit
 ```
 
@@ -315,6 +315,101 @@ tax:
 
 See [Japan tax & compliance](japan-tax-and-compliance.md#consumption-tax-消費税).
 
+## Defaults and inferred values
+
+Keep shared settings in `config/book.yaml`. An ordinary journal records its
+date, status and account/amount lines; optional payee, evidence and notes add
+context. The following values do not need to be repeated on every line:
+
+| Value | What IrisBooks uses | Where you specify it |
+| --- | --- | --- |
+| Amount currency | The book's `currency` | Once in `config/book.yaml` |
+| Amount precision | The book's `scale`; if omitted, the currency's built-in precision | Set at book creation; it is immutable afterward |
+| Quantity precision | An explicit `units` entry, otherwise built-in precision for known currencies | Declare custom units once in `config/book.yaml`; include `scale: 0` for whole units |
+| Direction | The `debit` or `credit` key | Use exactly one on each line; `quantity` stays positive |
+| Journal identity | The filename | No journal ID field is needed |
+
+For money-only lines, omit both `quantity` and `unit`. For a commodity holding,
+add both to the line that moves it. For example, in a JPY book with `FUND`
+declared at `scale: 0` and the two accounts in the chart, save this as
+`journals/2026-10/2026-10-20-fund-01.md`:
+
+```markdown
+---
+schema_version: 1
+date: 2026-10-20
+status: draft
+lines:
+  - account: Assets:Investments
+    debit: 100000
+    quantity: 10
+    unit: FUND
+  - account: Assets:Bank
+    credit: 100000
+---
+```
+
+This records ten units bought for ¥100,000. Currency, quantity direction and
+unit precision need no extra journal attributes. The date and status remain
+explicit; the draft stays out of ordinary reports until posted.
+
+For [portfolio analytics](cli-reference.md#iris-analytics), acquisition lot
+identities can be derived from the purchase lines, so a simple purchase needs
+no `lot` label. **FIFO is the default** for disposal cost allocation: the
+earliest acquisitions are consumed first, independently per account and
+commodity. An explicit matching `inventory.params.method` takes precedence;
+otherwise analytics keeps the method in opening inventory, then falls back
+to FIFO. Supported methods are `fifo`, `specific` and `moving-average`.
+Specific identification requires a lot selection on each disposal. Missing
+acquisition history or opening basis leaves acquisition cost unknown.
+
+Local report comparisons calculate disposal cost and adjust gain/loss without
+editing or posting journals. If a cost adjustment is needed, specify the gain
+account once in `config/book.yaml`:
+
+```yaml
+inventory:
+  params:
+    gain_account: Income:Gain
+```
+
+The account must exist in a strict book's chart. The method may be omitted for
+FIFO; set `method: moving-average` to change it, including in a selected view.
+An omitted `accounts.exact` selector covers commodity asset accounts; add it
+to restrict the scope. The optional `commodity` filter restricts the unit.
+Use `iris report pl --mode comparison` to inspect the calculated ledger.
+Comparison JSON lists `selection.inventoryMethods`; portfolio SQL exposes
+`inventory_method`, and Net Worth shows the method beside each commodity
+account. Ordinary validation and approved reports use the recorded ledger;
+computed comparisons stay unapproved.
+
+To complete a sale draft, record the proceeds and quantity, and mark its cost
+as `credit: null`. With the gain account above configured and the purchase
+above posted, save this as `journals/2026-10/2026-10-21-sale.md`:
+
+```markdown
+---
+schema_version: 1
+date: 2026-10-21
+status: draft
+lines:
+  - account: Assets:Bank
+    debit: 70000
+  - account: Assets:Investments
+    credit: null
+    quantity: 5
+    unit: FUND
+---
+```
+
+Run `iris autocomplete journals/2026-10/2026-10-21-sale.md` to preview a ¥50,000
+inventory credit and a ¥20,000 gain credit. Apply the preview with `--apply`
+and its `--revision`. The automatically included `default` overlay supplies inventory completion
+without additional journal attributes. Fees, when present, remain explicit expense postings.
+An ordinary money-only journal can similarly leave one balancing amount as
+`debit: null` or `credit: null`. Completion keeps drafts unposted; validation
+checks the resulting recorded amounts. See [iris autocomplete](cli-reference.md#iris-autocomplete).
+
 ## Chart of accounts — `config/chart-of-accounts.yaml`
 
 ```yaml
@@ -600,15 +695,52 @@ counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 | 1  | 2026-04-01 | Amazon JP   |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
 ```
 
+Before reusing a parse cache, compare its `source_sha` with `iris hash` of the
+current source. If it changed, reconcile changed rows and existing journal
+links before importing further entries; preserve completed row state.
+
 ## What syncs and what doesn't
 
 With cloud sync, `iris sync` mirrors the **syncable** files to the cloud:
 
 - **Synced:** `journals/`, `assets/`, `filings/`, `notes/` (including parse
-  caches), `raw/` (verbatim bytes), `config/book.yaml`,
+  caches), `AGENTS.md` (shared agent contract), `raw/` (verbatim bytes), `config/book.yaml`,
   `config/chart-of-accounts.yaml`, `config/rules.yaml`, `config/overlays/`.
-- **Not synced:** `.iris/` (runtime state), `README.md` / `LLM-GUIDE.md` /
-  `CLAUDE.md` (guides), and `compiled/` (regeneratable).
+- **Not synced:** `.iris/` (runtime state), `README.md` / `CLAUDE.md` (local entry files), and `compiled/` (regeneratable).
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md).
+
+### Independent annual books and acquisition openings
+
+`iris yearend` writes complete opening inventory in the next book's
+`config/book.yaml`. Each book can be valued independently, without a link to
+an earlier book. Select earlier books only to include their own historical periods.
+
+```yaml
+opening_inventory:
+  - account: Assets:Fund
+    unit: FUND
+    method: fifo
+    quantity: 100
+    carrying_value_minor: 1200000
+    acquisition_cost_minor: 1000000
+    lots:
+      - id: original-purchase
+        date: 2025-11-01
+        quantity: 100
+        cost_minor: 1000000
+```
+
+Quantities are integers at the unit's scale; money is integer book-currency
+minor units. Carrying value and acquisition cost are separate. Carrying value
+also disambiguates a native-currency cash residual from a unit holding in the
+same account. FIFO/specific openings retain original lots and their dates;
+moving-average openings use a quantity/cost pool without lots. A null acquisition
+cost means unknown. The opening journal still states the monetary/quantity
+balance and must reconcile with these fields within this book.
+Do not infer acquisition cost from a revalued opening amount.
+
+Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics derives
+one from the fiscal year, journal path and original line index within this book’s
+inventory. Changing the book’s cloud ID does not change that lot ID.
