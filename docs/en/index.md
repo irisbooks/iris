@@ -1,20 +1,12 @@
 # IrisBooks Docs
 
-IrisBooks is local-first, double-entry bookkeeping with your own AI assistant.
-Your book is a **folder you keep**: journals and other accounting records use
-Markdown with YAML frontmatter; configuration uses standalone YAML. Community
-open-source overlays supply checks and calculation helpers for a region or
-purpose. You work with your book through two lenses:
+IrisBooks helps you keep books with your own AI assistant.
 
-- the **`iris` command-line tool** driven by your own AI assistant (Claude,
-  Cursor, Copilot, …), and
-- the **web app**, a first-party interface for browsing, editing, reporting,
-  and collaborating.
+- Use the **`iris` command-line tool** with your AI to record and check entries.
+- Use the **web app** to browse synced books, review entries, and read reports.
 
-The CLI works on your files; the web app works on their synced cloud copy.
-You can copy the folder, hand it to your accountant, sync it between machines
-or keep it local. Local `iris` needs no account or network; your chosen AI
-service may need its own connection.
+Your book is a folder of Markdown and YAML files. The CLI works without an
+account; optional cloud sync adds web access and collaboration.
 
 > **New here?** Read [Getting started](getting-started.md) first, then
 > [Core concepts](concepts.md). Everything else is reference you can return to.

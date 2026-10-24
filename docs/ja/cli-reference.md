@@ -1,16 +1,45 @@
 # CLI コマンドリファレンス
 
-`iris` の全コマンドを目的別にまとめます。CLI には2つの作業面があります。
+`iris` の全コマンドを目的別にまとめます。`iris --help` は、帳簿、記帳、
+レポート、同期、資産管理、AI 連携、クラウド管理、インストールに分けて表示します。
+トップレベルにあるコマンドでも、サーバーと通信する場合があります。
 
-- **ファイルモードのコマンド**はローカルの帳簿フォルダに対して動きます。パス引数を
-  省略すると、カレントディレクトリから上にたどって帳簿を探すため、帳簿ツリーの
-  どこからでも実行できます。
-- **クラウドコマンド**（`iris api …`）は IrisBooks サーバーと通信し、パスではなく
-  **帳簿 ID** に対して動きます。サインイン（`iris api login`）するか
-  `IRIS_API_TOKEN` を設定しておく必要があります。
+- ローカルの帳簿は `--book-path PATH` または各コマンドの位置引数で指定します。
+  どちらも省略すると、現在のフォルダから上にたどって帳簿を探します。
+  複数帳簿の資産集計には `--books-dir PATH` または帳簿フォルダの一覧を使います。
+- 帳簿単位のクラウド操作（`iris api …`）は、`--book-id ID`、位置引数の帳簿 ID、
+  `IRIS_BOOK` の順で指定できます。アカウント単位の操作には帳簿の指定は不要です。
+  クラウドへのアクセスには `iris api login` または `IRIS_API_TOKEN` が必要です。
+- `clone`・`sync`・`reopen` は通信します。`post` は記帳後に連携済みの帳簿全体を
+  同期し、`--local` を付けると同期を省略します。連携済み帳簿の `yearend` は、
+  `--local` を選ばない限り翌年度のクラウド帳簿を作成・同期します。
+  `price sync`、パッケージのダウンロード、`update` も通信します。
 
-各コマンドの最新かつ正式なフラグは `iris <command> -h` で確認できます。`iris -h`
-で全体、`iris api -h` でクラウドのサブコマンドを一覧します。
+最新の使い方は `iris <command> --help` または `iris help <command>` で確認できます。
+ヘルプは帳簿・ログイン・通信なしで動き、標準出力に表示して終了コード 0 を返します。
+フラグは引数の前後どちらにも置けます。`--` 以降はフラグとして解釈しません。
+真偽値を明示する場合は `--flag=true` または `--flag=false` と書きます。
+
+計算・修復（`journal complete`・`organize`・`financial prepare`・`overlay recipe`、
+`validate` の導出値）は、`--apply` を付けたときだけ書き込みます。レシピには
+`--out PATH`、計算結果の保存には確認済みの `--revision` も必要です。
+`post`・`yearend`・`overlay select`・`overlay upgrade`・`api seal` は指定した操作を
+実行し、`--dry-run` を付けると変更せずに確認できます。`yearend` は翌年度の帳簿に
+残高を繰り越します。今年度のロックは別途 `api seal` で行い、修正時は `reopen` で
+解除します。
+
+`report`・`balance`・`reconcile`・`allocation`・`context`・`financial`・
+`journal complete`・`networth`・`analytics export` は常に JSON を出力します。
+ほかの参照コマンドでは、各ヘルプに記載された `--json` を使えます。
+`sync issues list`・`conflicts list`・`api config show` も対応しています。
+結果は標準出力、エラーは標準エラー出力に出します。終了コードは成功が 0、
+処理・検証の失敗が 1、引数・設定の誤りが 2、同期の切断が 3 です。
+
+コマンド名は `journal complete`・`references`・`sync issues` に統一し、旧名の
+`autocomplete`・`show`・`attention` は削除しました。フォルダ指定には
+`--book-path` を使い、曖昧だった `--book` は削除しました。締めの確認は
+`api seal --dry-run`、計算結果の書き込みは `validate --apply`・
+`financial prepare --apply`・`overlay recipe --out PATH --apply` を使います。
 
 JSON を出すコマンドには共通の約束があります。**金額は帳簿通貨のマイナー単位の
 整数**（scale 0 なら ¥1,200 は `1200`、scale 2 なら $12.00 が `1200`）、日付は
@@ -86,14 +115,32 @@ iris init [flags] <path>
 | --- | --- |
 | `--name` | 帳簿の表示名 |
 | `--region` | 地域コード（JP, US。既定 JP） |
+| `--preset` | 用途: `personal`（家計の勘定科目）/ `business`（事業用。既定）。法人・個人事業の区分や税務上の取扱いは別に設定 |
 | `--language` | 言語（ISO 639-1） |
 | `--chart` | 勘定科目テンプレートの種類（地域に複数ある場合）— 日本: general / it / food（既定 general）。専用の勘定科目表が無い地域では、特定の国に依存しない最小構成の勘定科目表になります |
 | `--currency` | 通貨（ISO 4217。地域既定） |
 | `--fiscal-start-month` | 会計年度開始月 1〜12（既定は 1 月。4 月に始まる年度なら `4`） |
 | `--fiscal-year` | この帳簿が扱う会計年度（YYYY。既定は今日を含む年度）— 前年度の申告をこれから済ませる場合は前年度など |
-| `--sample` | 試せるデモ仕訳を約40件追加 |
+| `--sample` | 事業用の勘定科目に対応するデモ仕訳を約40件追加。personal では利用不可 |
 | `--posting` | AGENTS.md に書き込む記帳ポリシー: `approve`(既定 — あなたが確認して記帳)/ `auto`(検証を通った仕訳をアシスタントが自動記帳) |
 | `--book-id` | 既存のサーバー帳簿に事前リンク（上級） |
+
+対話形式の初期設定、親フォルダーの MCP `create_book`、Web・API の明示的な新規作成は、
+同じ作成処理を使います。personal は共通パッケージと家計の勘定科目、business は共通・
+地域パッケージと事業用の勘定科目を選びます。固定バージョンのコピーを保存してから、
+選択内容を帳簿設定に書き込みます。設定内の `creation` は作成時のプリセットと版の記録です。
+編集・複製・年度更新では帳簿の実際のファイルを使い、プリセットを適用し直しません。
+税務上の適用条件、証拠資料、勘定科目の対応は、初期設定の案内に従って別に判断します。
+初期化後は、選択したパッケージと解決できた出典、最大3件のタスクへのリンクも表示します。
+共通のコンテキスト取得処理を使い、古い定義にタスク情報がなければ、その制約を示します。
+新版のタスクを旧版のものとして表示しません。
+
+新しいクラウド帳簿にも、`iris api books new --preset personal --name "家計" --fy 2026`
+で同じ設定を使えます。新規作成時は `--chart general|it|food` と `--language en|ja`
+も指定できます。既存のローカル帳簿を接続する場合は、実際の設定・勘定科目・記帳方針を
+保持し、プリセットによる上書きを拒否します。クラウドで作成を再試行しても、最初に
+保存した初期ファイルとハッシュを使います。ローカル帳簿の接続では、サーバーが保持する
+元の初期ファイルと変更履歴を確認してから、設定・勘定科目・記帳方針を置き換えます。
 
 ### iris onboard
 
@@ -104,7 +151,7 @@ Gemini CLI・VS Code は、マシン上で検出された場合（または各�
 場合）に登録されます。
 
 ```bash
-iris onboard [--book PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]
+iris onboard [--book-path PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]
 iris onboard --status [--json]    # 読み取り専用レポート: どこに何が登録されているか
 ```
 
@@ -121,7 +168,7 @@ iris onboard --status [--json]    # 読み取り専用レポート: どこに何
 再インストール前の実行も安全です。
 
 ```bash
-iris offboard [--book PATH] [--keep-skill] [--remove-path] [--dry-run]
+iris offboard [--book-path PATH] [--keep-skill] [--remove-path] [--dry-run]
 ```
 
 | フラグ | 意味 |
@@ -140,7 +187,7 @@ Codex CLI）、`iris onboard --install-path` が追加した PATH 設定。実�
 
 帳簿には一切触れません — 帳簿はあなたが所有するただのファイルです。帳簿内の
 エージェント設定（帳簿内の `.mcp.json`）もそのまま残ります。それも消したい
-場合は、先に `iris offboard --book PATH` を実行してください。
+場合は、先に `iris offboard --book-path PATH` を実行してください。
 
 ```bash
 iris uninstall [--yes] [--dry-run]
@@ -182,11 +229,30 @@ iris status [--json] [path]
 ```text
 { name, bookId, region, language, currency, fiscalStartMonth,
   archived, archive?{ sourceBookId, fiscalYear },
-  draftCount?, remoteDeleted? }
+  draftCount?, remoteDeleted?, packageContext?,
+  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId? } }
 ```
 
 `archive` はアーカイブフォルダのときだけ、`draftCount` は下書きを数えられたとき
 だけ、`remoteDeleted` はサーバー側で帳簿が消えていると報告されたときだけ現れます。
+
+`sealStatus` は、この年度の最後に確認できた状態をオフラインで表示します。
+`closed`（締め済み）と `reopened`（再オープン済み）には、分かる範囲で締めの ID、
+締め日時、引き継いだ締めの ID を含めます。`checkedAt` はサーバーからの取得、締め、
+再オープンに成功したときの確認日時です。更新に失敗しても古い確認日時を保持します。
+`unsealed` は最後の一覧取得時に締めがなかったことを表し、情報の不足・破損や
+接続先の不一致は `unknown` です。古い形式の締め済み情報には ID や確認日時が
+ない場合があります。`local-only` はクラウドの締めがないローカル帳簿、`archive` は
+手元のアーカイブを表し、現在のクラウドの状態を保証しません。通信やログインは
+行いません。更新には `iris sync` を使ってください。未同期のファイルは締めの
+対象データと異なる場合があります。
+
+通常の帳簿では、選択したパッケージと解決できた出典、最大3件のタスクへのリンク、
+コンテキストの診断件数も表示します。JSON では `packageContext` に含めます。
+`iris context` と同じ取得処理を使うオフラインの読み取りで、検証や適用可否の判定では
+ありません。定義のコピーがなければ診断を示し、インストールはしません。
+アーカイブではこの取得を省略します。タスクの全一覧、出典・会計ビューのエラー、
+メタデータの制約は `iris context` で確認してください。
 
 ### iris validate
 
@@ -194,12 +260,18 @@ iris status [--json] [path]
 ステータスの値、（日本の課税事業者は）税区分。
 
 ```bash
-iris validate [--v] [--json] [--fix] [path]
+iris validate [--v] [--json] [--apply] [path]
 ```
 
 `--v` は走査した全ファイルを表示、`--json` は問題と件数を出力しエラー時に 1 で終了。
-`--fix` は地域オーバーレイが導いた値（ヒントとして報告されるもの。たとえば税抜経理の
+`--apply` は地域オーバーレイが導いた値（ヒントとして報告されるもの。たとえば税抜経理の
 帳簿で明細に含まれる消費税額）をファイルに記録してから、もう一度検証します。
+
+Overlay の入力・計算量・出力の上限は帳簿全体で共有します。上限に達すると
+`overlay.checks-incomplete` エラーになり、`--apply` は先に得た提案も書き込みません。
+貸借一致などの基本の検証は続けます。検証は記録済みの候補を確認する処理で、
+追加フィールドの計算を実行して修正することはありません。上限の詳細は
+帳簿フォーマットリファレンスを参照してください。
 
 **出力形**（`--json`）:
 
@@ -214,7 +286,7 @@ iris validate [--v] [--json] [--fix] [path]
 されるので、分岐にはコードを使ってください。`ok` は `errors == 0` と同義で、
 警告とヒントは `ok` にも終了コードにも影響しません。
 
-### iris autocomplete
+### iris journal complete
 
 既存の下書き仕訳を補完し、結果をプレビューします。帳簿のオーバーレイと
 組み込みのルールを使います。金額だけの仕訳では、貸借を合わせる1行の金額を
@@ -222,12 +294,12 @@ iris validate [--v] [--json] [--fix] [path]
 記帳済み取得仕訳から売却原価を計算し、損益の行を提案します。
 
 ```bash
-iris autocomplete [--book PATH] [--view NAME] [--apply] [--revision HASH] <journal>
-iris autocomplete journals/2026-10/2026-10-21-sale.md
-iris autocomplete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
+iris journal complete [--book-path PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris journal complete journals/2026-10/2026-10-21-sale.md
+iris journal complete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
 ```
 
-パスは帳簿からの相対パスです。`--book` の省略時は現在の帳簿を探し、
+パスは帳簿からの相対パスです。`--book-path` の省略時は現在の帳簿を探し、
 `--view` の省略時は既定のビューを使います。ビューを指定すると、そのビューの
 行だけを更新し、共通の行と他のビューを保持します。
 
@@ -236,6 +308,14 @@ iris autocomplete --apply --revision <preview-revision> journals/2026-10/2026-10
 プレビューでは書き込みません。`--apply` は書き込む前に再計算し、指定した
 リビジョンが古ければ拒否します。適用後も下書きで、記帳・同期は行いません。
 アーカイブ帳簿と、締め済みと確認できる年度には適用できません。
+
+Bindings v5 の定義があるパッケージでは、分類・計算の順に、未記入の追加フィールドを
+先に埋められます。対象は単一の値で、元の仕訳は貸借が一致している必要があります。
+JSON の `preparation_plan` と `preparation_trace` に、計算元の固定バージョン、
+使った入力、提案した値を返します。適用時はフィールドごとの計算情報を
+`preparation_source` に保存し、`iris validate` で帳簿内の定義から再計算できます。
+記入済みの値は保持します。同じプレビューとリビジョンによる適用確認を、
+ローカル MCP の `complete_journal` でも使えます。
 
 **原価配分は先入先出法（FIFO）が既定**です。損益の計上先を
 `config/book.yaml` の `inventory.params.gain_account` に一度指定します。
@@ -249,11 +329,13 @@ iris autocomplete --apply --revision <preview-revision> journals/2026-10/2026-10
 計算する金額には `null` を指定します。手数料は明記してください。
 空売りと取得原価ゼロの売却には対応していません。
 
-これらのルールは公開[オーバーレイリポジトリ](https://github.com/irisbooks/overlays)の
-`default` パッケージで管理します。IrisBooks に同梱されて自動で使われるため、
-既定の固定バージョンを書く必要はありません。`overlays` に `default@<version>`
-を明記すると、取得済みまたは同梱済みのそのバージョンだけを使い、新しい既定値は
-混ぜません。専門パッケージや信頼済みの帳簿ローカル定義で、同じ ID を置き換えられます。
+公開[オーバーレイリポジトリ](https://github.com/irisbooks/overlays)の
+`journal-balance` と `inventory-disposal` を個別に選択します。それぞれ固定バージョンの
+選択と、帳簿の `config/overlay-packages/` にあるコピーが必要です。
+新規帳簿は二つを明示的にコピーして選択します。売却原価計算を外しても貸借補完は
+使え、貸借補完を外しても売却原価計算は使えます。空の選択ではどちらも動作しません。
+同梱版やキャッシュを実行時の代替には使いません。専門パッケージや信頼済みの帳簿独自の
+定義は、同じ ID の共通補完を置き換えられます。
 
 `iris overlay list --json` とローカル MCP の `describe_overlay` で補完ルールを
 確認できます。信頼済みの帳簿ローカル定義や選択済み公開パッケージの
@@ -293,6 +375,44 @@ iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] 
 付きます。
 
 ## レポート・検索
+
+### iris reconcile
+
+`config/balance-assertions.yaml` の観測残高を、取得したローカルのルート仕訳と
+元資料のハッシュで照合します。パッケージ・ログイン・通信は不要です。
+
+```bash
+iris reconcile [--json] [path]
+```
+
+出力は常に JSON です。科目・基準日・年度、金額または数量、単位と小数桁数、
+記帳済みまたは明示した下書き込みの範囲、科目の通常の向き、正確な記録上・資料上の
+残高と差額を、10進数と整数の文字列で返します。元資料の状態も含みます。
+不一致、資料の不足・変更、入力エラーがあれば終了コードは1です。観測の一覧が空なら
+照合対象はありません。書き換えや記帳は行わず、`iris validate` でも失敗を報告します。
+ローカル MCP の `reconcile` も、単一帳簿・親フォルダの両モードで同じ処理を使います。
+クラウドの締めプレビューでも、受け入れ済みデータに対して同じ共通処理を実行し、
+未解決の観測残高があれば締めを拒否します。ローカルの変更は先に同期してください。
+Overlay の判定や元資料の真正性を証明するものではありません。
+[書式と一連の例](book-format-reference.md#残高照合)を参照してください。
+
+### iris allocation
+
+費用の全額を、根拠のある事業割合と対象期間で分けて計算します。帳簿やログインは不要で、
+証拠の読み取りや書き込みは行いません。正確な入力形式は `--schema` で確認できます。
+金額は文字列、精度と丸め方は明示指定です。費用の対象期間全体が一つの根拠の有効期間に
+収まる必要があります。結果にはバージョンと入力の識別情報を残し、証拠は未確認と表示します。
+元資料と両帳簿の対応仕訳は別途確認してください。
+
+```bash
+iris allocation --schema
+iris allocation --input raw/allocation-jan.json
+iris allocation --input -     # 標準入力から一つのJSONオブジェクトを読む
+```
+
+入力の上限は8192バイトです。入力の不備は終了コード1、使い方の誤りは2を返します。
+取得価額の按分や記帳は行いません。
+[費用の按分の例](book-format-reference.md#費用の事業分と家事分を分ける)も参照してください。
 
 ### iris balance
 
@@ -344,7 +464,7 @@ AI はもともと JSON を読み、人間向けの整形表示は Web アプリ
 **出力形**。5つとも1つの行型の上に組み立てられています。
 
 ```text
-Balance = { account, debits, credits, type?, net? }
+Balance = { account, debits, credits, type?, net }
 
 tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
 pl      { from?, to?, income[Balance], expenses[Balance],
@@ -360,8 +480,10 @@ sum     { groupBy[], from?, to?,
           totalDebit, totalCredit, totalNet, totalLines }
 ```
 
-`Balance` の `type` と `net` は、その科目が勘定科目表に照らして分類できたときに
-入ります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
+`net` は数値で返し、相殺済みの科目でも `0` を省略しません。`type` があれば
+科目の通常残高の向き、未分類なら `debits - credits` です。現在のCLIは、旧サーバーが
+省略した `net` も補ってからJSONを出します。既存の絞り込みで残高ゼロの行全体を
+除く場合はあります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
 は元の仕訳ファイルなので、元帳のどの行からも元の仕訳へたどれます。
 `sum.rows[].keys` は位置対応で、`--by` に渡したキーと同じ順に1つずつ並びます。
 
@@ -386,13 +508,13 @@ iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
 
 `amount` はその仕訳の借方合計（マイナー単位）、`lines` は明細行数です。
 
-### iris show
+### iris references
 
 パスの相互参照。資料に対してはそれを引用する仕訳、仕訳に対しては引用する資料と
 兄弟を表示します。
 
 ```bash
-iris show [--json] <path> [path]
+iris references [--json] <path> [path]
 ```
 
 **出力形**（`--json`）:
@@ -431,8 +553,43 @@ iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末�
 
 方式は会計年度ごとにどちらか一方を選びます。すでに月次仕訳がある年度への年次
 実行（およびその逆）は拒否されます — 混在すると二重計上になるためです。
+作成中は作業ツリーをロックし、締め済みと分かっている年度や、年度が決まった帳簿と
+異なる年度への作成も拒否します。締め情報は手元の写しなので、情報がないことから
+現在のクラウドでも締めていないとは判断できません。兼用資産では全額の償却仕訳を一度残し、
+家事分を別に振り替える[確認済みの例](book-format-reference.md#兼用資産の取得価額を保って費用を分ける)を参照してください。
+
+資産の計算量には上限があります。不正な償却表や上限を超えた入力はエラーになります。
+[償却表の上限](book-format-reference.md#schedule-計算させるか表を記録するか)を参照してください。
 
 ## 地域オーバーレイ
+
+### iris context
+
+会計パッケージは、帳簿で使うフィールド・チェック・計算・ガイドをまとめたものです。
+まず短いタスク一覧を確認し、必要なタスクとレコードだけを指定します。
+
+```bash
+iris context [path]
+iris context --task jp-small-asset-deduction.equipment --record assets/2026/laptop.md [path]
+iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
+```
+
+タスクは、帳簿が選択した固定バージョンに含まれている必要があります。
+古いリリースでは案内が限定的であることを明示し、新版の情報を旧版のものとして
+表示しません。出典、入力、診断、対応操作と人の判断が必要な点を分けて返します。
+ローカル MCP の `get_book_context(task?, record?, view?)` も同じ内容を返します。
+親フォルダモードでは `book` も必要です。`--view` は既存の会計ビューを選び、
+複数指定で明示的に組み合わせられます。レコード検査は資産と仕訳が対象です。帳簿設定のタスクではレコードの指定は不要です。
+参照の取得だけで、インストール・設定変更・提案の適用・記帳はしません。
+
+リモート MCP の `get_book_context(book_id, package?, task?, field?, guide?, example?)`
+は、同期済みの帳簿から参照情報だけを返します。保存されたパッケージの選択・設定、
+項目・タスクの定義、受け付けたファイルのハッシュ、確認済みの帳簿リビジョン・日時を含みます。
+ガイドには正確なパッケージ出典を、例にはそれを参照するタスクも指定します。
+パッケージや `book:<hash>` の式はコンパイルしません。互換性・適用可否・必須条件・
+会計ビューの解決・実行計画・検証・再現計算は未評価です。税の設定がなければ未設定のまま扱い、
+未同期のローカル変更は含めません。参照情報は操作の許可ではなく、読み込みごとに
+現在の帳簿アクセス権とトークンの範囲を確認します。
 
 ### iris overlay
 
@@ -441,14 +598,17 @@ iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末�
 `config/overlays/` があればそれで拡張されます。
 
 ```bash
+iris overlay install [--pin id@version ...] [path]                  # 固定バージョンを帳簿へコピー（選択は変更しない）
+iris overlay select --pin id@version [--pin ...] [--dry-run] [--json] [--revision HASH] [path]  # 有効な組み合わせ全体を指定。--off で追加パッケージを無効化
+iris overlay example <task> <file#case> [path]                      # タスクの実行可能な検証例を読む
 iris overlay list [--json] [path]                                   # 適用中のオーバーレイ: 固定バージョン・層・ルール・レシピ・派生
-iris overlay guide <id> [path]                                     # 固定したパッケージの手順書を読む
-iris overlay recipe <id> --set name=value ... [--write <path>] [path]  # レシピを実行。--write で根拠付きで記録
+iris overlay guide <id[#section]> [path]                                     # 固定したパッケージの手順書を読む
+iris overlay recipe <id> --set name=value ... [--out <path> --apply] [path]  # レシピを実行。--apply で根拠付きで記録
 iris overlay test [--json] [path]                                   # 適用中の各層のゴールデンテストを実行
 iris overlay test --dir <overlay-dir> [--json]                      # 公開オーバーレイ 1 つのゴールデンテストを帳簿の外で実行
 iris overlay fetch [path]                                           # 帳簿が固定したバージョンを、この iris になければダウンロードして検証
-iris overlay upgrade [--to <id>@<version>] [--dry-run] [path]                   # 固定を公開済みの最新版（または --to）に移す
-iris overlay trust [path]                                           # この帳簿の config/overlays/ をこのマシンで信頼する
+iris overlay upgrade [--to <id>@<version>] [--dry-run] [--json] [--revision HASH] [path]                   # 固定を公開済みの最新版（または --to）に移す
+iris overlay trust [--source book:HASH] [path]                       # 現在の層か、保存済みの正確な独自定義をこのマシンで信頼する
 ```
 
 `list --json` には、`pins`、候補値を含む `fields`、ルールの条件・検証式、
@@ -459,34 +619,149 @@ iris overlay trust [path]                                           # この帳�
 帳簿のファイルは変更しません。既定値と科目選択の設定は
 [帳簿の設定例](book-format-reference.md#帳簿ごとにルールとレシピの入力を設定する)を参照してください。
 
-`recipe` は提案を表示します。`--write` を付けると、償却表のレシピは資産ファイルを
+`recipe` は提案を表示します。`--apply --out PATH` を付けると、償却表のレシピは資産ファイルを
 書き換え（`schedule:` + `schedule_source:`）、集計レシピは `filings/` に申告記録を
 書きます。マップ型のパラメータは `--set name='{"1": 90}'` のように渡します。
 
-`upgrade` と `fetch` は公開リポジトリ
-[`irisbooks/overlays`](https://github.com/irisbooks/overlays) のリリースから
-ダウンロードし、使う前に署名を確認します。お使いの `iris` より前に公開された
-バージョンは `iris` に含まれており、ダウンロードされることはありません。ダウンロードしたバージョンは
-`~/.config/irisbooks/overlays/` に保存され（帳簿の中には置きません）、読み込むたびに
-あらためて確認されます。`upgrade` は、新しいバージョンが自身のテストに合格し、
-帳簿の `config/overlays/` がその上で読み込めるときにだけ変更を加えます。
-`iris validate` が何かをダウンロードすることはありません。
+`fetch` は署名を検証して配布キャッシュに保存します。`install` は同梱版または
+署名済みリリースの正確な内容を `config/overlay-packages/` にコピーし、選択は
+変更しません。`select` は組み合わせ全体の固定バージョン、設定、依存関係と
+帳簿独自の層との互換性を確認します。省略・空リスト・`select --off` では
+追加パッケージは動作せず、基本の構造・会計チェックは引き続き動作します。
+
+#### 有効な組み合わせを変更する
+
+`iris context` またはローカル MCP の `get_book_context` で、帳簿内にあるコピー、
+有効なバージョン、タスクへの適用条件を確認できます。コピーの追加やガイドの参照だけでは
+方針は有効になりません。選択は 1 回の操作で検証して適用できます。
+
+```bash
+iris overlay select --off ./books/example
+```
+
+帳簿フォルダー内で `iris diff config/book.yaml` を実行すると、最後に同期した状態からの
+未同期の選択変更を確認できます。一度も同期していない場合は、ファイルが追加として
+表示されます。同期済みの過去の変更はファイル履歴で確認します。適用前に定義や出典への
+影響を確認したい場合は、任意でプレビューできます。
+
+```bash
+iris overlay select --off --dry-run --json ./books/example
+iris overlay select --off --revision REVISION_FROM_PREVIEW ./books/example
+```
+
+別の組み合わせに変える場合は、依存先も含め、必要な固定バージョンをすべて `--pin` で
+指定します。プレビューと適用結果には変更前後の選択、依存先の対応バージョン、変わるルール・
+レシピ・派生・補完・項目定義・準備処理の定義が表示されます。依存先の不足、非対応の
+組み合わせ、循環があれば適用できません。互換性のある組み合わせを明示して指定し、
+依存先を勝手にダウンロードしたり有効にしたりすることはありません。
+
+`affected_results` は、記録された出典が無効になる資産の償却表、申告記録、準備済みの
+仕訳項目を列挙します。各行にはファイル、仕訳行番号（0 始まり。記録全体は `-1`）、
+項目、保存された `source_view` 宣言が含まれます。出典の一覧であり、会計ビューを
+解決した結果や再計算結果ではありません。`retained` は出典の内容を確認できたこと、
+`will-retain` は現在の帳簿独自の定義と元の親バージョンを適用時に保存することを表します。
+内容の存在、このマシンでの信頼、再計算の成功は別の情報です。過去の出典が不足していれば
+警告しますが、選択操作で補修はしません。帳簿の集計や過去のレシピ再計算は行わず、
+記録された金額や項目も書き換えません。
+
+#### ローカル MCP で適用する
+
+ローカル MCP では、組み合わせ全体の `pins` 配列（無効化は `[]`）を
+`select_overlays` に渡すと、1 回で検証・適用し、変更内容を返します。
+親フォルダーモードでは `book` も必須です。有効な組み合わせ全体を置き換えるため、
+引き続き使う既存の固定バージョンもすべて含めます。プレビューとリビジョンは任意です。
+
+事前に確認したい場合は `preview_overlay_selection` を呼び、同じ配列と返された
+`revision` を `select_overlays` に渡します。CLI でも `--revision` を付ければ、
+確認後の変更を検出して拒否します。適用時は同期ロックを取り、設定・定義・信頼状態・記録の追加削除・
+出典を再確認します。アーカイブや、既知の締め済み設定は変更できません。締めの情報は
+キャッシュなので、ローカルで変更できても最新のクラウド権限や締め状態の証明には
+なりません。プレビューは実行用ファイルやキャッシュを作らず、外部にも接続しません。
+
+現在の書き込み処理は、未解決の設定ビューや、ほかの設定を変えてしまう YAML の別名参照・
+マージを拒否します。確認漏れを防ぐため、選択は 16 パッケージ、依存ファイルは
+1,024 件・64 MiB、確認対象全体は 10,000 ファイル・128 MiB、出典は 2,048 件を上限とし、
+影響を受ける出典は 64 種類、結果の JSON は 2 MiB を上限とします。
+超過時は部分的な結果を返さず拒否します。更新操作にも同じ上限と変更前後の確認を使います。
+空の選択から地域を推測して更新することはありません。
+
+#### 選択中のバージョンを更新する
+
+```bash
+iris overlay upgrade --to id@version --dry-run --json ./books/example
+iris overlay upgrade --to id@version --revision REVISION_FROM_PREVIEW ./books/example
+```
+
+`--to` は選択中のパッケージを 1 つ置き換えます。省略すると、選択中のパッケージの
+公開済み最新版を確認します。依存先は互換性のあるバージョンを明示して選択する必要があり、
+勝手に追加しません。指定した正確なバージョンが帳簿内にあり、内容を確認できれば
+オフラインで使えます。不足時はプレビューでも署名を検証して配布キャッシュに保存する
+場合がありますが、帳簿のファイルは変更しません。
+
+プレビューには保存予定の `copies`、パッケージ自身の検証例 `golden_tests`、依存関係・
+記録済みの結果への影響と、変更前後の `local_source` / `local_source_after`・信頼状態が
+含まれます。検証例の成功は、利用者の帳簿の集計や記録済みの結果の再計算が成功したことを
+意味しません。単一・複数の選択形式とほかの設定は保ち、帳簿独自の層の親を更新する前に、
+元の内容と親バージョンを保持します。有効で信頼済みの層は、確認した親の変更だけなら
+信頼を引き継ぎます。未信頼の層を勝手に有効にはしません。
+
+ローカル MCP は `preview_overlay_upgrade(to?)` で確認し、同じ `to` と必須の `revision` を
+`upgrade_overlays` に渡して適用します。親モードでは `book` も指定します。CLI も
+`--revision` で確認後の変更を拒否できます。書き込みに失敗した場合、提案が書いた後に
+変更されていない内容だけを戻し、ほかの編集者の変更は保ちます。確認済みの出典コピーが
+先に保存されている場合はあります。中断によって信頼済みの層と親の選択が食い違った場合は、
+公開パッケージの方針で代用せず実行を止めます。状態を確認し、改めて更新内容を確認してから
+続けてください。
+
+実行と過去のレシピ再計算には、帳簿内の定義だけを使います。コピーの不足・改変・
+非互換・同一 ID の競合は診断として返し、地域・同梱版・キャッシュで代用しません。
+`upgrade` はテストと設定を確認し、新しい定義を保存してから選択を更新します。
+旧版と、元の親バージョンを含む帳簿独自の層も保持します。無効化しても既存の
+フィールドや計算結果は削除しません。コピーは clone・sync で帳簿とともに移り、
+参照操作が不足分を勝手にインストールすることはありません。クラウドは定義と
+結果をデータとして保存し、基本の整合性・権限チェックを行います。Overlay の
+式のコンパイル・評価や締め時のレシピ再計算は行いません。
+
+#### 保存済みの過去の定義を信頼する
+
+clone は、別のマシンの独自定義への信頼を引き継ぎません。現在の独自定義が変わった後に
+記録済みの `book:HASH` を再計算するには、`config/overlay-packages/local/HASH/` に
+保存された定義と元の親を確認し、このマシンで明示的に信頼します。
+
+```bash
+iris overlay trust --source book:HASH ./books/example
+```
+
+`HASH` は記録された出典の実際のハッシュに置き換えてください。保存済みの内容と
+帳簿内の元の親を確認し、指定した出典だけへの信頼を記録します。パッケージの選択や
+帳簿の出典は変更しません。不足・改変・シンボリックリンクがあれば拒否し、現在の定義や
+配布キャッシュで過去の内容を代用しません。年度繰越では翌年度の選択を保ったまま
+保存済みのコピーを引き継ぎ、コピー前に両年度を合わせた保存先の上限を確認します。
 
 ## 編集・記帳
 
 ### iris post
 
+記帳後は、ほかの未同期変更も含む連携済み帳簿の全体を同期します。
+`--local` を付けると、ローカルで記帳するだけで同期しません。
+
 仕訳を `draft` から `posted` にして記帳し、（リンク済みなら）同期します。帳簿の
 オーナーが**記帳承認**（Web アプリ → 設定）をオンにしている場合、記帳は Web
 アプリ専用です。`iris post` はローカルで拒否し、サーバーも push された
 ステータス変更を `APPROVAL_REQUIRED` で拒否します。
+Web アプリでは保存済みのソースを確認してから承認します。送信するのは
+`status: posted` と、確認したファイルのハッシュだけです。一括承認では最大32件の
+ソースを先に表示し、同じハッシュを使います。その後ファイルが変わった場合は
+再確認が必要です。未確認の最新版を取り直して記帳することはありません。
+ブラウザーでの通常の記録の作成・編集・削除・復元はできません。修正は、オーナーが
+定めた記帳方針に従ってローカルクライアントで行います。
 事前に各ファイルが空でない・貸借一致であることを検証します。日付が締め済み
 会計年度に入っている仕訳は拒否されます（*"FY \<n\> is sealed (closed period) —
 run `iris reopen <n>` to amend it, then re-seal"*）。
 
 ```bash
-iris post [--dry-run] <file>...
-iris post [--dry-run] --all
+iris post [--dry-run] [--local] <file>...
+iris post [--dry-run] [--local] --all
 ```
 
 `--all` はファイルを指名する代わりに、帳簿内のすべての `draft` 下書きを
@@ -506,6 +781,8 @@ Markdown 本文を残します。YAML の字下げは変わることがあるた
 ### iris diff
 
 push される内容 — ローカル変更と最後の同期スナップショットの差 — を表示します。
+ローカルだけの帳簿でもオフラインで使え、一度も同期していない場合はファイルを追加として
+表示します。同期済みの過去の変更は、ファイル履歴で確認してください。
 
 ```bash
 iris diff                # 保留中の全変更を一覧
@@ -525,8 +802,9 @@ iris diff --paths        # 名前と種別のみ
 iris sync [--quiet] [--json] [--allow-bulk-delete] [path]
 ```
 
-同期対象は `AGENTS.md`、`config/` の `book.yaml`・`chart-of-accounts.yaml`・`rules.yaml`、
-`config/overlays/` の YAML、`journals/`・`assets/`・`notes/`・`filings/` の
+同期対象は `AGENTS.md`、`config/` の `book.yaml`・`chart-of-accounts.yaml`・`rules.yaml`・`balance-assertions.yaml`、
+`config/overlays/` の YAML、`config/overlay-packages/` の保持ファイル、
+`journals/`・`assets/`・`notes/`・`filings/` の
 Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカー、OS・エディタの
 一時ファイル、生成した `compiled/`、エクスポート、ローカルの `README.md`・
 `CLAUDE.md` は同期しません。`AGENTS.md` は帳簿の共有方針であり、
@@ -551,7 +829,7 @@ Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカ�
 
 - `status` — `ok` | `rejected` | `conflicts` | `disconnected` | `error`
 - `disconnectReason` — `deleted` | `forbidden` | `auth_expired`
-- `newRejections` / `allRejections` — 要対応レコード。`iris attention list
+- `newRejections` / `allRejections` — 要対応レコード。`iris sync issues list
   --json` と同じ形です
 - `blockedByConflicts` — 未解決の `.conflicted` サイドカーがある正規パス。
   **空でなければそのパス全体が no-op** です。push も pull も起きていないので、
@@ -568,21 +846,21 @@ push がコンフリクト（409）すると、サーバー版が正規パスを
 `.conflicted` サイドカーになります。
 
 ```bash
-iris conflicts list [path]
+iris conflicts list [--json] [path]
 iris conflicts resolve <path> --keep mine|cloud [path]
 ```
 
 通常は手動マージで解決します（正規ファイルを編集し、サイドカーを削除し、
 `iris sync`）。[トラブルシューティング](troubleshooting.md) を参照。
 
-### iris attention
+### iris sync issues
 
 サーバー側拒否のローカルキューを管理します。
 
 ```bash
-iris attention list [path]              # パス + コード + 問題を表示
-iris attention retry [path]             # 抑制を外す。次の `iris sync` で再 push
-iris attention retry --path <relpath> [path]   # 1ファイルのみ
+iris sync issues list [--json] [path]              # パス + コード + 問題を表示
+iris sync issues retry [path]             # 抑制を外す。次の `iris sync` で再 push
+iris sync issues retry --path <relpath> [path]   # 1ファイルのみ
 ```
 
 **出力形**（`list --json`）:
@@ -601,8 +879,8 @@ iris attention retry --path <relpath> [path]   # 1ファイルのみ
 
 ### iris yearend
 
-翌年度の帳簿を作って会計年度を終えます — 年度締めの会計面です
-（コンプライアンス面の年度のロックは `iris api seal`）。1つの帳簿は1会計年度分
+翌年度の帳簿を作り、期首残高を繰り越します。今年度はロックされません。
+締めるときは別途 `iris api seal` を実行します。1つの帳簿は1会計年度分
 なので、`iris yearend` は翌年度の帳簿を独立したコピーとして、この帳簿と同じ
 階層の新しいフォルダに作ります（`acme-2025` → `acme-2026`。フォルダは `--to` で
 指定できます）。新しい帳簿には次のものが入ります。
@@ -723,9 +1001,31 @@ PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
 個別法の売却ではロットを選ぶ必要があります。取得履歴や期首の取得原価が
 不明なら、不明のまま表示します。`inventory_method` で保有残高ごとの方法を
 確認できます。
-名前付きの代替ビューは、このエクスポートの対象外です。
+名前付き帳簿では、現在の入力に対して承認済みの既定ビューを使い、
+ビュー名と計算結果の識別子も保持します。未承認・入力変更後の結果では出力しません。
+
+### iris financial
+
+名前付きビューを読み取り専用で計算し、JSON の集計額と識別子を確認してから、その計算結果を保持します。
+
+```sh
+iris financial prepare --view management ./my-book
+iris financial prepare --view management --apply --revision GENERATION_ID ./my-book
+iris financial accept --generation GENERATION_ID ./my-book
+iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
+```
+
+`prepare` のビュー省略時は既定のビューを使います。`calculations/financial/` に元文書、型付きの raw 証憑参照のハッシュ、計算後の仕訳、標準計算エンジンの版と状態を保持します。承認はその識別子に対するもので、元仕訳の記帳とは別です。元文書は変更しません。ファイルの追加・削除、内容、ビュー定義、証憑が変わると、現在の入力に対する承認は無効になります。過去の計算結果は標準計算の再現に使えます。
+
+人による記帳承認が必要な帳簿では、下書きの計算結果を保持・同期し、Web の**帳簿設定 → 会計ビューの承認**で確認します。現在の Owner/Bookkeeper のブラウザーセッションで承認できます。ローカル承認はローカル操作を記録するもので、認証済みの承認者を示しません。ローカル MCP は `preview_financial_ledger`、`retain_financial_ledger`（確認した `revision`）、`accept_financial_ledger`（`generation`）を提供し、親フォルダモードでは `book` も指定します。
+
+承認済みレポートは1つの承認済みビューを選びます。複数ビューの合成はローカルの未承認比較用です。出力にはビュー名、計算結果の識別子、入力の最終日、未記帳の元取引数を残します。純資産・分析は各帳簿の承認済みの既定ビューを使います。年度締めは同一の入力版に対して全ビューが確定していることを確認し、承認済みのクラウド版を固定します。SQLite スキーマ2は各ビューと元の計算結果を別々に保存し、通常の表には既定ビューの金額を入れます。再開後の訂正でも、作成済みアーカイブは変わりません。
+
+対象は標準の在庫原価計算と当年度取得資産の減価償却です。地域別 Overlay レシピや申告要件の適否は評価しません。ビュー別の期首・翌年度繰越、例外取引、期別原価配分、勘定科目表・ルールの差分は未対応です。入力・参照は1,024パス、元文書512 KiB、資産64件、計算後明細8,192行、証憑1件16 MiB・合計128 MiB、計算結果1 MiBまでです。履歴は1,024件・64 MiBまでで、上限超過時は切り詰めずに拒否します。
 
 ### iris price
+
+10,000口当たりの基準価額、実際の口数、現金の照合と更新時点は、[投資信託の例](book-format-reference.md#投資信託の口数一部売却時点別の評価を確認する)を参照してください。
 
 単位価格をオフラインで記録・一覧し、サーバーへ同期します。ユーザー単位（帳簿には
 保存されません）。
@@ -771,7 +1071,7 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 1 つの帳簿、または帳簿をまとめた親フォルダに対してローカル MCP サーバーを実行します。
 
 ```bash
-iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
+iris mcp serve [--book-path PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
 引数は利用中のツールの入力形式で確認してください。以下は作業ごとの案内です。
@@ -784,7 +1084,7 @@ iris mcp serve [--book PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 帳簿名にパスは指定できず、外部を指すシンボリックリンクも拒否します。
 税理士の作業では、親フォルダと認証情報の範囲を顧客ごとに限定してください。
 
-`--book` は単一帳簿を扱い、各操作の帳簿指定は不要です。未作成または空の指定先は
+`--book-path` は単一帳簿を扱い、各操作の帳簿指定は不要です。未作成または空の指定先は
 自動作成します。2 つのフォルダ指定は併用できません。ホストと AI に見えるパスは
 異なる場合があり、ファイルへのアクセス権とツールへの接続は別に必要です。
 
@@ -799,17 +1099,21 @@ fiscal_year=2026)` を使います。既存の帳簿や空でないフォルダ�
 
 `AGENTS.md` を読み、元資料の確認や下書き・ノートの編集には通常のファイルツールを
 使います。MCP は計算、検証、専用の更新処理に使います。`validate`・`balance`・
-`report`・`status`・`diff`・`autocomplete_journal` は対象帳簿に対する操作です。
-autocomplete はプレビュー後、版を確認して下書きへ適用します。`post` は対象パス、
+`report`・`status`・`diff`・`complete_journal` は対象帳簿に対する操作です。
+complete_journal はプレビュー後、版を確認して下書きへ適用します。`post` は対象パス、
 または明示的な全下書きの処理を受け取り、記帳ポリシーとサーバーの承認条件に従います。
-`dry_run` でプレビューできます。
+`dry_run=true` でプレビューできます。`local=true` は認証や同期をせずローカルで転記します。
+省略時は、接続済み帳簿の全体を自動で同期し、対象仕訳以外の未同期の変更も含みます。
 
-選択中のオーバーレイは `describe_overlay` で確認します。親モードでは
-`list_recipes(book=...)` で名前と入力形式を調べ、`run_recipe` に `params` を渡して実行します。
-単一帳簿モードではレシピごとのツールを公開します。償却の計算ツール、`check_update`、
-`read_docs` には帳簿の指定が不要です。`read_docs` は既定でトピックや節の一覧を返し、
-節を指定すると本文を読みます。ローカル MCP に `show` はなく、参照関係の確認には
-ファイルツールまたは CLI の `iris show` を使います。
+選択中のオーバーレイは `describe_overlay` で確認します。両モードで `list_recipes` と
+`run_recipe` を使います。一覧は CLI と同じレシピ ID と入力形式を返します。
+`run_recipe(recipe="jp-declining-balance.teiritsu", params={...})` で結果を確認し、
+保存時は `apply=true, out="assets/2026/equipment.md"` を追加します。申告用の計算補助資料は
+`filings/` 内を指定します。`out` だけでは保存せず、これらの保存指定は `params` の外に置きます。
+親モードでは両ツールに `book` も指定します。償却の計算ツール、`check_update`、
+`read_docs` には帳簿の指定が不要です。費用の按分計算 `allocation` も帳簿を指定せずに使えます。`read_docs` は既定でトピックや節の一覧を返し、
+節を指定すると本文を読みます。不明な引数や型の誤りは実行前にエラーとなり、文字列の `"true"` は真偽値として扱いません。参照関係の確認には
+ファイルツールまたは CLI の `iris references` を使います。
 
 #### クラウドの利用を承認する
 
@@ -859,13 +1163,15 @@ autocomplete はプレビュー後、版を確認して下書きへ適用しま�
 #### 競合の解決と翌年度の作成
 
 `list_conflicts` と `resolve_conflict` で競合を確認・解決します。mine を残すと直後に同期し、
-cloud を残すとサイドカーを削除します。`list_attention` と `retry_attention` は拒否記録の
-確認と抑制解除です。その後に明示的に同期します。削除などは事前にプレビューし、帳簿の方針に従います。
+cloud を残すとサイドカーを削除します。`list_conflicts` は JSON `{conflicts: [{path, local}]}`、
+`list_sync_issues` は拒否の詳細を含む JSON `{records: [...]}` を返します。`retry_sync_issues` は拒否記録の
+抑制を解除します。その後に明示的に同期します。削除などは事前にプレビューし、帳簿の方針に従います。
 
 `asset_depreciate` は下書きを作ります。クラウド接続済み帳簿の `fiscal_years`・`history`・
-`seal`・`reopen` には認証と対応するサーバー権限が必要です。親モードの
-`yearend(book=..., next_book=...)` は既定でプレビューし、`preview=false` で実行、
-`local_only=true` でクラウド処理を省略します。仕訳の移動、権限のコピー、受信先の移管が発生する
+`seal`・`reopen` には認証と対応するサーバー権限が必要です。
+`seal(period="2026", dry_run=true)` は締めずに確認し、`dry_run` の省略または false は締めを実行します。親モードの
+`yearend(book=..., next_book=...)` は既定でプレビューし、`dry_run=false` で実行、
+`local=true` でクラウド処理を省略します。仕訳の移動、権限のコピー、受信先の移管が発生する
 場合がありますが、旧年度は締めません。`link_existing` は未編集で設定の一致する翌年度帳簿だけに
 接続し、既存の権限と受信先を保持します。詳しくは [年度更新](cli-reference.md#iris-yearend) を参照してください。
 
@@ -877,10 +1183,11 @@ cloud を残すとサイドカーを削除します。`list_attention` と `retr
 `mode="current"|"history"|"movers"`・`months`・`compare` で参照を指定し、通貨が異なる場合は
 `currency` が必要です。`get_holdings` は代わりに接続済みクラウド帳簿を読みます。
 
-`list_prices` は既定でクラウドを読み、`source="local"` でオフラインの価格を読みます。
+`list_prices` は CLI の `iris price list` と同じく、既定でローカルのオフライン価格を読みます。
+認証済みのクラウドの価格は `source="cloud"` で読みます（CLI の `iris api price list` に相当）。
 `record_price` は小数点以下 6 桁以内の文字列で価格を記録し、`sync_prices` は帳簿とは別に
 価格を送受信します。価格は税務用帳簿ではなくユーザー設定に保存します。クラウド一覧は
-1 ページを返すので、同じ条件で `nextCursor` を渡して続きを読みます。`price_conflicts` で候補を
+1 ページを返すので、同じ条件で `nextCursor` を渡して続きを読みます。`list_price_conflicts` で候補を
 確認し、ユーザーが選んだ場合にだけ、表示された版と編集 ID で `resolve_price_conflict` を実行して
 同期します。価格と出典が同じ編集は自動で合流します。`get_holdings` 以外にはローカルの帳簿指定は不要です。
 
@@ -963,6 +1270,80 @@ iris api whoami
 ダウンロードされ、そのファイルを CLI に渡すと資格情報を保存せずに待機状態を解除します。
 完了後はダウンロードしたファイルを削除してください。その後は通常どおり
 `iris api books …` と `iris sync` を使えます。
+
+### アカウントと環境を分ける
+
+**アカウントと環境の組合せごとに専用の非公開フォルダー**を使い、Bookの外に置きます。
+ログイン前に `IRISBOOKS_TOKEN_FILE` でその中のトークン保存先を指定し、完了操作と後続のCLIでも同じパスを使います。
+接続先の設定、許可待ちの情報、ユーザー単位の価格データも同じフォルダーに保存されます。
+同じフォルダーで `personal.json` と `business.json` に名前を分けるだけでは、これらを分離できません。
+Bookのフォルダーを変えても、ログインするアカウントは切り替わりません。
+
+POSIXシェルで、個人用の本番プロファイルを選ぶ例です。
+
+```bash
+export IRISBOOKS_TOKEN_FILE="$HOME/.config/irisbooks/profiles/personal-prod/token.json"
+unset IRIS_API_TOKEN IRIS_API_ENDPOINT IRISBOOKS_APP_BASE IRISBOOKS_API_BASE
+IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login --device
+# Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
+iris api login --device-complete
+iris api whoami
+iris api books list
+```
+
+PowerShellでも、専用フォルダーを指定します。
+
+```powershell
+$env:IRISBOOKS_TOKEN_FILE = Join-Path $HOME '.config/irisbooks/profiles/personal-prod/token.json'
+'IRIS_API_TOKEN','IRIS_API_ENDPOINT','IRISBOOKS_APP_BASE','IRISBOOKS_API_BASE' | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
+$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'
+$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'
+iris api login --device
+# Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
+iris api login --device-complete
+iris api whoami
+iris api books list
+```
+
+URLはこのサービスでの例です。使うサービスの実際のapp/APIの組合せを指定してください。
+フォルダー名は識別用です。接続先はURLの設定で決まります。
+`Authorized` と `whoami` の成功を確認します。端末承認が許可待ちの場合は、終了コード0でも新しい認証情報は保存されません。
+本人の承認画面でアカウントと権限を確認してください。別のアカウントは `.../profiles/business-prod/token.json` など別のフォルダーを選んで承認します。
+元のアカウントへ戻るときは、元のパスを指定します。意図して別サービスを選ぶ場合を除き、接続先の上書き設定は解除しておきます。
+認証情報や認可ファイルを `raw/`、メモ、チャット、同期対象のBookファイルに入れないでください。
+
+クラウドAPIの接続先は、`IRIS_API_ENDPOINT`、`IRISBOOKS_API_BASE`、`IRISBOOKS_APP_BASE` に `/api` を付けたURL、
+選択中のフォルダーの `config.json`、本番の既定値の順に決まります。
+ログイン時のapp/APIは `IRISBOOKS_APP_BASE` と `IRISBOOKS_API_BASE` で選びます。
+`IRIS_API_ENDPOINT` は後続のリクエスト用の別の上書き設定なので、残っていると別の接続先へ送られる場合があります。
+ログインが成功すると、開始時に選んだ接続先が保存されます。`whoami` は実際に使うAPI接続先と認証情報を確認します。
+`IRIS_API_TOKEN` があれば保存済みセッションより優先します。この場合、保存済みの別ユーザー名は表示せず、拒否されても保存済みトークンへ切り替えません。
+環境変数のトークンからローカルでアカウント名は特定できません。認証の成功だけで、すべてのBook操作が許可されたことにはなりません。
+
+認可を開始しただけでは、既存のセッションは置き換わりません。完了時に選択中のローカル認証情報が置き換わります。
+以前のサーバー側セッションは自動で失効しないため、不要ならWebの「設定 → APIトークン」で取り消してください。
+`iris api logout` はサーバー側の失効を試み、選択中のローカルセッションと許可待ちの情報を削除します。
+失効処理が失敗した場合は警告に従い、Webで取り消します。保存済みの接続先設定と価格データは残ります。
+`IRIS_API_TOKEN` は削除されないので、使うのをやめる場合は別途解除してください。
+価格同期は別の接続先・ユーザーに対応付けられた保存先を拒否します。対応付けを消して混在させず、新しいプロファイル用フォルダーを使います。
+
+ローカルMCPはホストのプロセスに指定した認証情報と環境変数を使います。Bookの設定やVM側シェルの変数では切り替わりません。
+ホストのMCP登録で対象プロファイルを指定してサーバーを再起動し、`auth_status` で認証情報の出所、接続先、検証結果を確認します。
+同じプロファイルを使うCLIとMCPはログインを共有します。Book・顧客ごとのアクセス分離と権限確認も必要です。
+
+#### 保存済みの旧本番接続を切り替える
+
+古いプロファイルでは `irisbooks.jp` が選ばれている場合があります。
+ログインは認可前にapp/API、完了後にAPIの接続先を表示します。
+CLIの更新だけでは、サーバー側セッションやBookのクラウド識別子は移行されません。
+新しい専用プロファイルで対象サービスを承認し、`whoami` と `iris api books list` で、実際のアカウントと帳簿を確認します。
+古いトークンを別サービスへコピーしたり、同じメールアドレス・Book IDだからアクセスできると判断したりしないでください。
+古いプロファイルとローカルファイルのバックアップを残します。
+アクセスできる既存のクラウドBookは、未作成・空のフォルダーへcloneして比較する方法を優先します。
+既存のローカルBookを使う場合は、[接続の条件](cli-reference.md#iris-api-books)に従って新規作成と既存への接続を明示的に選び、
+接続変更後に保持された状態、競合、同期結果を確認します。
+開発・betaのプロファイルを書き換えたり、別アカウントのデータを上書きして移行済みに見せたりしないでください。
+認証情報やBookが自動コピーされる手順ではありません。
 
 ### iris api books
 
@@ -1054,9 +1435,9 @@ iris api config set --remove-unit XAG
 
 ```bash
 iris api grants list [--json] <book-id>
-iris api grants invite --email EMAIL <book-id>
-iris api grants role --user USER_ID --to OWNER|BOOKKEEPER|REVIEWER <book-id>
-iris api grants revoke --user USER_ID <book-id>
+iris api grants invite --role BOOKKEEPER --email EMAIL <book-id>
+iris api grants role --role OWNER|BOOKKEEPER|REVIEWER <book-id> <user-id>
+iris api grants revoke <book-id> <user-id>
 ```
 
 ### iris api inbox
@@ -1079,22 +1460,25 @@ iris api inbox quarantine [--json] <book-id>
 年度のファイルは作業ツリーにそのまま残ります。締め済み年度を修正するには
 `iris reopen <fy>` を実行します — 再オープン中のロック対象の変更は監査証跡（`iris api
 history`）にフラグ付きで記録されます — 修正が終わったらこのコマンドを再実行して
-年度を再度締めます（新しい締めが古い締めを引き継ぎます）。`--preview` は、
+年度を再度締めます（新しい締めが古い締めを引き継ぎます）。`--dry-run` は、
 締めでロックされるファイルの一覧を表示するだけで、何も締めません。
 年度内に `draft` の下書きが残っている場合、締めは**拒否**されます —
 締めた年度は完全に整理されていなければなりません。年度に属する仕訳なら先に
 記帳し、不要なら削除し、翌期のものなら日付を開いている年度へ変更してください。
-`--preview` がブロックしているドラフトを一覧表示します。
+`--dry-run` がブロックしているドラフトを一覧表示します。
 
-プレビューと締めの前に、申告記録がクラウドの現在の記帳済み仕訳とレシピの元データから
-再計算できる必要があります。仕訳の修正後に申告記録が古くなった場合や、元データが
-使えない場合は、下書き一覧を表示する前にプレビューが失敗することもあります。
-申告レシピを正しい入力で再実行し、`iris validate` で検証してから、申告記録と入力を
-同期し、プレビューをやり直してください。同期が成功してもクラウドが再計算用データの
-不足を報告する場合は、[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。締めを繰り返しても解消しません。
+同期して締める前に、ローカルで `iris validate` を実行してください。
+Overlay のルール検証と保存済みレシピの再計算は、帳簿内に保持した定義を使って
+ローカルで行います。クラウドはこれらを実行せず、検証済みであるとも保証しません。
+`config/balance-assertions.yaml` がある場合、`--dry-run` は同期済みデータに対する
+共通処理の結果として、帳簿残高・確認残高・差額、対象範囲、証拠ファイルの確認状況を
+表示します。残高や証拠の不一致が残ると締められません。元の記録や残高確認の設定を
+ローカルで修正し、証拠を確認してから同期し、プレビューをやり直してください。
+未同期の変更は対象外です。同期後も元文書の参照データの不足・古さを報告する場合は、
+サーバー側での再構築が必要です。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
 
 ```bash
-iris api seal --period YYYY [--type yearly] [--preview] <book-id>
+iris api seal --period YYYY [--type yearly] [--dry-run] <book-id>
 ```
 
 ### iris api balance / holdings / history
@@ -1108,7 +1492,7 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **出力形:**
 
 ```text
-balance   [ { account, debits, credits, type?, net? } ]
+balance   [ { account, debits, credits, type?, net } ]
 holdings  [ { account, unit, quantity } ]
 history   [ { id, path, op, sha?, version_id?, size_bytes,
               actor, actor_display?, source?, reason?,
@@ -1159,7 +1543,7 @@ iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSV 
 ```bash
 iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S] [--revision N]
 iris api price list [--unit BTC] [--currency JPY] [--year 2026] [--page] [--limit 500] [--cursor C] [--json]
-iris api networth --book <book-id> [--as-of YYYY-MM-DD] [--json]
+iris api networth --book-id <book-id> [--as-of YYYY-MM-DD] [--json]
 ```
 
 `iris api price list` は既定で全ページを取得します。`--page` は
@@ -1183,6 +1567,7 @@ Web とリモート MCP のクラウド横断集計は、ユーザーごとに U
 | 変数 | 用途 |
 | --- | --- |
 | `IRIS_API_TOKEN` | パーソナルアクセストークン。キャッシュ済みログイントークンより優先 |
+| `IRISBOOKS_TOKEN_FILE` | トークンの保存先。アカウントと環境の組合せごとに専用フォルダーを使う（既定: `~/.config/irisbooks/token.json`） |
 | `IRIS_BOOK` | クラウドコマンドの既定帳簿 ID（位置引数があればそちらが優先） |
 | `IRIS_API_ENDPOINT` | API エンドポイントの上書き。以下のすべてより優先 |
 | `IRISBOOKS_APP_BASE` | アプリのベース URL（既定 `https://irisbooks.io`） |

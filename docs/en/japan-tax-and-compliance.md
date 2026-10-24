@@ -22,7 +22,7 @@ Four features keep a book's records checkable after the fact — by you, your
 | **Correction/deletion history** (訂正・削除の履歴) | The server records every change to every file, deletions included — who changed it, when, and what it was before | `iris api history`; the web app **Activity** timeline and per-journal **History** panel (cloud) |
 | **Search** | Find journals by date, amount, and counterparty, in any combination — and by status, account, or tag | `iris search`; the filters on the web app **Journals** page |
 | **Ledger ↔ journal** | Every ledger row names the journal file it came from | `iris report ledger`; the web app **Accounts** ledger |
-| **Journal ↔ source document** | Every journal cites its receipts, invoices, and statements, and you can walk that link both ways | `iris show <path>`; the **Cited by** panel in the web app's Raw documents browser |
+| **Journal ↔ source document** | Every journal cites its receipts, invoices, and statements, and you can walk that link both ways | `iris references <path>`; the **Cited by** panel in the web app's Raw documents browser |
 
 The ledger link comes from the design rather than from a separate feature.
 The journal files are the only source: the general ledger, trial balance, and
@@ -139,23 +139,26 @@ groups every posted line by its classification and totals it exactly (add
 Note the 課税期間 is the calendar year for individuals, your fiscal year for a
 法人 (`--year`).
 
-The Japan overlay goes one step further with two **recipes** that combine the
-sums the way the 申告書 needs them: `jp.shouhizei-general` (本則課税 — sales and
-purchases by rate, the invoice / non-invoice split at the 経過措置 percentage
-you pass, the 課税売上割合, net tax and the payable amount rounded down to
-¥100) and `jp.shouhizei-simplified` (簡易課税 — sales tax by 事業区分 and the
+The independently selected `jp-tax-filing` function provides two **recipes** that combine the
+sums the way the 申告書 needs them: `jp-tax-filing.shouhizei-general` (本則課税 — sales and
+purchases by rate, the invoice / non-invoice split using the package's dated
+transition definitions, the 課税売上割合, net tax and the payable amount rounded down to
+¥100) and `jp-tax-filing.shouhizei-simplified` (簡易課税 — sales tax by 事業区分 and the
 deemed purchase tax at the みなし仕入率 you pass). `iris overlay recipe
-jp.shouhizei-general --set from=2026-01-01 --set to=2026-12-31 --set
-non_invoice_pct=80 --write filings/jp.shouhizei-general.md` records the
+jp-tax-filing.shouhizei-general --set from=2026-01-01 --set to=2026-12-31 --set scope_confirmed=true --apply --out filings/jp-tax-filing.shouhizei-general.md` records the
 figures under `filings/` with provenance, and `iris validate` re-runs the
 recipe against the journals from then on — a posted correction after filing
 shows up as an error until the recipe is re-run. Your AI fills the form from
 the recorded figures. The division of labor stays: **IrisBooks sums, your AI
 files.**
 
+Select `jp-tax-classification` and `jp-tax-filing` together. Review the filing
+guide's coverage before passing `scope_confirmed=true`; these figures are a
+calculation aid rather than a completed return.
+
 On a **税抜経理** book (`accounting: tax_excluded`), `iris validate` also
 proposes, as a hint, the consumption tax inside each classified line that has
-no `tax.amount` yet; `iris validate --fix` records it, and your AI books that
+no `tax.amount` yet; `iris validate --apply` records it, and your AI books that
 amount on 仮払消費税 / 仮受消費税 — the arithmetic is iris's, the entry is the
 AI's.
 
@@ -200,16 +203,20 @@ Japanese 定率法 depreciates at the 償却率 until the annual charge would fa
 below the 償却保証額 (取得価額 × 保証率), then switches to a fixed
 改定取得価額 × 改定償却率 for the rest of the useful life. The switch, the
 rounding and the order of the two halves are built into the Japan overlay's
-`jp.teiritsu` recipe; your AI supplies the inputs and iris does the rest:
+`jp-declining-balance.teiritsu` recipe; your AI supplies the inputs and iris does the rest:
+
+This function supports full twelve-month service years. Pass
+`full_year_confirmed=true` after checking that scope; partial first years are
+unsupported.
 
 1. Look up 償却率 / 保証率 / 改定償却率 for the asset's useful life in 別表第十
    on the NTA site (the 200% table for acquisitions from 2012-04, the 250%
    table for 2007-04〜2012-03 — an asset keeps the table it was acquired under).
 2. Run the recipe with those rates, the cost, the life in years and the first
-   fiscal year-end month — `iris overlay recipe jp.teiritsu --set cost=1000000
+   fiscal year-end month — `iris overlay recipe jp-declining-balance.teiritsu --set full_year_confirmed=true --set cost=1000000
    --set life=8 --set rate=0.250 --set guarantee=0.07909 --set revised=0.334
-   --set start=2027-03 --write assets/2026/lathe.md`, or the `jp_teiritsu` tool
-   over MCP. It writes the table under `schedule:` and its provenance under
+   --set start=2027-03 --apply --out assets/2026/lathe.md`, or MCP `run_recipe(recipe="jp-declining-balance.teiritsu", params={...},
+   apply=true, out="assets/2026/lathe.md")` (parent mode also requires `book`). It writes the table under `schedule:` and its provenance under
    `schedule_source:`.
 
 The result looks like this on an 8-year ¥1,000,000 asset (償却率 0.250,
@@ -236,10 +243,11 @@ schedule:
   - period: 2034-03
     amount: 78785      # ends on the 備忘価額 1 円
 schedule_source:       # written by the recipe: the inputs, for replay and for your 税理士
-  overlay: jp@2026.09.1
-  recipe: jp.teiritsu
-  bindings: 1
-  params: {cost: 1000000, life: 8, rate: 0.250, guarantee: 0.07909, revised: 0.334, start: 2027-03, salvage: 1}
+  overlay: jp-declining-balance@2026.10.1
+  recipe: jp-declining-balance.teiritsu
+  bindings: 5
+  primitives: {declining_table: 2, flat_table: 2}
+  params: {full_year_confirmed: true, cost: 1000000, life: 8, rate: 0.250, guarantee: 0.07909, revised: 0.334, start: 2027-03, salvage: 1}
 ```
 
 iris checks the rows add up to 取得価額 − 備忘価額 and are otherwise
@@ -282,7 +290,7 @@ compliance half, run in the book of the year you're closing:
 iris yearend                                      # start the FY2026 book, with its 期首残高 (opening balances)
 # …決算整理 and the return happen here, in the FY2025 book…
 iris yearend                                      # after late corrections: refresh FY2026's opening balances
-iris api seal --period 2025 --preview <book-id>   # see exactly what will be sealed (cloud)
+iris api seal --period 2025 --dry-run <book-id>   # see exactly what will be sealed (cloud)
 iris api seal --period 2025 <book-id>             # seal it (cloud)
 ```
 
@@ -305,13 +313,16 @@ iris api seal --period 2025 <book-id>             # seal it (cloud)
   year's files stay in your working tree and on the server, with every
   earlier version.
 
-Before previewing or closing, recorded filings must replay successfully against
-the cloud's current posted journals and recipe sources. A stale filing after a
-correction, or an unavailable recipe source, can block even the preview before
-it lists drafts. Re-run the filing recipe with the intended inputs, run
-`iris validate`, sync the filing and its inputs, and preview again. If the
-cloud still reports an unavailable replay projection after a successful sync,
-seek support from the [Discord community](https://discord.gg/wZDsv9gyb9); repeated close attempts will not repair it.
+Run `iris validate` locally before syncing and closing. Local clients check
+Overlay rules and replay recorded recipes using definitions retained in the Book;
+the cloud does not execute those definitions or certify that those checks passed.
+When `config/balance-assertions.yaml` is configured, `--dry-run` shows the native
+check's exact recorded/observed/difference values, scope and evidence status for
+the accepted synced sources. Unresolved balances or evidence block closing.
+Correct the source records or observations locally, review the evidence, sync,
+and preview again. Local unsynced changes are outside this preview. A missing or
+stale native source mirror after sync needs a server projection rebuild; seek
+support from the [Discord community](https://discord.gg/wZDsv9gyb9).
 
 Need to amend a sealed year? In its book, reopen it, edit, re-sync, and
 re-seal:

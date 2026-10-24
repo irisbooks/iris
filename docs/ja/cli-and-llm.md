@@ -42,6 +42,322 @@ AI は判断と説明、`iris` は検証と計算を担います。手作業で�
 AI に頼んでください。判断や質問もファイルに残るため、次の会話や別の AI に
 作業を引き継げます。同期を使うと、クラウドのコピーとサーバー側の変更履歴も残ります。
 
+## 領収書の明細、家計の集計、過去分の追記
+
+記帳前に、残す詳しさを `notes/workflow.md` で決めます。
+事業用Bookで領収書ごとの記録を選ぶ場合は、1仕訳に合計しても元の品目明細を保存してください。
+日常の家計管理では、確認済みの支出総額を使い、分類の推定を明示して集計する方法もあります。
+本人が決めた基準額以上の購入は別に記録し、費用として追跡するか、資産として管理するかを説明します。
+事業用資産や税務の処理は、資産の手順と実際の要件に従います。家計の例の金額や分類からは判断しません。
+
+以下は独立した2つの架空の管理用Bookです。同じ支出を分けた例ではありません。
+通貨はJPY、scaleは0、会計年度は2026年1月〜12月、任意のpackageは未選択とします。
+各Bookの勘定科目で預金・現金を資産、開始残高を純資産、例に使う費用科目を費用として定義してください。
+コードは記帳後の形式です。各Bookの方針と権限の範囲でdraftを作成・確認してpostします。
+税務や立替精算に使う場合は、それぞれの資料要件も確認してください。
+[国税庁 No.2080](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2080.htm)は白色申告の記帳で日々の合計を記載する方法も説明しています。
+ここで領収書ごとに残すのは作業方針であり、すべての場合に一律で求められる法的要件ではありません
+（令和8年4月1日現在の法令等。2026年10月24日確認）。
+
+### 領収書と口座明細が同じ支払を示す場合は1件にまとめる
+
+事業用Bookの開始残高は預金100,000円、現金10,000円、純資産110,000円です。
+1月5日の文具の領収書には2品目ありますが、支払は1件です。
+
+```csv
+date,merchant,item,amount,currency
+2026-01-05,Synthetic Stationer,Paper,1000,JPY
+2026-01-05,Synthetic Stationer,Pens,320,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-05
+status: posted
+lines:
+  - {account: Expenses:Supplies, debit: 1320}
+  - {account: Assets:Cash, credit: 1320}
+attachments:
+  - {path: raw/receipts/stationery.csv, type: receipt, locator: L2-L3}
+```
+
+1月12日のソフトウェア代3,300円は、領収書とカード明細が同じ利用を示します。
+`Expenses:Software` を借方、`Liabilities:Card` を貸方に1回だけ計上し、両方の資料を添付します。
+カード明細の各利用を既存の領収書仕訳と照合し、未記帳分だけを補います。
+1月18日の鉄道代2,200円は領収書がなく、本人が日付・金額・支払者・業務目的を確認したとします。
+
+```csv
+date,merchant,amount,purpose,receipt_status
+2026-01-18,Synthetic Rail,2200,Owner confirms client meeting travel,missing
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-18
+status: posted
+tags: [no-receipt]
+lines:
+  - {account: Expenses:Travel, debit: 2200}
+  - {account: Liabilities:Card, credit: 2200}
+attachments:
+  - {path: raw/cards/2026-01.csv, type: bank_statement, locator: L4}
+  - {path: raw/statement-review.csv, locator: L2}
+```
+
+`no-receipt` と未入手の原本の問題を `notes/open-questions.md` に残します。
+カード明細は利用額を示し、本人の確認記録には目的を残します。この管理用仕訳だけで請求書の適格性や必要経費への算入が決まるわけではありません。
+取引内容や金額自体が不明なら、費用を推測せず、分類を保留して不足情報を確認してください。
+後日の預金引落はカード債務の精算です。購入費用を再度計上しません。
+1月20日の現金引出は `Assets:Cash` を借方5,000円、`Assets:Bank` を貸方5,000円に記録します。費用は発生しません。
+後から見つかった1月28日の顧客向けフォルダーの領収書1,100円は、`Expenses:Supplies` と現金で記録します。
+発見・確認の経緯をメモに残し、取引日は実際の日付を使ってください。
+家計の月次推定を事業の証拠に転用したり、ファイル名から税務上の適格性を決めたりしないでください。
+家事按分は[形式リファレンス](book-format-reference.md#費用の事業分と家事分を分ける)の日付付き基準に従います。
+
+### 家計の推定分類と大きな購入を区別する
+
+個人用Bookの開始残高は預金200,000円、現金10,000円、純資産210,000円です。
+1月10日に預金から現金へ10,000円を移します。
+本人が1月の通常の現金支出総額9,000円を確認し、8,000円・1,000円の分類は推定とします。
+個々の店名や取引日は分かっていません。
+
+```csv
+period_from,period_through,total_cash_paid,groceries_estimate,transport_estimate,currency
+2026-01-01,2026-01-31,9000,8000,1000,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-31
+status: posted
+lines:
+  - {account: Expenses:Groceries, debit: 8000}
+  - {account: Expenses:Transport, debit: 1000}
+  - {account: Assets:Cash, credit: 9000}
+attachments:
+  - {path: raw/interview.csv, locator: L2}
+```
+
+1月31日は合意した集計期間の末日です。個々の購入日を推測しているわけではありません。
+確認済み総額、推定した分類、対象期間、除外した取引を本文に残してください。
+後から正確な領収書で集計の一部を置き換える場合は、その対象額を確認して置換・振替します。
+集計に加えて同じ支出を追記すると二重計上になります。
+この簡略な記録は家計管理用であり、領収書単位の税務・立替精算の証拠にはしません。
+
+本人が個別記録の基準を **50,000円以上** と決めたとします。
+60,000円のソファは1月15日のカード購入として別に残し、現金とカードの両方の集計から除外します。
+本人がこの個人用Bookで費用として追跡する方針を選んだ例です。事業の資産計上基準や税務処理を示すものではありません。
+
+```csv
+date,merchant,description,amount,currency
+2026-01-15,Synthetic Furniture,Personal sofa,60000,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-15
+status: posted
+lines:
+  - {account: Expenses:Furniture, debit: 60000}
+  - {account: Liabilities:Card, credit: 60000}
+attachments:
+  - {path: raw/receipts/sofa.csv, type: receipt, locator: L2}
+  - {path: raw/cards/2026-01.csv, locator: L4-L5}
+```
+
+### 口座明細、処理状況、実際の行位置を残す
+
+個人用のカード明細は `raw/cards/2026-01.csv` です。ソファの説明欄には引用符内の改行があります。
+元資料の改行を消して整形しないでください。
+
+```csv
+date,description,charge,payment,balance
+2026-01-01,Opening,0,0,0
+2026-01-07,Synthetic Market,12000,0,12000
+2026-01-15,"Sofa delivery
+order S-15",60000,0,72000
+2026-01-19,Synthetic Rail,8000,0,80000
+2026-01-31,Closing balance,0,0,80000
+```
+
+個人用のカード集計には、スーパー12,000円と鉄道8,000円だけを含めます。
+分類の推定は明示し、利用額は明細どおりに記録します。ソファ60,000円は除外します。
+**集計20,000円＋個別購入60,000円＝明細の利用額80,000円** です。
+ソファは実際の1月15日の日付と資料を保ちます。先の現金支出9,000円は別の集計であり、カード利用額には含めません。
+
+```yaml
+schema_version: 1
+date: 2026-01-31
+status: posted
+lines:
+  - {account: Expenses:Groceries, debit: 12000}
+  - {account: Expenses:Transport, debit: 8000}
+  - {account: Liabilities:Card, credit: 20000}
+attachments:
+  - {path: raw/cards/2026-01.csv, type: bank_statement, locator: L3}
+  - {path: raw/cards/2026-01.csv, locator: L6}
+```
+
+元の拡張子を保ち、rawからのパス全体を `notes/` の下へ移してメモの場所を決めます。
+`raw/cards/2026-01.csv` に対応するのは `notes/raw/cards/2026-01.csv.md` です。
+預金も同じ対応で、`raw/bank/2026-01.csv` なら `notes/raw/bank/2026-01.csv.md` になります。
+このパースメモはAIが維持する作業記録であり、自動取込や自動の重複防止機能ではありません。
+処理済み仕訳への参照を保ちます。開始・終了残高の行は無視する理由を明示します。
+処理を終えるために不明な出金を無視しないでください。取引の事実が足りない行は `deferred` とし、
+不足している情報を `notes/open-questions.md` に残します。
+
+```markdown
+---
+source: raw/cards/2026-01.csv
+source_sha: sha256:9bfde1fbdc1a8cffcdf724cb867a3dd1980dabdf03efaa2734682bcbe386991b
+parsed_at: 2026-10-24
+counts: {total: 5, journaled: 3, ignored: 2, deferred: 0}
+---
+
+## Rows
+
+| id | date | description | amount | status | target / reason | locator |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2026-01-01 | Opening | 0 | ignored | Zero opening liability; no transaction | L2 |
+| 2 | 2026-01-07 | Synthetic Market | -12000 | journaled | journals/2026-01/2026-01-31-card-summary.md | L3 |
+| 3 | 2026-01-15 | Sofa delivery / order S-15 | -60000 | journaled | journals/2026-01/2026-01-15-sofa.md | L4-L5 |
+| 4 | 2026-01-19 | Synthetic Rail | -8000 | journaled | journals/2026-01/2026-01-31-card-summary.md | L6 |
+| 5 | 2026-01-31 | Closing balance | 0 | ignored | Balance-only observation; no transaction | L7 |
+
+IDs count data records, excluding the header. Locators count actual physical
+lines, including the header and quoted line breaks. Ignored opening/closing
+rows are balance metadata, not skipped spending. Negative charge amounts in
+this note are statement presentation; liability assertions use credit-positive
+account direction. This assistant-maintained note is not a native importer or
+automatic duplicate guarantee. Preserve completed targets before backfilling.
+```
+
+データレコードID 3は実際の `L4-L5`、ID 4は `L6` に対応します。
+IDはヘッダーと引用符内の改行を数えません。`L` は両方を含む実際の行番号です。
+ネイティブのCSV読取とWebプレビューで、この行範囲を保ちます。
+メモを再利用する前に、`source_sha` と `iris hash` を照合してください。
+明細が再発行された場合は別に保存し、変更行を既存の仕訳参照と比較して、完了済みの判断も残します。
+hashを更新するだけでは照合になりません。領収書と口座明細が同じ取引なら、費用も1件です。
+
+### 元資料で過去分を補い、現金も別に照合する
+
+個人用Bookで1月31日に確認した現金は10,970円です。
+
+```csv
+date,owner_reported_cash
+2026-01-31,10970
+```
+
+後から見つかった領収書をpostする前の帳簿上の現金は11,000円です。
+`iris reconcile` は実際11,000円・期待10,970円・差額+30円を表示して終了コード1を返します。預金190,000円は一致しています。
+理由が分からない間は差額を残してください。30円の購入を作ったり、確認値を書き換えて一致させたりしません。
+10月24日に1月29日のコピー代の元の領収書が見つかり、9,000円の集計には含まれないことを確認したとします。
+元資料を保存し、取引日は実際の日付を使います。
+
+```csv
+date,merchant,description,amount,currency
+2026-01-29,Synthetic Library,Personal copies,30,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-29
+status: posted
+lines:
+  - {account: Expenses:Copies, debit: 30}
+  - {account: Assets:Cash, credit: 30}
+attachments:
+  - {path: raw/receipts/backfill.csv, type: receipt, locator: L2}
+```
+
+発見・確認した日時は `notes/backfill.md` に説明します。取引日やファイル名の日付の代わりには使いません。
+draftの作成前に、すでに記帳されていないか確認してください。
+postには通常の権限とsealの確認が必要です。この例では2026年度が未封印であると仮定します。
+終了済み・過年度の場合は、権限のある再開・訂正の手順を使います。今日の取引へ移したり、封印済みの入力を書き換えたりしないでください。
+元資料がそろわない問題は、未解決の質問として残します。
+
+[残高照合](book-format-reference.md#残高照合)に `scope: posted`、`unit: JPY` を明示して観測値を追加します。
+CSVから確認値が自動作成されるわけではありません。事業用Bookは1月27日の現金13,680円、
+1月31日の現金12,580円・預金95,000円・カード債務5,500円を確認します。負債は貸方を正とします。
+個人用の確認値は、1月の預金・現金・カード債務と、2月の預金・精算後の債務を確認します。
+
+```yaml
+schema_version: 1
+assertions:
+  - id: cash-close
+    date: 2026-01-31
+    account: Assets:Cash
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 10970
+    evidence: {path: raw/cash-count.csv, sha: sha256:397b3eadca51ca10e939460e0ee82390a7aec7312db5e633b011e3a6054654e8, locator: L2}
+  - id: bank-close
+    date: 2026-01-31
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 190000
+    evidence: {path: raw/bank/2026-01.csv, sha: sha256:a175549e16e2ccdda81172918c7ec2a89c3731c299d5b127d050ddeda48889c7, locator: L4}
+  - id: card-close
+    date: 2026-01-31
+    account: Liabilities:Card
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 80000
+    evidence: {path: raw/cards/2026-01.csv, sha: sha256:9bfde1fbdc1a8cffcdf724cb867a3dd1980dabdf03efaa2734682bcbe386991b, locator: L7}
+  - id: bank-after-card-payment
+    date: 2026-02-28
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 110000
+    evidence: {path: raw/bank/2026-02.csv, sha: sha256:6ad346750ec1cdbe6ed31cf4cfeaa8f07143cd1614c565ef2ae7168845cd04e2, locator: L3}
+  - id: card-after-payment
+    date: 2026-02-28
+    account: Liabilities:Card
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 0
+    evidence: {path: raw/cards/settlement.csv, sha: sha256:b3b8cf9395f45432e2072b7858cd8d7770c0404c659af4e391416442b2e9674f, locator: L2}
+```
+
+実際の資料に基づく追記を確認・postした後、次の読取専用コマンドで照合します。
+
+```bash
+iris validate --json /path/to/business
+iris reconcile /path/to/business
+iris report pl --from 2026-01-01 --to 2026-01-31 /path/to/business
+iris report pl --from 2026-02-01 --to 2026-02-28 /path/to/business
+iris validate --json /path/to/personal
+iris reconcile /path/to/personal
+iris report pl --from 2026-01-01 --to 2026-01-31 /path/to/personal
+iris report pl --from 2026-02-01 --to 2026-02-28 /path/to/personal
+```
+
+| 1月末の確認値 | 事業用 | 個人用 |
+| --- | ---: | ---: |
+| 預金 | 95,000 | 190,000 |
+| 現金 | 12,580 | 10,970 |
+| カード債務 | 5,500 | 80,000 |
+| 費用 | 7,920 | 89,030 |
+| 収入 | 0 | 0 |
+| 純資産 | 102,080 | 120,970 |
+
+2月10日の引落は `Liabilities:Card` を借方、`Assets:Bank` を貸方に記録します。
+事業用5,500円、個人用80,000円です。2月28日の預金は89,500円・110,000円、カード債務は0円になります。
+現金と純資産は変わらず、2月の収入・費用も0円です。2月の預金・カードの元資料でも確認します。
+残高照合は事業用6件、個人用5件です。
+
+実行確認用の各Bookには、7仕訳、元の預金・カード明細、hashで対応付けたパースメモ、独立した現金確認、詳しさの方針、追記の経緯を含めています。
+事業用の費用は1,320円＋3,300円＋2,200円＋1,100円、個人用は60,000円＋20,000円＋9,000円＋30円です。
+預金の一致だけでは個人用の現金差額を見落とします。預金・現金と費用総額が一致していても、ソファの分類と元資料を個別に残した証明にはなりません。
+合計額とともに、選んだ詳しさが保たれているかも確認します。
+
 ## 税理士も顧客ごとの作業フォルダで記帳する
 
 税理士・会計事務所にも、自分の AI と帳簿ファイルで作業する方法を勧めます。
@@ -85,7 +401,8 @@ VS Code はインストールが検出された場合に登録されます。こ
 とスキルを削除します。
 
 この接続設定は、帳簿フォルダがあるマシンのためのものです。クラウド連携済みの
-帳簿なら、そのマシンから離れた場所からも帳簿と対話できます —
+帳簿なら、外出先でも同期済みの記録やレポートを読めます。リモートコネクタは読み取り専用で、
+変更にはローカルの環境を使います。
 [外出先の AI から帳簿へ（リモートコネクタ）](remote-connector.md)
 を参照してください。
 
@@ -109,7 +426,7 @@ Cowork の `.mcpb` 拡張では、**帳簿をまとめる親フォルダ**（例
 `create_book` で帳簿を作るよう依頼できます。AI は `list_books` で帳簿を確認し、
 各操作で対象の帳簿を指定します。子フォルダに帳簿を追加するたびに MCP の共通設定を
 変更する必要はありません。手動で設定する場合は
-`iris mcp serve --books-dir ~/IrisBooks` を使います。`--book PATH` も引き続き
+`iris mcp serve --books-dir ~/IrisBooks` を使います。`--book-path PATH` も引き続き
 1 つの帳簿に使えます。[MCP コマンド](cli-reference.md#iris-mcp)も参照してください。
 
 税理士の作業では、親フォルダに1社の帳簿だけを置きます。たとえば、
@@ -205,7 +522,7 @@ iris balance                         # 本日時点の試算表（記帳済み�
 iris report pl --from 2026-04-01 --to 2026-06-30
 iris report bs --as-of 2026-06-30
 iris search --payee amazon --from 2026-04-01     # 仕訳を検索
-iris show raw/2026-05-invoice.pdf                # この資料を引用する仕訳
+iris references raw/2026-05-invoice.pdf                # この資料を引用する仕訳
 ```
 
 帳簿フォルダにアクセスできる場合、通常のファイル一覧・読み取り・文字列検索・
@@ -216,7 +533,7 @@ iris show raw/2026-05-invoice.pdf                # この資料を引用する�
 構造化した条件や締め済み状態での検索、ファイルに直接アクセスできないクライアント
 で利用できます。
 
-`iris search` と `iris show` は、構造化したオフラインの参照にも使えます。
+`iris search` と `iris references` は、構造化したオフラインの参照にも使えます。
 
 ### 5. 記帳する
 
@@ -240,11 +557,17 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 
 ```bash
 iris api login            # ブラウザでサインイン。このデバイス専用の CLI セッションが発行される
+iris api whoami           # 実際に使う認証情報とAPI接続先を確認
 iris api books new        # クラウド帳簿を作成…
 # …または既存のものにこのフォルダをリンク:
 iris api books link <book-id>
 iris sync                 # 明示的な push + pull を1回
 ```
+
+ブラウザー認証は、CLI側のコールバックへ接続できる環境で使います。
+リモート・画面のない環境や別のブラウザープロファイルで承認する場合は、`iris api login --device` を選びます。
+本人の端末で承認した後、`iris api login --device-complete` と `iris api whoami` で確認してください。
+許可待ちは認証の完了ではありません。[ログイン方式とアカウントの分離](cli-reference.md#iris-api-login)も参照してください。
 
 ブラウザーで承認するときに、この CLI で利用する帳簿を選んでください。
 最初の帳簿や翌年度の帳簿を作る場合は、**帳簿の作成を許可する**を選びます。
@@ -283,7 +606,7 @@ iris asset depreciate --month 2026-05     # 月次で締めるならその月の
 MACRS — は進め方が違います。AI が償却率を調べ、方法が切り替わる時点を判断し、
 計算は iris に渡して、出来上がった表を資産ファイルの `schedule:` に記録します。
 
-そのために MCP 経由で 4 つの資産ツールが使えます。
+そのために MCP 経由で次の資産ツールが使えます。
 
 | ツール | 役割 |
 | --- | --- |
@@ -291,12 +614,16 @@ MACRS — は進め方が違います。AI が償却率を調べ、方法が切�
 | `declining_table` | 指定した率での定率法の表 |
 | `flat_table` | 償却し終わるまで一定額を計上する表 |
 | `straight_line_table` | 基準額を N 期間で均等に割る表 |
-| `jp_teiritsu`（オーバーレイのレシピごとに 1 つ） | 地域オーバーレイに用意された組み合わせ。あればこちらを優先 |
+| `list_recipes` / `run_recipe` | 地域オーバーレイに用意された組み合わせ。あればこちらを優先 |
+
+両モードとも `list_recipes` で CLI と同じレシピ ID と入力形式を確認し、
+`run_recipe(recipe=..., params={...})` で結果を表示します。保存時は `apply=true` と
+帳簿相対パスの `out` を追加します。`out` だけでは保存しません。親モードは `book` も必要です。
 
 肝心なのは、AI が残高を手で掛け算していかないことです。計算の取りこぼしはそこで
 起き、しかも合計だけは合ってしまう取りこぼしは iris には見抜けません。だから
 正確な表を組み合わせる形にしています。さらに、帳簿の地域オーバーレイにその方式の
-**レシピ**があれば — 日本の定率法は `jp_teiritsu` — AI はそれを呼びます。レシピが
+**レシピ**があれば — 日本の定率法は `jp-declining-balance.teiritsu` — AI はその ID で `run_recipe` を呼びます。レシピが
 決められた順序で表を組み立て、行の出どころを記録するので、`iris validate` が
 再計算して 1 年遅れの切替を捕まえられます。手で組み合わせるのは、レシピのない
 方式の代替手段です。ファイル形式と iris が検査する内容は

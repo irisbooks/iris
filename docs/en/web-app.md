@@ -164,15 +164,18 @@ rate stays visible instead of quietly changing the number.
 - **Open an entry** to see its full detail: date, counterparty, status, tags,
   attached source documents (click through to the document), the line-item
   table with debits/credits and totals, and the narrative body.
-- **Create a new entry** with the **New journal** button — fill in date,
-  payee, lines, tags, and attachments, then save.
-- **Edit or delete** an existing entry inline. Deleting is soft: the entry
-  moves to the **Deleted** view, where it can be restored.
-- **Post draft entries** — the detail page has a one-click **Post** button
-  for draft entries (it activates once debits and credits
-  balance). To post several at once — say, a batch of drafts captured
-  through the [remote connector](remote-connector.md) — tick their
-  checkboxes in the list and use **Post selected**.
+- **Approve a draft** — read the original source on its detail page, then use
+  **Approve reviewed source**. Bulk approval first displays each selected source.
+  Approval binds those exact versions; changed sources must be reviewed again.
+
+Create, edit, delete and restore records through local files and permitted CLI/API
+operations. Web records are read-only except for the reviewed `draft → posted`
+transition. Posting preserves unknown fields, quantities, lots, comments and body.
+
+Named-view Books label amounts **View preview**, including shared-root entries.
+The detail page identifies the default preview; CSV exports retain the unapproved
+scope. Approval marks the shared source as posted and does not accept its financial
+variations. Use **Book settings → Accounting view acceptance** to review and accept separately prepared calculations. Report selectors choose an accepted view; CSV and ledger drilldowns retain its identity. Stale or unaccepted calculations remain unavailable.
 
 ### History and the "after seal" warning
 
@@ -188,8 +191,8 @@ deleted, or posted — the year has to be reopened first (from the
 [**Year-end**](#year-end) screen, or `iris reopen`).
 
 The **Deleted** view (from the Journals list) lists soft-deleted entries with
-who deleted them and when — deletions are recorded, not erased. Each row has
-a **Restore** action that brings the entry back into the Journals list.
+who deleted them and when — deletions are recorded, not erased. Download a historical
+version for inspection; restore through permitted local/CLI operations.
 
 ## Reports
 
@@ -238,8 +241,9 @@ parse cache can link back to its source document in the Raw browser.
 
 The **Activity** timeline is the book-wide audit log: every file operation
 (put / delete / move) across the whole book, filterable by actor, path, and
-operation. Each row can expand to show a content **diff**, and — if a prior
-version exists — a **Recover** button. Post-seal changes are badged. This is
+operation. Each row can expand to show a content **diff** and download a prior
+version when available. Web does not replace the current record. Post-seal changes
+are badged. This is
 the book-level view of the durable history.
 
 ## Year-end
@@ -260,13 +264,19 @@ the period close:
   the screen counts the files amended. Close the year again when you're
   done — the **History** panel keeps every close and reopen on record.
 
-Before previewing or closing, recorded filings must replay successfully against
-the cloud's current posted journals and recipe sources. A stale filing after a
-correction, or an unavailable recipe source, can block even the preview before
-it lists drafts. Re-run the filing recipe with the intended inputs, run
-`iris validate`, sync the filing and its inputs, and preview again. If the
-cloud still reports an unavailable replay projection after a successful sync,
-seek support from the [Discord community](https://discord.gg/wZDsv9gyb9); repeated close attempts will not repair it.
+Run `iris validate` locally before syncing and closing. Overlay checks and recipe
+replay run on local clients using Book-contained definitions; the cloud checks
+native accounting, access, posting, seals and revision consistency. A successful
+cloud preview or close does not certify Overlay validation or recipe replay.
+If `config/balance-assertions.yaml` is configured, the preview also compares its
+observations with the accepted synced ledger and evidence versions. Review recorded,
+observed and difference values; missing/changed evidence remains unresolved even
+when balances match. Correct the underlying records locally, sync and preview again.
+The server refuses close until those native observations pass. A stale/missing
+source-data error requires a server projection rebuild; repeated close attempts
+cannot repair it. Matching hashes establish source identity, not correct transcription
+or bank authenticity.
+Named-view close requires every declared view accepted against the current complete inputs with no draft source events. The preview lists the pinned generations. Close locks referenced evidence and calculations; unrelated incoming raw files remain writable.
 
 Closing never removes anything: the year's files stay in the book.
 
@@ -318,14 +328,12 @@ outside any book) hold what belongs to you, not to a book:
 the Books list above) hold what belongs to that book:
 
 - The book's **ID and fiscal year**.
-- **Posting approval** (book owners only) — when on, posting an entry — and
-  editing, deleting, or demoting an already-posted entry — can only be done
-  here in the web app. Your AI assistant and the CLI keep preparing and
-  editing drafts, but their attempts to touch posted entries are refused
-  (`APPROVAL_REQUIRED`). Turn it on when you want every entry to pass
-  through your own hands before it counts. Only the owner can change it,
-  and only from this page — deliberately not from the CLI or a token, so
-  an AI assistant can never lift its own gate.
+- **Posting approval** (book owners only) — when on, CLI/AI writes to posted
+  entries and local posting are refused (`APPROVAL_REQUIRED`). Review and approve
+  exact draft sources in Web. The current Web supports approval only; correcting
+  or demoting posted content while this gate is enabled remains unavailable.
+  Only the owner can change this setting, from this page.
+
 - **Inbound email** — the book's receiving address, the allowed-senders
   list, and quarantined mail with an "Allow sender" shortcut. See
   [Receipts by email](email-inbox.md).
@@ -426,8 +434,34 @@ book value and show a coverage warning. Missing acquisition basis or disposal
 policy leaves cost blank; book-value revaluations do not become acquisition cost.
 The chart samples weekly and includes the selected endpoint. Expand the date/value
 table for exact displayed observations, or download the DuckDB file for your own
-SQL and pivot analysis. Acquisition cost is supported for the posted root ledger;
-named alternative accounting views are not merged into it.
+SQL and pivot analysis. Acquisition cost uses the ordinary posted ledger or a named Book’s accepted default native generation. Additional fields → Accepted financial view shows its identity; regenerating refuses stale acceptance.
+
+Expand **Additional fields** to inspect saved journal-line, asset or book-setting
+values in this report. Choose a record type, then use **Find fields** to list
+observed paths and record counts in 100-path pages. Optional path search is a
+literal, case-sensitive substring. Select a path such as `/tax/category` to
+inspect it. **Records** shows each original source and its value/type;
+an optional exact JSON filter distinguishes `100` from `"100"`. Results page
+through 100 records at a time. Long values preview the first 4,096 characters;
+download the report for the full values.
+
+**Group by value** shows typed groups, record counts and sums. Integer sums are
+exact; fractional sums marked `≈` are approximate. A value or sum outside the
+supported numeric range shows **Out of range**, retaining the original value.
+Strings, arrays and missing values are excluded from sums.
+The first 100 groups are shown. Large integers retain every digit, while a
+missing field stays distinct from an explicit `null`. These fields use the
+displayed report's included books and generation time. Sync and run aggregation
+to include later changes; older report files may also need regeneration.
+
+**Read field references** opens declarations and guidance from the current synced
+Book. For grouped results, explicitly select an included Book for reference help.
+These references may be newer than the frozen report. Book settings also offers
+the package overview: stored selection/settings, declared fields/tasks, exact
+guide sections and task examples. It shows the Book revision and read time.
+Unavailable metadata remains explicit. Cloud does not evaluate package
+compatibility, applicability, requiredness conditions, validation or calculations;
+use local context for those checks and unsynced changes.
 
 No market data is fetched for you. Record prices, including FX, with `iris price
 add`; refresh after syncing them. Acquisition FX uses the acquisition date when

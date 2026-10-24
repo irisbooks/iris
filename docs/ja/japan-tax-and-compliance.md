@@ -20,7 +20,7 @@ IrisBooks は日本の記帳のために作られています。このページ�
 | **訂正・削除の履歴** | すべてのファイルへの変更を、削除も含めてサーバーが記録します — 誰が・いつ変更したか、変更前はどうだったか | `iris api history`、Web アプリの**アクティビティ**タイムラインと仕訳ごとの**履歴**パネル（クラウド） |
 | **検索** | 日付・金額・取引先を自由に組み合わせて仕訳を探せます。ステータス・勘定科目・タグでも絞り込めます | `iris search`、Web アプリ**仕訳**ページの絞り込み |
 | **元帳 ↔ 仕訳** | 元帳の各行に、もとになった仕訳ファイルが示されます | `iris report ledger`、Web アプリ**勘定科目**の元帳 |
-| **仕訳 ↔ 元資料** | 各仕訳は領収書・請求書・明細などの元資料を参照していて、そのつながりを双方向にたどれます | `iris show <path>`、Web アプリ元資料ブラウザの**引用元**パネル |
+| **仕訳 ↔ 元資料** | 各仕訳は領収書・請求書・明細などの元資料を参照していて、そのつながりを双方向にたどれます | `iris references <path>`、Web アプリ元資料ブラウザの**引用元**パネル |
 
 元帳と仕訳のつながりは、個別の機能ではなく設計から生まれています。原本は仕訳
 ファイルだけで、総勘定元帳・試算表・決算書は必要なときにそこから計算します。
@@ -130,20 +130,24 @@ iris report sum --by tax.category,tax.rate --from 2026-01-01 --to 2026-12-31
 個人は暦年、法人は事業年度（`--year`）です。
 
 日本オーバーレイはさらに一歩進めて、この集計を申告書の形に組み合わせる 2 つの
-**レシピ**を持っています。`jp.shouhizei-general`（本則課税 — 税率別の課税売上・
-課税仕入、渡した経過措置割合によるインボイスあり/なしの区分、課税売上割合、
-差引税額、百円未満切捨ての納付税額）と `jp.shouhizei-simplified`（簡易課税 —
+**レシピ**を持っています。`jp-tax-filing.shouhizei-general`（本則課税 — 税率別の課税売上・
+課税仕入、パッケージの日付別定義による経過措置計算、課税売上割合、
+差引税額、百円未満切捨ての納付税額）と `jp-tax-filing.shouhizei-simplified`（簡易課税 —
 事業区分別の売上税額と、渡したみなし仕入率による仕入税額控除）です。
-`iris overlay recipe jp.shouhizei-general --set from=2026-01-01 --set
-to=2026-12-31 --set non_invoice_pct=80 --write
-filings/jp.shouhizei-general.md` で集計値が `filings/` に根拠付きで記録され、
+`iris overlay recipe jp-tax-filing.shouhizei-general --set from=2026-01-01 --set
+to=2026-12-31 --set scope_confirmed=true --apply --out
+filings/jp-tax-filing.shouhizei-general.md` で集計値が `filings/` に根拠付きで記録され、
 以後 `iris validate` が仕訳に対してレシピを再計算します。申告後に訂正を記帳すると、
 レシピを再実行するまでエラーになります。AI は記録された集計値から様式に転記
 します。役割分担はここでも同じ：**IrisBooks が集計し、AI が申告する。**
 
+`jp-tax-classification` と `jp-tax-filing` を一緒に選択します。
+ガイドの対応範囲を確認してから `scope_confirmed=true` を渡してください。
+結果は計算補助であり、完成した申告書ではありません。
+
 **税抜経理**の帳簿（`accounting: tax_excluded`）では、`iris validate` が
 `tax.amount` のない区分済み明細について、明細に含まれる消費税額をヒントとして
-提案します。`iris validate --fix` で記録され、AI はその額を仮払消費税 / 仮受消費税に
+提案します。`iris validate --apply` で記録され、AI はその額を仮払消費税 / 仮受消費税に
 計上します — 計算は iris、仕訳は AI です。
 
 ## 固定資産と減価償却
@@ -182,17 +186,17 @@ accumulated_depreciation_account: "資産:減価償却累計額"
 
 定率法は、その年の償却額が償却保証額（取得価額 × 保証率）を下回るまで償却率で
 償却し、以降は改定取得価額 × 改定償却率の定額に切り替えて耐用年数まで償却します。
-切替・端数処理・前後半の連結は日本オーバーレイの `jp.teiritsu` レシピに組み込まれて
+切替・端数処理・前後半の連結は日本オーバーレイの `jp-declining-balance.teiritsu` レシピに組み込まれて
 います。AI は入力を渡すだけで、あとは iris が行います。
 
 1. 国税庁サイトの別表第十で、その耐用年数の償却率・保証率・改定償却率を調べる
    （2012年4月以降の取得は 200% の表、2007年4月〜2012年3月は 250% の表。資産は
    取得時の表を使い続けます）。
 2. その率と取得価額、耐用年数（年）、最初の期末月を渡してレシピを実行する —
-   `iris overlay recipe jp.teiritsu --set cost=1000000 --set life=8
+   `iris overlay recipe jp-declining-balance.teiritsu --set full_year_confirmed=true --set cost=1000000 --set life=8
    --set rate=0.250 --set guarantee=0.07909 --set revised=0.334
-   --set start=2027-03 --write assets/2026/lathe.md`、または MCP の
-   `jp_teiritsu` ツール。表が `schedule:` に、根拠が `schedule_source:` に
+   --set start=2027-03 --apply --out assets/2026/lathe.md`、または MCP の
+   `run_recipe(recipe="jp-declining-balance.teiritsu", params={...}, apply=true, out="assets/2026/lathe.md")`（親モードは `book` も指定）。表が `schedule:` に、根拠が `schedule_source:` に
    書き込まれます。
 
 取得価額 100 万円・耐用年数 8 年（償却率 0.250、保証率 0.07909、改定償却率
@@ -219,10 +223,11 @@ schedule:
   - period: 2034-03
     amount: 78785      # 備忘価額 1 円で終わる
 schedule_source:       # レシピが書く: 入力。再計算と税理士の確認のために
-  overlay: jp@2026.09.1
-  recipe: jp.teiritsu
-  bindings: 1
-  params: {cost: 1000000, life: 8, rate: 0.250, guarantee: 0.07909, revised: 0.334, start: 2027-03, salvage: 1}
+  overlay: jp-declining-balance@2026.10.1
+  recipe: jp-declining-balance.teiritsu
+  bindings: 5
+  primitives: {declining_table: 2, flat_table: 2}
+  params: {full_year_confirmed: true, cost: 1000000, life: 8, rate: 0.250, guarantee: 0.07909, revised: 0.334, start: 2027-03, salvage: 1}
 ```
 
 iris は合計が取得価額 − 備忘価額と一致するか、表の形が正しいかを検査し — 入力が
@@ -261,7 +266,7 @@ AI が資産ファイルとエンジンの年度数値（`iris export assets --y
 iris yearend                                      # FY2026 の帳簿を期首残高仕訳付きで作成
 # …決算整理と申告は、ここ FY2025 の帳簿で行う…
 iris yearend                                      # 遅れた訂正のあと: FY2026 の期首残高を更新
-iris api seal --period 2025 --preview <book-id>   # 何が締められるか確認（クラウド）
+iris api seal --period 2025 --dry-run <book-id>   # 何が締められるか確認（クラウド）
 iris api seal --period 2025 <book-id>             # 年度を締める（クラウド）
 ```
 
@@ -284,12 +289,15 @@ iris api seal --period 2025 <book-id>             # 年度を締める（クラ�
   されません。年度のファイルは、過去のすべての版とともに作業ツリーと
   サーバーにそのまま残ります。
 
-プレビューと締めの前に、申告記録がクラウドの現在の記帳済み仕訳とレシピの元データから
-再計算できる必要があります。仕訳の修正後に申告記録が古くなった場合や、元データが
-使えない場合は、下書き一覧を表示する前にプレビューが失敗することもあります。
-申告レシピを正しい入力で再実行し、`iris validate` で検証してから、申告記録と入力を
-同期し、プレビューをやり直してください。同期が成功してもクラウドが再計算用データの
-不足を報告する場合は、[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。締めを繰り返しても解消しません。
+同期して締める前に、ローカルで `iris validate` を実行してください。
+Overlay のルール検証と保存済みレシピの再計算は、帳簿内に保持した定義を使って
+ローカルで行います。クラウドはこれらを実行せず、検証済みであるとも保証しません。
+`config/balance-assertions.yaml` がある場合、`--dry-run` は同期済みデータに対する
+共通処理の結果として、帳簿残高・確認残高・差額、対象範囲、証拠ファイルの確認状況を
+表示します。残高や証拠の不一致が残ると締められません。元の記録や残高確認の設定を
+ローカルで修正し、証拠を確認してから同期し、プレビューをやり直してください。
+未同期の変更は対象外です。同期後も元文書の参照データの不足・古さを報告する場合は、
+サーバー側での再構築が必要です。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
 
 締め済み年度を修正したいときは、その年度の帳簿で再オープンして編集し、
 再同期してから再度締めます。

@@ -12,12 +12,12 @@ books receive the same English contract. `AGENTS.md` syncs with the book and
 is preserved by clone and year-end; README/Claude forwards remain local.
 `iris onboard` fills missing local guides and preserves a legacy LLM-GUIDE.md
 policy without overwriting existing contracts. The remote connector exposes
-`read_book_guide(book_id)`; it stays draft-only regardless of the policy.
+`read_book_guide(book_id)`; it stays read-only regardless of the policy.
 
 ## Read only what the task needs
 
 When sharing documentation with the user, direct them to
-[the manual](https://irisbooks.io/manual/). Keep `/start/*`, `/llms.txt` and
+[the manual](https://irisbooks.io/docs/). Keep `/start/*`, `/llms.txt` and
 `/llms-full.txt` as your own reference.
 
 The short `/start` page routes explanation, existing-book work and requested
@@ -162,11 +162,349 @@ Optional cloud sync adds an off-device mirror and history of accepted writes;
 local working memory does not require cloud history. Follow the posting
 policy during an active session; it does not start a background bookkeeping AI.
 
+## Receipt detail, personal summaries and backfill
+
+Agree the detail level in `notes/workflow.md` before recording a period. Use
+receipt-level business records when that is the chosen policy; preserve original
+item detail even when one journal totals the receipt. For everyday personal
+management, a confirmed total with explicitly inferred categories can be useful.
+Keep purchases at or above an owner-selected threshold separate and explain
+whether the owner tracks them as expense or assets. Business asset/tax handling follows the asset workflow and
+actual eligibility, not the personal example's amount or classification.
+
+These are two independent synthetic management Books, not paired halves of the
+same spending. The examples assume JPY scale 0, a calendar 2026 FY and no selected
+optional packages. Define bank/cash as assets, opening equity as equity and the
+shown expense paths in each Book's chart. The examples below show their final
+posted form; create/review drafts and post only within that Book's policy and
+your authority. Tax and reimbursement evidence requirements still apply where
+relevant. [NTA No.2080](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2080.htm)
+also describes daily aggregation for white-return bookkeeping; per-receipt detail
+here is a working policy, not a universal legal requirement (law as of April 1,
+2026; checked October 24, 2026).
+
+### Keep the receipt and bank row attached to one business payment
+
+The business Book opens with bank 100,000, cash 10,000 and opening equity
+110,000. The January 5 stationery receipt has two items but one payment:
+
+```csv
+date,merchant,item,amount,currency
+2026-01-05,Synthetic Stationer,Paper,1000,JPY
+2026-01-05,Synthetic Stationer,Pens,320,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-05
+status: posted
+lines:
+  - {account: Expenses:Supplies, debit: 1320}
+  - {account: Assets:Cash, credit: 1320}
+attachments:
+  - {path: raw/receipts/stationery.csv, type: receipt, locator: L2-L3}
+```
+
+A January 12 software receipt and its card row both support the same 3,300
+charge: debit `Expenses:Software`, credit `Liabilities:Card` once, and attach both
+sources. Reconcile every card charge against existing receipt entries before
+adding uncovered charges. For a January 18 rail charge of 2,200, the owner
+confirms date, amount, payer and business purpose but has no receipt:
+
+```csv
+date,merchant,amount,purpose,receipt_status
+2026-01-18,Synthetic Rail,2200,Owner confirms client meeting travel,missing
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-18
+status: posted
+tags: [no-receipt]
+lines:
+  - {account: Expenses:Travel, debit: 2200}
+  - {account: Liabilities:Card, credit: 2200}
+attachments:
+  - {path: raw/cards/2026-01.csv, type: bank_statement, locator: L4}
+  - {path: raw/statement-review.csv, locator: L2}
+```
+
+Keep `no-receipt` and the missing original in `notes/open-questions.md`.
+The statement proves the charge; owner review supplies the stated purpose.
+This management entry does not establish invoice eligibility or tax deductibility.
+If the nature or amount itself is unresolved, defer classification and ask for
+the missing fact instead of guessing an expense. The later bank deduction
+settles the card liability; it is not another purchase. The January 20 withdrawal debits `Assets:Cash` 5,000 and credits
+`Assets:Bank` 5,000. It transfers money without creating expense. A separately
+recovered January 28 client-folder receipt records `Expenses:Supplies` 1,100
+against cash. Describe its discovery/review in notes while retaining the actual
+transaction date. Do not use a monthly personal estimate as business evidence or
+infer tax eligibility from a receipt's filename. Mixed-use allocation has its
+own dated-basis workflow in the [format reference](book-format-reference.md#businessprivate-expense-allocation).
+
+### Keep personal estimates and large purchases distinguishable
+
+The personal Book opens with bank 200,000, cash 10,000 and opening equity
+210,000. A January 10 withdrawal moves 10,000 from bank to cash. The owner
+confirms 9,000 total ordinary cash spending for January; the 8,000/1,000 category
+split is inferred. Individual merchant/date details are unavailable:
+
+```csv
+period_from,period_through,total_cash_paid,groceries_estimate,transport_estimate,currency
+2026-01-01,2026-01-31,9000,8000,1000,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-31
+status: posted
+lines:
+  - {account: Expenses:Groceries, debit: 8000}
+  - {account: Expenses:Transport, debit: 1000}
+  - {account: Assets:Cash, credit: 9000}
+attachments:
+  - {path: raw/interview.csv, locator: L2}
+```
+
+January 31 is the agreed period-end summary date, not an invented date for
+each purchase. Keep the confirmed total, inferred category split, covered period
+and exclusions in the body. If precise receipts later replace part of a summary,
+review and replace/reclassify that covered portion; adding them on top would
+duplicate spending. This relaxed record is personal management, not receipt-level
+tax/reimbursement substantiation.
+
+The owner selects an individual-purchase threshold of **JPY 50,000 or more**.
+The 60,000 sofa is a separate January 15 card purchase, excluded from both
+cash and card summaries. The
+owner explicitly chooses expense tracking for it in this personal Book; the
+example establishes no business capitalization threshold or tax treatment:
+
+```csv
+date,merchant,description,amount,currency
+2026-01-15,Synthetic Furniture,Personal sofa,60000,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-15
+status: posted
+lines:
+  - {account: Expenses:Furniture, debit: 60000}
+  - {account: Liabilities:Card, credit: 60000}
+attachments:
+  - {path: raw/receipts/sofa.csv, type: receipt, locator: L2}
+  - {path: raw/cards/2026-01.csv, locator: L4-L5}
+```
+
+### Preserve the statement, row state and physical locators
+
+The personal card original is `raw/cards/2026-01.csv`. Its sofa description
+contains a quoted line break; do not rewrite the source to flatten it:
+
+```csv
+date,description,charge,payment,balance
+2026-01-01,Opening,0,0,0
+2026-01-07,Synthetic Market,12000,0,12000
+2026-01-15,"Sofa delivery
+order S-15",60000,0,72000
+2026-01-19,Synthetic Rail,8000,0,80000
+2026-01-31,Closing balance,0,0,80000
+```
+
+The personal card category summary covers only the 12,000 market and 8,000
+rail charges. The inferred categories stay explicit; actual amounts come from
+the statement. The 60,000 sofa is excluded: **20,000 summary + 60,000 individual
+= 80,000 statement charges**. Keep its original January 15 date and source.
+Cash spending is the separate 9,000 summary above, not part of this card total.
+
+```yaml
+schema_version: 1
+date: 2026-01-31
+status: posted
+lines:
+  - {account: Expenses:Groceries, debit: 12000}
+  - {account: Expenses:Transport, debit: 8000}
+  - {account: Liabilities:Card, credit: 20000}
+attachments:
+  - {path: raw/cards/2026-01.csv, type: bank_statement, locator: L3}
+  - {path: raw/cards/2026-01.csv, locator: L6}
+```
+
+Mirror the full raw path beneath `notes/`, preserving the original extension:
+`raw/cards/2026-01.csv` → `notes/raw/cards/2026-01.csv.md`.
+Bank sources use the same rule, for example `raw/bank/2026-01.csv` →
+`notes/raw/bank/2026-01.csv.md`. This parse note is
+assistant-maintained coordination data, not an automatic importer or duplicate
+guarantee. Its completed targets are stable. Opening/closing balance metadata
+have explicit ignore reasons; do not ignore an unknown cash outflow merely to
+finish the file. Leave genuinely unresolved transaction rows `deferred` and
+explain the missing fact in `notes/open-questions.md`.
+
+```markdown
+---
+source: raw/cards/2026-01.csv
+source_sha: sha256:9bfde1fbdc1a8cffcdf724cb867a3dd1980dabdf03efaa2734682bcbe386991b
+parsed_at: 2026-10-24
+counts: {total: 5, journaled: 3, ignored: 2, deferred: 0}
+---
+
+## Rows
+
+| id | date | description | amount | status | target / reason | locator |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | 2026-01-01 | Opening | 0 | ignored | Zero opening liability; no transaction | L2 |
+| 2 | 2026-01-07 | Synthetic Market | -12000 | journaled | journals/2026-01/2026-01-31-card-summary.md | L3 |
+| 3 | 2026-01-15 | Sofa delivery / order S-15 | -60000 | journaled | journals/2026-01/2026-01-15-sofa.md | L4-L5 |
+| 4 | 2026-01-19 | Synthetic Rail | -8000 | journaled | journals/2026-01/2026-01-31-card-summary.md | L6 |
+| 5 | 2026-01-31 | Closing balance | 0 | ignored | Balance-only observation; no transaction | L7 |
+
+IDs count data records, excluding the header. Locators count actual physical
+lines, including the header and quoted line breaks. Ignored opening/closing
+rows are balance metadata, not skipped spending. Negative charge amounts in
+this note are statement presentation; liability assertions use credit-positive
+account direction. This assistant-maintained note is not a native importer or
+automatic duplicate guarantee. Preserve completed targets before backfilling.
+```
+
+Data-record ID 3 corresponds to physical lines `L4-L5`; ID 4 starts at `L6`.
+IDs exclude the header and quoted line breaks, while `L` locators include both.
+Native CSV parsing and the Web preview keep these same physical record spans.
+Compare `source_sha` with `iris hash` before reusing the note. If a statement is
+reissued, preserve it separately, compare changed rows with existing targets,
+and retain completed decisions; updating only the hash does not reconcile it.
+The receipt and statement still represent one event, not two expenses.
+
+### Resolve backfill from evidence and reconcile cash separately
+
+The personal cash count is 10,970 on January 31:
+
+```csv
+date,owner_reported_cash
+2026-01-31,10970
+```
+
+Before the recovered receipt is posted, the ledger says 11,000, so
+`iris reconcile` reports actual 11,000 / expected 10,970 / difference +30 and
+exits 1. The bank still matches 190,000. Keep this unexplained difference visible;
+do not invent a 30 purchase or reduce the assertion to make the check pass.
+On October 24 the original January 29 copy receipt is genuinely found and
+confirmed to be outside the 9,000 summary. Retain it and its actual date:
+
+```csv
+date,merchant,description,amount,currency
+2026-01-29,Synthetic Library,Personal copies,30,JPY
+```
+
+```yaml
+schema_version: 1
+date: 2026-01-29
+status: posted
+lines:
+  - {account: Expenses:Copies, debit: 30}
+  - {account: Assets:Cash, credit: 30}
+attachments:
+  - {path: raw/receipts/backfill.csv, type: receipt, locator: L2}
+```
+
+Explain discovery/review time in `notes/backfill.md`; it does not replace the
+transaction date or filename. Check for existing coverage before authoring a
+draft. Posting needs the Book's ordinary authority and seal guards. This example
+assumes an unsealed 2026 FY. For a closed/prior year, use the authorized
+reopen/correction workflow rather than shifting the transaction into today or
+changing sealed inputs. Record any still-missing evidence as an open question.
+
+Add [balance assertions](book-format-reference.md#balance-assertions) with
+`scope: posted` and `unit: JPY`; a CSV does not automatically create observations.
+The business Book observes January cash 13,680 on the 27th, then cash 12,580,
+bank 95,000 and credit-positive card liability 5,500 on the 31st. The personal
+observations below cover January bank/cash/card and February bank/card settlement:
+
+```yaml
+schema_version: 1
+assertions:
+  - id: cash-close
+    date: 2026-01-31
+    account: Assets:Cash
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 10970
+    evidence: {path: raw/cash-count.csv, sha: sha256:397b3eadca51ca10e939460e0ee82390a7aec7312db5e633b011e3a6054654e8, locator: L2}
+  - id: bank-close
+    date: 2026-01-31
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 190000
+    evidence: {path: raw/bank/2026-01.csv, sha: sha256:a175549e16e2ccdda81172918c7ec2a89c3731c299d5b127d050ddeda48889c7, locator: L4}
+  - id: card-close
+    date: 2026-01-31
+    account: Liabilities:Card
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 80000
+    evidence: {path: raw/cards/2026-01.csv, sha: sha256:9bfde1fbdc1a8cffcdf724cb867a3dd1980dabdf03efaa2734682bcbe386991b, locator: L7}
+  - id: bank-after-card-payment
+    date: 2026-02-28
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 110000
+    evidence: {path: raw/bank/2026-02.csv, sha: sha256:6ad346750ec1cdbe6ed31cf4cfeaa8f07143cd1614c565ef2ae7168845cd04e2, locator: L3}
+  - id: card-after-payment
+    date: 2026-02-28
+    account: Liabilities:Card
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 0
+    evidence: {path: raw/cards/settlement.csv, sha: sha256:b3b8cf9395f45432e2072b7858cd8d7770c0404c659af4e391416442b2e9674f, locator: L2}
+```
+
+After reviewing/posting the real backfill, run these read-only checks:
+
+```bash
+iris validate --json /path/to/business
+iris reconcile /path/to/business
+iris report pl --from 2026-01-01 --to 2026-01-31 /path/to/business
+iris report pl --from 2026-02-01 --to 2026-02-28 /path/to/business
+iris validate --json /path/to/personal
+iris reconcile /path/to/personal
+iris report pl --from 2026-01-01 --to 2026-01-31 /path/to/personal
+iris report pl --from 2026-02-01 --to 2026-02-28 /path/to/personal
+```
+
+| January closing figure | Business | Personal |
+| --- | ---: | ---: |
+| Bank | 95,000 | 190,000 |
+| Cash | 12,580 | 10,970 |
+| Card liability | 5,500 | 80,000 |
+| Expense | 7,920 | 89,030 |
+| Income | 0 | 0 |
+| Net assets | 102,080 | 120,970 |
+
+The February 10 deductions debit `Liabilities:Card` and credit `Assets:Bank`:
+5,500 business and 80,000 personal. February 28 banks are 89,500/110,000 and
+card liabilities zero. Cash and net assets stay unchanged; February income and
+expense are zero. Observe those balances from the February bank/card originals
+too: six business observations and five personal observations in total.
+
+Each checked Book has seven journals, original bank/card files and exact-hash
+parse notes, independent counted-cash evidence, a detail policy and backfill notes.
+Business expense is 1,320 + 3,300 + 2,200 + 1,100. Personal expense is
+60,000 + 20,000 + 9,000 + 30.
+Matching the bank alone would miss the personal cash difference; matching both
+cash accounts and total expense still would not prove that the sofa kept its
+own classification and source. These checks test detail as well as totals.
+
 ## Local vs cloud
 
 - **Local** is complete offline bookkeeping: double-entry, validation,
   reports, local Net Worth and the offline search and cross-reference views
-  (`iris search`, `iris show`). Local `iris` needs no account or network; the
+  (`iris search`, `iris references`). Local `iris` needs no account or network; the
   user's chosen AI service may need its own connection and has its own
   access/usage terms.
 - **Cloud** (an IrisBooks account, `iris api login`) adds: sync, the web
@@ -230,7 +568,8 @@ importing the entire changed source again.
 
 - **Synced:** `journals/`, `assets/`, `filings/`, `notes/` (incl. parse
   caches), `AGENTS.md` (shared agent contract), `raw/` (verbatim bytes), `config/book.yaml`,
-  `config/chart-of-accounts.yaml`, `config/rules.yaml`, `config/overlays/`.
+  `config/chart-of-accounts.yaml`, `config/rules.yaml`,
+  `config/balance-assertions.yaml`, `config/overlays/`, `config/overlay-packages/`.
 - **Not synced:** `.iris/`, `README.md` / `CLAUDE.md`,
   `compiled/`.
 
@@ -240,8 +579,15 @@ importing the entire changed source again.
 schema_version: 1
 book_id: lb_...                 # local ID at init; replaced by cloud ID when linked
 name: "Acme Design"
-region: JP                      # ISO 3166-1; selects tax/locale rules
-overlay: jp@2026.09.1           # region rules version, pinned at init
+region: JP                      # ISO 3166-1; locale and region compatibility
+overlays:
+  - journal-balance@2026.10.1
+  - inventory-disposal@2026.10.1
+  - jp-tax-classification@2026.10.1
+  - jp-tax-amount@2026.10.1
+  - jp-tax-filing@2026.10.1
+  - jp-small-asset-deduction@2026.10.1
+  - jp-declining-balance@2026.10.1
 language: ja                    # ISO 639-1; chart language follows this
 currency: JPY                   # ISO 4217
 scale: 0                        # minor-unit exponent — IMMUTABLE (JPY 0, USD 2, BHD 3)
@@ -282,41 +628,83 @@ The BTC entry above is an example, not a preinstalled default.
 Region-specific blocks like `consumption_tax` ride along opaquely: the
 universal engine ignores them; the region overlay reads them.
 
-`overlay` pins the **region overlay** — the versioned set of region-specific
-checks and computations that `iris validate` and the server apply to the book
-(for JP: `toku_rei` regime constraints, the ¥3M/yr 少額減価償却 cap, 消費税
-税区分/税率 rules). A book in a region without an overlay has no `overlay:`
-line and gets the universal checks only; once one is published,
-`iris overlay upgrade` pins it (when the user asks). The pin is written once
-at `iris init` from the newest version built into that `iris`;
-every `iris` also carries every earlier released version, so older pins and
-the records made under them validate and replay offline. Overlay versions are
-released independently of `iris` (signed releases of
-`github.com/irisbooks/overlays`, tagged `<id>@<version>` — the pin). Change the
-pin only with `iris overlay upgrade [--to <id>@<version>]`, and only when the
-user asks: a new version can change what is checked and what a recipe
-computes. It verifies and tests the version, checks the book layer still
-loads, and rewrites the pin (and the layer's `extends:`); afterwards run
-`iris validate` and tell the user what changed. Records made under the old
-version keep replaying under it. When `iris validate` warns that the book pins
-a version this `iris` does not have (one released after it was built) (`overlay.pin-mismatch` /
-`overlay.pin-unknown`), run `iris overlay fetch` — it only downloads and
-verifies, never changes the book. The cloud refuses a `book.yaml` pinning an
-unpublished version (`OVERLAY_PIN_UNAVAILABLE`). Never edit the pin by hand or
-as a side effect of something else.
+`overlay: id@version` selects one exact package; `overlays: [id@version, ...]`
+selects an unordered complete set. Omitted/empty selections enable no optional
+packages, regardless of region. Common completion also needs an explicitly
+selected Book copies of `journal-balance@version` and/or
+`inventory-disposal@version`. Core checks remain host-owned.
+Runtime and historical replay use verified copies under `config/overlay-packages/`
+exclusively; missing or changed copies fail without embedded/cache fallback.
+`iris overlay fetch` verifies a distribution cache copy; `iris overlay install
+--pin id@version` explicitly copies it into the Book without selecting it.
+The initial JP business catalog selects seven function-level candidates, all at
+`2026.10.1`: `journal-balance`, `inventory-disposal`, `jp-tax-classification`,
+`jp-tax-amount`, `jp-tax-filing`, `jp-small-asset-deduction` and
+`jp-declining-balance`. Personal/non-JP setup selects the two common completions.
+Signed publication is pending. Category names are not activation switches.
+`jp-tax-amount` and `jp-tax-filing` each explicitly require
+`jp-tax-classification@2026.10.1`, but not one another. The classification task
+owns the Book tax-setting schemas. Individual calculation/proposal tasks point
+there without duplicating field ownership. Derivation operations in task context
+identify the exact proposal provider; ordinary validation shows its hints and
+explicit `--apply` applies reviewed values.
+The combined `default`/`jp` and superseded aggregate candidates are retired.
+Do not infer eligibility from a function selection. The binary carries
+a curated installation catalog; historical definitions remain in the Book.
 
-A book may instead use `overlays: [jp@…, specialist@…]`, an unordered set
-of exact published pins. Retain the user's selected packages; never guess a
-specialist package from an account name. The plural form requires every pin
-and rejects duplicates, region/dependency mismatches and published collisions.
-Fetch missing pins explicitly; it never falls back. Use `upgrade --dry-run` to
-inspect changes before an authorized upgrade; `--to` replaces only that pinned
-member. A book layer extending a set lists every pin in `extends`. If the stored
-layer cannot compile on new pins, the server accepts valid published settings
-and defers book settings until repair. Update definitions against the new pins,
-then the matching manifest; record writes require the actual consistent layer.
-A broken stored layer admits individually compiled definitions with helper
-dependencies and full file limits while sibling definitions await repair.
+Creation presets copy their documented exact selections; they are not runtime
+inheritance. Package releases are independent signed versions.
+
+Change enabled policy only when authorized. Validate and apply the complete desired
+set in one call with `iris overlay select --pin id@version ... --json`, or `--off`.
+Local MCP `select_overlays(pins)` accepts a complete array; `[]` is off, and parent
+mode adds `book`. This replaces the whole enabled set: include existing pins to
+keep. No prior preview or revision is required. The result shows exact before/after
+pins, dependency versions, changed definitions
+and affected recorded provenance. Missing/incompatible providers and cycles
+block apply. Never fetch, enable or cascade dependencies implicitly. Inspect
+`iris context` / `get_book_context` separately for available copies and current
+task applicability; reading a guide does not activate policy.
+
+For optional prior review, use CLI `--dry-run --json` or MCP
+`preview_overlay_selection(pins)`, then apply the same selection with CLI
+`--revision HASH` or MCP's optional `revision`. A supplied revision refuses stale
+config, definitions, trust, record membership or provenance. From inside the Book,
+`iris diff config/book.yaml` shows unsynced file edits against the last sync;
+before the first sync, files appear as added. Synced earlier changes need file
+history. The locked writer preserves recorded results and retains the original
+local layer/parents; archive and known seal guards still apply. Known seals are
+cached observations, not current cloud authority. Preview performs no network,
+ledger evaluation, historical replay or runtime/cache writes. `affected_results`
+uses zero-based journal lines (`-1` for whole records), field paths and raw view
+declarations; this is not resolved-view financial acceptance. Source availability
+(`retained`, `will-retain`, `unavailable`), machine trust and successful replay
+are distinct. Missing historical bytes are reported, not repaired automatically.
+Unresolved config views and YAML alias/merge rewrites that change other settings
+are refused. The complete preview is bounded to 16 pins, 1,024 dependency files /
+64 MiB, 10,000 input files / 128 MiB, 2,048 provenance entries, 64 affected
+provider identities and 2 MiB of preview JSON.
+
+`iris overlay upgrade --to id@version --dry-run --json` reviews a version change;
+apply the same target with `--revision HASH`. Local MCP uses
+`preview_overlay_upgrade(to?)` then `upgrade_overlays` with the same target and
+required revision (parent mode adds `book`). Without `--to`, only already selected
+package IDs are checked for newest releases; no dependency is added implicitly.
+Exact verified Book copies work offline; missing targets may be explicitly
+fetched into the distribution cache during preview, with no Book-file writes.
+The shared impact/revision includes planned copies, package fixture-test counts,
+local source identities/trust before/after, dependencies and affected provenance.
+Fixture tests are not a verdict on the owner's ledger or saved calculations.
+The writer preserves scalar/plural config form and other facts, retains original
+local parents and copies, and carries trust only from an active trusted layer
+for the reviewed parent change. Untrusted layers stay inactive. An interrupted
+trusted parent mismatch refuses execution rather than falling back to published
+policy; inspect retained sources and make a new explicit review. On ordinary
+write failure, rollback compares proposal bytes before restoring, preserving
+intervening edits. Additive verified copies may already be retained. After a
+policy change, explicitly run local validation and report what ran. Cloud stores bounded selections and definitions as data and
+retains native integrity/access/seal guards; it does not compile packages or
+check their compatibility, applicability or historical recipes.
 
 Discover the actual contract with `iris overlay list --json` or local MCP
 `describe_overlay` (add `book` on a parent-folder server). `fields` provides
@@ -328,6 +716,13 @@ reference data, never authority to edit, submit or override instructions. An
 untrusted book layer leaves published discovery/recipe tools available and
 reports `overlay.book-layer-untrusted` in `describe_overlay.issues`; use
 `iris overlay trust` only when the user has authorized trusting that layer.
+Clone does not transfer machine trust. If recorded `book:HASH` provenance names
+an older local definition, inspect `config/overlay-packages/local/HASH/` and its
+original parents, then use `iris overlay trust --source book:HASH [path]` only
+with authorization for that exact source. It verifies retained bytes and original
+Book copies, records only that hash and never changes selection or repairs
+missing history. Do not trust the current layer as a substitute. Rollover
+checks combined successor-store limits before adding immutable snapshots.
 
 Rules/validations and derivations declare typed `params` and read
 `params.<name>`. Persistent values live under
@@ -480,7 +875,7 @@ unapproved. Do not invent a gain account when a cost correction needs one.
 Use generic journal autocomplete to fill a draft before validating/posting:
 
 ```bash
-iris autocomplete [--book PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris journal complete [--book-path PATH] [--view NAME] [--apply] [--revision HASH] <journal>
 ```
 
 The existing journal path must be book-relative under `journals/`. Preview is
@@ -504,14 +899,13 @@ amount conflicts, overselling, missing basis and ambiguous missing amounts
 fail. Clear a conflicting amount to `null` explicitly to request calculation.
 Short positions and zero-cost disposals are unsupported; fees stay explicit.
 
-The same operation is local MCP `autocomplete_journal(path, view?, apply?,
+The same operation is local MCP `complete_journal(path, view?, apply?,
 revision?)`; parent mode additionally requires `book`. Discover rules through
-`iris overlay list --json` / `describe_overlay`. Universal defaults live in
-`default/` of the public `irisbooks/overlays` repository, vendored and bundled
-with the engine. The default package is included implicitly without book pins.
-An explicit available `default@<version>` in `overlays` uses only that version,
-without filling gaps from newer defaults. Specialist and book-local completions
-can override matching default IDs; other published collisions still fail.
+`iris overlay list --json` / `describe_overlay`. Common completion definitions live in
+`journal-balance/` and `inventory-disposal/` of the public `irisbooks/overlays`
+repository. Both require exact selections and Book copies. Neither enables the
+other, and no implicit default is added. Specialist and trusted Book-local
+completions may override matching common IDs; other published collisions fail.
 Selected published or trusted book-local `completions/*.yaml` rules can choose
 native `balance` / `inventory` calls;
 different active results conflict. Untrusted/unavailable selected overlays
@@ -540,20 +934,22 @@ tell the user — their re-post approves the amendment; auto: re-post the
 same session). Sealed years refuse writes — use a correcting/reversing
 entry in the open period.
 
-A book owner can additionally turn on **posting approval** (web app →
-the book's Settings): the flip to `posted` — and any edit, delete, or demote of an
-already-posted entry — then works only from the web app. `iris post`
-refuses locally, and the server rejects agent/PAT writes that touch posted
-entries with `APPROVAL_REQUIRED`. The workflow under approval:
+A book owner can additionally turn on **posting approval** (web app → the book's
+Settings). `iris post` refuses locally; server agent/PAT writes touching posted
+entries fail with `APPROVAL_REQUIRED`. Prepare drafts, sync and direct the user to
+review the exact source in Web. Single/bulk approval sends only `draft → posted`
+against the reviewed source hash, preserving unknown data, quantities, lots,
+comments and body. A changed source requires another review.
 
-- **New entries** — write them as `status: draft`, `iris sync`, then tell
-  the user their approval queue is the web app's Journals list (one-click
-  Post / Post selected). If you already wrote `posted`, set it back to
-  `draft` and re-sync.
-- **Amending a posted entry** — don't edit the file; every sync write to it
-  is refused, demotion included. Ask the user to amend/delete it in the web
-  app, or demote it to a draft there, then `iris sync` and edit the
-  draft.
+Web records are read-only except for that approval. It cannot create, edit, delete,
+restore or demote records. Do not direct users there to correct posted content;
+that correction workflow is currently unavailable while posting approval is enabled.
+
+Cloud accepts bounded config/journal/asset view source data (at most 16 Book views) without
+executing Overlay definitions. All variants receive native checks and share host
+identity, currency, precision and lifecycle status. Sync/clone preserve source bytes.
+The default is an unapproved read preview, including inherited root entries. Human
+posting approves the shared source only. Named-view approved financial reports require exact retained native financial acceptance (see the financial generation contract below). Close requires every declared view accepted and final; SQLite preserves all views separately. Chart/rule variants remain unsupported. Adding declarations or changing the default with existing journal/asset payloads requires a coherent rebuild and is refused.
 
 `closed` is a **derived** display status, never written to frontmatter: any
 journal whose date falls in a sealed fiscal year shows as `closed` — in the
@@ -565,7 +961,324 @@ ready. Promote with `iris post <file>` or by editing the `status:` field;
 `post` also balance-checks, refuses journals dated in a sealed FY, and (if
 the book is cloud-linked) syncs.
 
-### Chart of accounts — `config/chart-of-accounts.yaml`
+#### Update a home-office basis from its effective date
+
+Extend the earlier January rent example with a separately evidenced April
+charge. Keep January's `raw/area.csv`, request, note, bank observations and
+journals unchanged. Its 1/4 basis ends March 31. The newly measured 1/3 basis
+starts April 1 and has its own source path, hash and inclusive effective period:
+
+```csv
+basis_id,effective_from,effective_through,business_units,total_units,rounding
+home-office-april,2026-04-01,2026-12-31,1,3,floor
+```
+
+```csv
+period_from,period_through,supplier,gross_amount,currency
+2026-04-01,2026-04-30,Synthetic landlord,10001,JPY
+```
+
+Save the explicit request as `raw/allocation-april.json` in both Books:
+
+```json
+{
+  "schema_version": 1,
+  "gross_amount": "10001",
+  "currency": "JPY",
+  "scale": 0,
+  "charge_kind": "expense",
+  "period": {
+    "from": "2026-04-01",
+    "through": "2026-04-30"
+  },
+  "source": {
+    "path": "raw/rent-april.csv",
+    "sha": "sha256:b84be0483163d0b181009ef285f5b55d851ff53da0d728b8ba6cc2c9265c2636",
+    "locator": "L2"
+  },
+  "basis": {
+    "id": "home-office-april",
+    "description": "One of three newly measured area units; effective April 1 only",
+    "numerator": 1,
+    "denominator": 3,
+    "period": {
+      "from": "2026-04-01",
+      "through": "2026-12-31"
+    },
+    "rounding": "floor",
+    "evidence": {
+      "path": "raw/area-april.csv",
+      "sha": "sha256:04f1cbc2994f0866b4db28bd52707223dbfa8e6ec41d7e1132ce38a700594d64",
+      "locator": "L2"
+    }
+  }
+}
+```
+
+Run the same pure calculator; it returns gross 10,001, business 3,333,
+private 6,668 and `evidence_verification: unchecked`. Verify the cited source
+bytes and facts separately, and retain the result/input hash in
+`notes/allocation-april.md`. Personal pays the full 10,001 on April 10:
+
+```bash
+iris allocation --input raw/allocation-april.json
+```
+
+`personal/journals/2026-04/2026-04-10-rent.md`:
+
+```yaml
+schema_version: 1
+date: 2026-04-10
+status: posted
+allocation_ref: notes/allocation-april.md
+counterpart_book: allocation-business
+counterpart_journal: journals/2026-04/2026-04-10-rent.md
+lines:
+  - {account: Expenses:Rent, debit: 6668}
+  - {account: Assets:BusinessClearing, debit: 3333}
+  - {account: Assets:Bank, credit: 10001}
+attachments:
+  - {path: raw/rent-april.csv, locator: L2}
+  - {path: raw/area-april.csv, locator: L2}
+  - {path: raw/bank-april.csv, locator: L2}
+```
+
+`business/journals/2026-04/2026-04-10-rent.md`:
+
+```yaml
+schema_version: 1
+date: 2026-04-10
+status: posted
+allocation_ref: notes/allocation-april.md
+counterpart_book: allocation-personal
+counterpart_journal: journals/2026-04/2026-04-10-rent.md
+lines:
+  - {account: Expenses:Rent, debit: 3333}
+  - {account: Liabilities:PersonalClearing, credit: 3333}
+attachments:
+  - {path: raw/rent-april.csv, locator: L2}
+  - {path: raw/area-april.csv, locator: L2}
+  - {path: raw/bank-april.csv, locator: L2}
+```
+
+On April 20 the business Book debits `Liabilities:PersonalClearing` 3,333
+and credits `Assets:Bank` 3,333. The personal Book debits `Assets:Bank` 3,333
+and credits `Assets:BusinessClearing` 3,333. Income/expense does not change on
+reimbursement. Keep the original January 5,000 owner transfer in equity.
+
+| Through April 30, January and April charges only | Business | Personal | Combined |
+| --- | ---: | ---: | ---: |
+| Bank | 9,167 | 90,831 | 99,998 |
+| Rent expense | 5,833 | 14,169 | 20,002 |
+| Income | 0 | 0 | 0 |
+| Clearing balance | 0 | 0 | 0 |
+
+```bash
+iris validate --json /path/to/business
+iris reconcile /path/to/business
+iris report pl --from 2026-01-01 --to 2026-04-30 /path/to/business
+iris validate --json /path/to/personal
+iris reconcile /path/to/personal
+iris report pl --from 2026-01-01 --to 2026-04-30 /path/to/personal
+```
+
+The pure calculator rejects April's basis for January, January's expired basis
+for April, and a whole charge spanning March 15–April 15 under either basis.
+It does not select a latest ratio or invent proration. Obtain separately
+evidenced charge amounts for each period before calculating; the example does
+not establish a deductible percentage, legal expense allocation or tax-return
+mapping. For Japanese income-tax evidence requirements, see
+[NTA No. 2210](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
+(law as of April 1, 2026; checked October 24, 2026). Reversals must retain the original rounded shares. Correcting an old
+source is a separate reviewed correction with its original identity retained.
+
+The checked complete example retains all original January files plus April
+sources and eight observations per Book. Checks bind
+the old bytes, new dated evidence, exact results, full cash movements and
+separate expense totals. A balanced retroactive 1/3 reallocation of January
+keeps bank reconciliation but fails the clearing and expense checks.
+
+## Shared-household advances and refundable deposits
+
+Use separate personal Books for parties who each maintain their own records.
+This synthetic management example assumes unrelated co-tenants Ari and Kei
+jointly own refundable deposit claims of JPY 40,000 and 20,000 under their
+original agreement. Confirm the actual rights, payer and settlement terms first.
+Who paid and who lives together do not establish ownership or a tax treatment.
+For disputed rights or deductions, keep the disputed claim explicit and obtain
+advice before recognizing a final loss. No package automates either Book.
+
+Retain `raw/agreement.csv` in both Books:
+
+```csv
+date,deposit_total,ari_claim,kei_claim,currency
+2026-05-01,60000,40000,20000,JPY
+```
+
+Ari pays the full 60,000 on May 1. Ari retains their own 40,000 deposit asset
+and a 20,000 receivable from Kei. Kei recognizes a 20,000 deposit asset and a
+20,000 payable to Ari. The final posted forms are below; author/review drafts
+and post only under each Book's policy. The `allocation_ref` and reciprocal
+counterpart fields are passive references. They grant no access or write authority.
+
+`ari/journals/2026-05/2026-05-01-deposit.md`:
+
+```yaml
+schema_version: 1
+date: 2026-05-01
+status: posted
+allocation_ref: notes/deposit-settlement.md
+counterpart_book: household-kei
+counterpart_journal: journals/2026-05/2026-05-01-deposit.md
+lines:
+  - {account: Assets:RefundableDeposit, debit: 40000}
+  - {account: Assets:KeiReceivable, debit: 20000}
+  - {account: Assets:Bank, credit: 60000}
+attachments:
+  - {path: raw/agreement.csv, locator: L2}
+  - {path: raw/bank.csv, locator: L3}
+```
+
+`kei/journals/2026-05/2026-05-01-deposit.md`:
+
+```yaml
+schema_version: 1
+date: 2026-05-01
+status: posted
+allocation_ref: notes/deposit-settlement.md
+counterpart_book: household-ari
+counterpart_journal: journals/2026-05/2026-05-01-deposit.md
+lines:
+  - {account: Assets:RefundableDeposit, debit: 20000}
+  - {account: Liabilities:AriPayable, credit: 20000}
+attachments:
+  - {path: raw/agreement.csv, locator: L2}
+  - {path: raw/bank.csv, locator: L3}
+```
+
+Keep each independent bank statement as `raw/bank.csv`. The full payment
+leaves Ari's bank, and Kei's bank changes only on reimbursement and payout.
+
+`ari/raw/bank.csv`:
+
+```csv
+date,description,outflow,inflow,balance
+2026-01-01,Opening,0,0,200000
+2026-05-01,Landlord deposit,60000,0,140000
+2026-05-03,Kei reimbursement,0,20000,160000
+2026-12-28,Landlord refund,0,54000,214000
+2026-12-30,Kei refund payout,18000,0,196000
+```
+
+`kei/raw/bank.csv`:
+
+```csv
+date,description,outflow,inflow,balance
+2026-01-01,Opening,0,0,100000
+2026-05-01,No bank payment,0,0,100000
+2026-05-03,Ari reimbursement,20000,0,80000
+2026-12-28,Refund held by Ari,0,0,80000
+2026-12-30,Ari refund payout,0,18000,98000
+```
+
+On December 28 the settlement confirms an actual 6,000 deduction, with
+4,000/2,000 shares, and a 54,000 refund to Ari. Retain the original settlement,
+including the payer and physical row locator, in both Books:
+
+```csv
+date,original_deposit,actual_deduction,bank_refund,ari_refund,kei_refund,currency
+2026-12-28,60000,6000,54000,36000,18000,JPY
+```
+
+The deposit assets now clear. Only the actual deduction becomes expense.
+Ari owes Kei the remaining 18,000 until the separate December 30 payout.
+
+`ari/journals/2026-12/2026-12-28-refund.md`:
+
+```yaml
+schema_version: 1
+date: 2026-12-28
+status: posted
+allocation_ref: notes/deposit-settlement.md
+counterpart_book: household-kei
+counterpart_journal: journals/2026-12/2026-12-28-refund.md
+lines:
+  - {account: Assets:Bank, debit: 54000}
+  - {account: Expenses:MoveOut, debit: 4000}
+  - {account: Assets:RefundableDeposit, credit: 40000}
+  - {account: Liabilities:KeiPayable, credit: 18000}
+attachments:
+  - {path: raw/settlement.csv, locator: L2}
+  - {path: raw/bank.csv, locator: L5}
+```
+
+`kei/journals/2026-12/2026-12-28-refund.md`:
+
+```yaml
+schema_version: 1
+date: 2026-12-28
+status: posted
+allocation_ref: notes/deposit-settlement.md
+counterpart_book: household-ari
+counterpart_journal: journals/2026-12/2026-12-28-refund.md
+lines:
+  - {account: Assets:AriReceivable, debit: 18000}
+  - {account: Expenses:MoveOut, debit: 2000}
+  - {account: Assets:RefundableDeposit, credit: 20000}
+attachments:
+  - {path: raw/settlement.csv, locator: L2}
+  - {path: raw/bank.csv, locator: L5}
+```
+
+Record the remaining entries explicitly in each Book:
+
+| Date / event | Ari | Kei |
+| --- | --- | --- |
+| January 1 opening | Dr Bank 200,000 / Cr Opening equity 200,000 | Dr Bank 100,000 / Cr Opening equity 100,000 |
+| May 3 reimbursement | Dr Bank 20,000 / Cr KeiReceivable 20,000 | Dr AriPayable 20,000 / Cr Bank 20,000 |
+| December 30 payout | Dr KeiPayable 18,000 / Cr Bank 18,000 | Dr Bank 18,000 / Cr AriReceivable 18,000 |
+
+Use `Assets:Bank`, `Assets:RefundableDeposit` and `Assets:<Name>Receivable` as
+asset accounts, `Liabilities:<Name>Payable` as liability, `Equity:Opening` as
+equity and `Expenses:MoveOut` as expense. `<Name>` is the other person's name.
+Repayments/refunds add no income. Before the actual deduction, the deposit is
+still an asset; treating the initial payment as an expense loses the claim.
+
+| Observation | Ari bank | Kei bank | Deposit assets, combined | Reciprocal debt |
+| --- | ---: | ---: | ---: | ---: |
+| May 2, before reimbursement | 140,000 | 100,000 | 60,000 | 20,000 |
+| May 4, after reimbursement | 160,000 | 80,000 | 60,000 | 0 |
+| December 29, before payout | 214,000 | 80,000 | 0 | 18,000 |
+| December 31, after payout | 196,000 | 98,000 | 0 | 0 |
+
+Reconcile banks, deposit claims and both sides of outstanding debt using dated
+balance assertions with exact source hashes/locators; a successful bank check
+alone does not prove the deposit or income/expense classification. With the
+records and observations in place, run these read-only checks:
+
+```bash
+iris validate --json /path/to/ari
+iris reconcile /path/to/ari
+iris report pl --from 2026-01-01 --to 2026-12-31 /path/to/ari
+iris validate --json /path/to/kei
+iris reconcile /path/to/kei
+iris report pl --from 2026-01-01 --to 2026-12-31 /path/to/kei
+```
+
+Expect income zero in each Book, expense 4,000/2,000, all deposit/clearing
+balances zero, and combined cash 294,000 = opening 300,000 − actual loss 6,000.
+The two-Book totals are a manual management check, not a new consolidation
+command. The complete checked example has five journals and ten evidence-backed
+observations per Book.
+It also checks balanced mistakes: deposit expensing, refund income, a missing
+counterparty bank movement, premature settlement and a repeated payout.
+Real agreements can assign different rights; do not copy these assumptions
+into a sole-tenant, business, disputed or otherwise different arrangement.
+For lease-source review, [MLIT's model lease and explanatory material](https://www.mlit.go.jp/jutakukentiku/house/jutakukentiku_house_tk3_000023.html)
+are a reference (checked October 24, 2026); they do not establish the particular
+joint claims or deduction shares assumed here.
+
+## Chart of accounts — `config/chart-of-accounts.yaml`
 
 ```yaml
 schema_version: 1
@@ -622,10 +1335,11 @@ schedule:                          # optional recorded table; REQUIRED for decli
   - period: 2028-03
     amount: 187500
 schedule_source:                   # written by the recipe that produced the table — never by hand.
-  overlay: jp@2026.09.1            #   validate REPLAYS the recipe with these params and refuses
-  recipe: jp.teiritsu              #   the file if the rows differ. Absent on hand-composed tables.
-  bindings: 1
-  params: {cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
+  overlay: jp-declining-balance@2026.10.1            #   validate REPLAYS the recipe with these params and refuses
+  recipe: jp-declining-balance.teiritsu              #   the file if the rows differ. Absent on hand-composed tables.
+  bindings: 5
+  primitives: {declining_table: 2, flat_table: 2}
+  params: {full_year_confirmed: true, cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
 asset_account: "資産:工具器具備品"
 depreciation_expense_account: "費用:減価償却費"
 accumulated_depreciation_account: "資産:減価償却累計額"
@@ -664,17 +1378,16 @@ engine capability causes a warning and shape-only validation.
 
 A recorded return artifact: the figures a return is filed from, produced by a
 **figures recipe** of the region overlay over the posted journals, with
-provenance. You never write one by hand — run the recipe with `--write`
-(`iris overlay recipe jp.shouhizei-general --set from=… --set to=… --set
-non_invoice_pct=80 --write filings/jp.shouhizei-general.md`, or the
-`jp_shouhizei-general` MCP tool with `write`).
+provenance. You never write one by hand — run the recipe with `--apply --out PATH`
+(`iris overlay recipe jp-tax-filing.shouhizei-general --set from=… --set to=… --set scope_confirmed=true --out filings/jp-tax-filing.shouhizei-general.md`, --apply or the
+`run_recipe(recipe="jp-tax-filing.shouhizei-general", params={...}, apply=true, out="filings/tax.md")`).
 
 ```yaml
 ---
 schema_version: 1
-filing: jp.shouhizei-general
+filing: jp-tax-filing.shouhizei-general
 period: {from: 2026-01-01, to: 2026-12-31}
-source: {overlay: jp@2026.09.1, recipe: jp.shouhizei-general, bindings: 1, params: {from: 2026-01-01, to: 2026-12-31, non_invoice_pct: 80}}
+source: {overlay: jp-tax-filing@2026.10.1, recipe: jp-tax-filing.shouhizei-general, bindings: 5, params: {from: 2026-01-01, to: 2026-12-31, scope_confirmed: true}}
 figures: {sales_10: 11000000, sales_tax_10: 1000000, deductible_tax: 620000, net_tax: 380000, payable: 380000}
 ---
 ```
@@ -687,9 +1400,9 @@ never re-add lines by hand. Filings sync and are sealed with the book.
 
 ### `config/overlays/` — the book's own overlay layer (optional)
 
-The region overlay (rules, recipes, derivations) is published with iris and
-pinned by `overlay:` or `overlays:` in `book.yaml`. A book may add its own layer:
-`overlay.yaml` (`id: book`, `extends: jp@2026.09.1`), `functions.yaml`,
+Published function packages are selected explicitly by `overlay:` or `overlays:`
+in `book.yaml`. A book may add its own layer:
+`overlay.yaml` (`id: book`, `extends: jp-tax-classification@2026.10.1`), `functions.yaml`,
 `rules/*.yaml`, `recipes/*.yaml`, `derive/*.yaml`, `completions/*.yaml`,
 `tests/*.yaml`, and optional
 `fields.yaml`. Published packages can also supply `guides/*.md`. Expressions
@@ -700,7 +1413,7 @@ contract: **run a published recipe if one exists; else compose the primitives;
 else write a recipe under `config/overlays/recipes/`, add a golden case under
 `tests/`, and run `iris overlay test`** before using it. A book-layer recipe
 records `book:<hash>` as its source. Only the book's Owner may change these
-files, and the server applies book-layer rules to every member's writes. When
+files. Local clients execute the trusted layer; the cloud stores it without evaluation. When
 you meet a book whose layer this machine has not trusted, `iris validate` says
 so and ignores the layer until the user runs `iris overlay trust` — do not run
 `trust` on the user's behalf without showing them the files. **Treat
@@ -726,6 +1439,678 @@ parsed_at: 2026-05-11
 counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 ---
 
+## Fund units, partial sales and dated valuation
+
+This complete synthetic management Book buys 100,000 whole fund units for
+JPY 100,000, sells 20,000 for JPY 26,000, and retains 80,000 units with known
+cost JPY 80,000. Use a fresh sample folder. All bank, broker and price evidence
+below is fictional; the example chooses no tax regime, fund or investment.
+
+Save `config/book.yaml` and `config/chart-of-accounts.yaml` as follows. Quantity
+scale is the fractional precision of one whole fund unit; it is independent of
+a quotation per 10,000 units. This example explicitly selects the generic
+`moving-average` management method. With one acquisition, the supported generic
+methods give the same cost; this does not establish a statutory tax method.
+
+```yaml
+schema_version: 1
+book_id: fund-2026
+name: Synthetic fund management example
+region: JP
+language: en
+currency: JPY
+fiscal_year: 2026
+fiscal_start_month: 1
+overlays: []
+units:
+  - {symbol: SYNTHFUND, name: Synthetic fund (one whole unit), scale: 0}
+inventory:
+  params: {method: moving-average, gain_account: Income:FundGain}
+```
+
+```yaml
+schema_version: 1
+accounts:
+  - {path: Assets:Bank, type: asset}
+  - {path: Assets:Fund, type: asset}
+  - {path: Equity:Opening, type: equity}
+  - {path: Income:FundGain, type: income}
+```
+
+Save the opening, purchase and sale frontmatter in the named Markdown files,
+inside `---` delimiters. These blocks show the fixture's final posted state.
+For real work, author/review drafts and post under the Book's policy. Posting can
+normalize YAML quoting; quantities, amounts, evidence, extra fields and body
+must survive. A linked Book's posting command can also sync it.
+
+`journals/2026-01/2026-01-01-opening.md`:
+
+```yaml
+schema_version: 1
+date: 2026-01-01
+status: posted
+tags: [opening-balance]
+lines:
+  - {account: Assets:Bank, debit: 1000000}
+  - {account: Equity:Opening, credit: 1000000}
+attachments:
+  - {path: raw/bank.csv, locator: L2}
+```
+
+`journals/2026-06/2026-06-01-fund-purchase.md`:
+
+```yaml
+schema_version: 1
+date: 2026-06-01
+status: posted
+payee: Synthetic broker
+lines:
+  - {account: Assets:Fund, debit: 100000, quantity: 100000, unit: SYNTHFUND}
+  - {account: Assets:Bank, credit: 100000}
+attachments:
+  - {path: raw/trades.csv, locator: L2}
+  - {path: raw/bank.csv, locator: L3}
+```
+
+`journals/2026-08/2026-08-01-fund-sale.md`:
+
+```yaml
+schema_version: 1
+date: 2026-08-01
+status: posted
+payee: Synthetic broker
+lines:
+  - {account: Assets:Bank, debit: 26000}
+  - {account: Assets:Fund, credit: 20000, quantity: 20000, unit: SYNTHFUND}
+  - {account: Income:FundGain, credit: 6000}
+attachments:
+  - {path: raw/trades.csv, locator: L3}
+  - {path: raw/bank.csv, locator: L5}
+```
+
+Retain the independent synthetic evidence. The sale statement supplies the
+JPY 20,000 disposed cost and JPY 6,000 gain; the bank receives the full JPY 26,000.
+The example has no fees, taxes withheld, FX, distributions or corporate actions.
+
+`raw/trades.csv`:
+
+```csv
+id,date,side,units,cash_jpy,disposed_cost_jpy,realized_gain_jpy
+BUY-1,2026-06-01,buy,100000,100000,0,0
+SELL-1,2026-08-01,sell,20000,26000,20000,6000
+```
+
+`raw/bank.csv`:
+
+```csv
+date,balance_jpy
+2026-01-01,1000000
+2026-06-01,900000
+2026-06-30,900000
+2026-08-01,926000
+2026-08-31,926000
+```
+
+`raw/holdings.csv`:
+
+```csv
+date,unit,units,carrying_cost_jpy
+2026-06-30,SYNTHFUND,100000,100000
+2026-08-31,SYNTHFUND,80000,80000
+```
+
+`raw/nav.csv`:
+
+```csv
+date,unit,quoted_nav_jpy,quoted_units
+2026-06-30,SYNTHFUND,12345,10000
+2026-08-31,SYNTHFUND,15000,10000
+```
+
+The quote is per 10,000 units. JPY 12,345 / 10,000 is **JPY 1.2345 per whole
+unit**, and JPY 15,000 / 10,000 is JPY 1.5. Price capture accepts up to six
+fractional digits; `valueMicro` is the per-unit price multiplied by 1,000,000,
+so these observations are 1,234,500 and 1,500,000. Preserve the actual 100,000 /
+80,000 holdings quantities. The quotation denominator is not a quantity scale
+or a reason to shrink the units recorded in a journal.
+
+For this synthetic exercise, select a token-file path in a new empty temporary
+directory before capturing prices. Keep that selection for every command so
+the sample uses an isolated user price log. Within the sample Book:
+
+```bash
+export IRISBOOKS_TOKEN_FILE="$(mktemp -d)/token.json"
+iris price add --unit SYNTHFUND --currency JPY --date 2026-06-30 --price 1.2345 --source "Synthetic raw/nav.csv L2"
+iris price add --unit SYNTHFUND --currency JPY --date 2026-08-31 --price 1.5 --source "Synthetic raw/nav.csv L3"
+iris price list --unit SYNTHFUND --currency JPY --year 2026 --json
+iris networth --as-of 2026-07-31 .
+iris networth --as-of 2026-08-31 .
+```
+
+A price is user-scoped, outside the Book. Recording it neither registers the
+unit nor creates a holding, posts a journal or changes its cost. Local CLI and
+local MCP `get_networth` use pending local prices immediately. Single-book MCP
+uses `books: ["."]`; parent mode uses the selected child folder. Both require
+explicit local folders and read posted entries.
+
+Check independent quantities and cash before relying on valuation. Save the
+following as `config/balance-assertions.yaml`; its hashes bind the exact CSV
+bytes above and its `L` locators identify physical lines including the header.
+
+```yaml
+schema_version: 1
+assertions:
+  - id: bank-june
+    date: 2026-06-30
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 900000
+    evidence: {path: raw/bank.csv, sha: sha256:5668d77fe567be6f02992a4f7a6074acc1f51826e93ecbc2e634b3b9fba6aad9, locator: L4}
+  - id: units-june
+    date: 2026-06-30
+    account: Assets:Fund
+    measure: quantity
+    unit: SYNTHFUND
+    scope: posted
+    expected: 100000
+    evidence: {path: raw/holdings.csv, sha: sha256:c46a0507db7a04982d2724d1aacb0127b28df3c66a79f36ac24ca98c5a0d37c7, locator: L2}
+  - id: cost-june
+    date: 2026-06-30
+    account: Assets:Fund
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 100000
+    evidence: {path: raw/holdings.csv, sha: sha256:c46a0507db7a04982d2724d1aacb0127b28df3c66a79f36ac24ca98c5a0d37c7, locator: L2}
+  - id: bank-august
+    date: 2026-08-31
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 926000
+    evidence: {path: raw/bank.csv, sha: sha256:5668d77fe567be6f02992a4f7a6074acc1f51826e93ecbc2e634b3b9fba6aad9, locator: L6}
+  - id: units-august
+    date: 2026-08-31
+    account: Assets:Fund
+    measure: quantity
+    unit: SYNTHFUND
+    scope: posted
+    expected: 80000
+    evidence: {path: raw/holdings.csv, sha: sha256:c46a0507db7a04982d2724d1aacb0127b28df3c66a79f36ac24ca98c5a0d37c7, locator: L3}
+  - id: cost-august
+    date: 2026-08-31
+    account: Assets:Fund
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 80000
+    evidence: {path: raw/holdings.csv, sha: sha256:c46a0507db7a04982d2724d1aacb0127b28df3c66a79f36ac24ca98c5a0d37c7, locator: L3}
+```
+
+```bash
+iris validate
+iris reconcile
+iris report pl --mode comparison --from 2026-01-01 --to 2026-08-31
+```
+
+Expected results:
+
+| As of | Cash | Whole units | Remaining acquisition/carrying cost | Selected price date | Fund market value | Total worth |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| 2026-07-31 | 900,000 | 100,000 | 100,000 | 2026-06-30 | 123,450 | 1,023,450 |
+| 2026-08-31 | 926,000 | 80,000 | 80,000 | 2026-08-31 | 120,000 | 1,046,000 |
+
+This Book selects inventory calculation, so local P&L uses `--mode comparison`
+and is explicitly unapproved. Retained financial acceptance is not implemented;
+the default approved local report refuses this calculated inventory selection.
+
+The posted P&L contains income/net JPY 6,000 and no expense. Book net assets
+are JPY 1,006,000. The remaining JPY 40,000 market uplift is management valuation,
+not another posted income. July uses June's price and excludes the future August
+observation. `asOf` is the valuation date; `priceDate` identifies the observation
+actually used, which may be old.
+
+These three omissions have different results:
+
+| Missing fact | Result and remedy |
+| --- | --- |
+| Market price | Known 80,000 units and cost remain. August worth falls back to JPY 1,006,000, with `SYNTHFUND` marked `unpriced`; record a dated per-unit price. |
+| Quantity/unit on trade lines | A price cannot recover units. The money-only ledger can stay balanced and cash can reconcile while quantity assertions fail; restore quantities from the broker statement. |
+| Proven opening acquisition basis | A standalone opening can carry known units and book value while acquisition cost remains unknown. Market valuation can still work; retain verified opening inventory rather than inferring tax cost from a current quote. |
+
+The checked `iris yearend --local --to ../fund-2027` workflow carries 80,000
+units and the separately proven JPY 80,000 acquisition basis. Prices remain in
+the user store; carrying an old observation into January does not make it a
+new market observation.
+
+With actual records and sync authority, Book sync publishes journals/units and
+`iris price sync` reconciles the separate user price log. Price sync does not
+regenerate a report. A successful price acknowledgement also does not prove
+that the Book's sync was accepted.
+
+| Surface | Inputs and freshness |
+| --- | --- |
+| Local CLI / local MCP | Current posted local files plus effective local prices, including pending captures; reruns reread them. |
+| Single-book `iris api networth --book-id …` | Accepted cloud projections and the caller's accepted prices; excludes unsynced local inputs. |
+| Web Net Worth / remote MCP | A frozen analytics generation. Check generation/snapshot `generatedAt`, selected source revisions and each `priceDate`; a price correction can wait for automatic daily generation or an authorized Web refresh. The previous successful report can remain visible during regeneration. |
+
+The SQL fixture checks that correcting the August price to JPY 1.6 leaves the
+old JPY 1,046,000 report intact until a new generation is built. The refreshed
+value is JPY 1,054,000, with the same quantities and acquisition costs.
+
+**Tax/regime references, checked 2026-10-24:** the fund manager's
+[NAV explanation](https://direct.smd-am.co.jp/learn/guide/price/) demonstrates a
+per-10,000 quotation. [NTA No.1464](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1464.htm)
+(law reference date 2026-04-01) describes acquisition costs and the method for
+repeated purchases; a generic FIFO or moving-average label is not a Japanese
+tax determination. For an actual NISA account, confirm the broker's account
+classification, the [FSA NISA rules](https://www.fsa.go.jp/policy/nisa2/know/index.html)
+and [current eligible-product references](https://www.fsa.go.jp/policy/nisa2/products/).
+A unit symbol, a note saying NISA or a successful validation does not establish
+eligibility. Tax-return mapping and automatic product/regime classification
+remain outside this management example.
+
+## Balance observations and reconciliation
+
+Use optional `config/balance-assertions.yaml` for evidence-backed account/date
+observations, then `iris reconcile` or local MCP `reconcile` (single/parent) to
+check them. `iris validate` also reports failures, without requiring a package.
+This is read-only; never invent an adjusting entry to force a match.
+
+```yaml
+schema_version: 1
+assertions:
+  - id: bank-jan31
+    date: 2026-01-31
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 990
+    evidence:
+      path: raw/statement.csv
+      sha: sha256:47413ca394cff9cf18438ee55b45076994c84426b511e06fe5daafc3d05847bd
+      locator: line 2 closing_balance
+```
+
+This example's raw CSV is:
+
+```csv
+date,description,closing_balance
+2026-01-31,Month end,990
+```
+
+A posted ¥1,000 opening and ¥10 payment reconcile to ¥990. A mistaken balanced ¥20 payment produces actual ¥980,
+expected ¥990 and difference −¥10. For user files, obtain the actual source hash
+with `iris hash` and use a real physical locator, not the example hash.
+
+Accounts are exact canonical chart paths, not subtrees. Normal chart direction is
+debit-positive for assets/expenses, credit-positive for liabilities/equity/income.
+`amount` uses Book currency/scale; `quantity` uses the exact named unit/precision
+and debit/credit direction, without prices or invented missing quantities. Dates
+are inclusive inside the Book FY, with its recorded opening; included other-year
+journals fail. Default `posted` excludes drafts; explicit `posted-and-drafts` is
+an unapproved planning check. Expectations are natural decimal text/numbers at
+the required precision, with no exponent or rounding. Actual/expected/difference
+and their integer minor values are returned as exact strings.
+
+Require evidence path, canonical hash and locator. Missing/changed evidence is
+unverified even if numbers agree; matching hashes establish identity, not bank
+authenticity or correct observation transcription. The input revision binds
+captured config/chart/assertions/journals/evidence, not a cloud acceptance. Limits
+are 256 observations, 10,000 journals, 1,000,000 lines, 16 MiB/evidence file and
+128 MiB captured input. Empty observations check none. Sync/clone preserve source
+and config seals protect it; rollover does not copy prior-year observations.
+Storage alone does not evaluate observations. Cloud close previews run this same
+native checker on a consistent accepted-source snapshot, and close rejects failed
+observations. Preparation captures the Book revision; finalization rechecks that
+revision and current Owner access, so edits to evidence or records require another
+preparation. No Overlay compilation/replay or S3-latest fallback runs. Missing/stale
+source mirrors require a server projection rebuild. Native check results establish
+record/evidence identity and numeric agreement, not bank authenticity or correct
+transcription. Local unsynced changes are outside the cloud scope. Financial ZIPs
+do not automatically carry raw evidence; absent evidence stays unverified. Cloud close reconciles each accepted native view separately; local root-only reconciliation still refuses unresolved views.
+
+## Native financial generation acceptance
+
+Prepare a named view without writing, review the JSON statements and generation identity, then retain that exact generation:
+
+```sh
+iris financial prepare --view management ./my-book
+iris financial prepare --view management --apply --revision GENERATION_ID ./my-book
+iris financial accept --generation GENERATION_ID ./my-book
+iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
+```
+
+`prepare` defaults to the declared default view. A generation retains original source bytes, typed raw-evidence hashes, selected entries and native engine/state under `calculations/financial/`. Acceptance binds its exact identity; posting source journals is separate. Sources are never rewritten. Source membership, content, view definitions and evidence changes invalidate current acceptance. Historical generations remain available for native replay.
+
+When human posting approval is enabled, retain and sync the draft, then use **Book settings → Accounting view acceptance** in Web. Only a current Owner/Bookkeeper browser session can accept there. Local acceptance records a local action, not an authenticated reviewer identity. Local MCP offers `preview_financial_ledger`, `retain_financial_ledger` (reviewed `revision`) and `accept_financial_ledger` (`generation`); parent mode also requires `book`.
+
+Local/cloud approved reports select one accepted view; comparison composition remains local and unapproved. Report exports include view, generation, horizon and unfinished-source scope. Net Worth/analytics use each Book's accepted default. Close requires every declared view final at one source revision and pins accepted cloud versions; SQLite schema 2 stores each view and its original generation separately, with default figures in ordinary tables. Reopening permits corrections; it does not alter an existing archive.
+
+This contract runs fixed native inventory/current-year depreciation calculations. It does not evaluate regional Overlay recipes or establish filing eligibility. Selected-view opening replay/rollover, exceptional operations, periodic allocation and chart/rule variants remain unsupported. Complete capture is bounded to 1,024 source/reference paths, 512 KiB source text, 64 assets, 8,192 selected lines, 16 MiB per evidence file/128 MiB total evidence and a 1 MiB generation. History is bounded to 1,024 generations/64 MiB. Exceeding a bound refuses complete acceptance; inputs are never truncated.
+
+## Business/private expense allocation
+
+Use `iris allocation` to split a documented gross expense charge by an explicit
+business fraction. It returns exact amounts without changing files or posting
+entries. Confirm the basis and treatment first; an account name cannot establish
+a business percentage. The [NTA's necessary-expense guidance](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
+requires records distinguishing the business portion of household-related costs.
+The 1/4 fraction below is a synthetic owner-reviewed example, not a recommended rate.
+
+Save this request as `raw/allocation-jan.json`:
+
+```json
+{
+  "schema_version": 1,
+  "gross_amount": "10001",
+  "currency": "JPY",
+  "scale": 0,
+  "charge_kind": "expense",
+  "period": {
+    "from": "2026-01-01",
+    "through": "2026-01-31"
+  },
+  "source": {
+    "path": "raw/rent.csv",
+    "sha": "sha256:e5a22bf56e640afc4880a0ef16dd353c3c56ead85111cd715d9b21dbe3652454",
+    "locator": "L2"
+  },
+  "basis": {
+    "id": "home-office-q1",
+    "description": "One of four measured area units; synthetic owner-reviewed example",
+    "numerator": 1,
+    "denominator": 4,
+    "period": {
+      "from": "2026-01-01",
+      "through": "2026-03-31"
+    },
+    "rounding": "floor",
+    "evidence": {
+      "path": "raw/area.csv",
+      "sha": "sha256:b6303be8397f238136d4d6c925a41b20f5ffe70c0e737aeb3fb006876dc635de",
+      "locator": "L2"
+    }
+  }
+}
+```
+
+The source hashes refer to these exact synthetic CSV bytes, including their final
+newlines. `L2` means physical line 2. Both source files stay in `raw/`:
+
+`raw/rent.csv`:
+
+```csv
+period_from,period_through,description,gross_amount,currency
+2026-01-01,2026-01-31,January rent,10001,JPY
+```
+
+`raw/area.csv`:
+
+```csv
+id,effective_from,effective_through,business_area_units,total_area_units,rounding
+home-office-q1,2026-01-01,2026-03-31,1,4,floor
+```
+
+```bash
+iris allocation --schema
+iris allocation --input raw/allocation-jan.json
+```
+
+The result is gross `10001`, business `2500`, private `7501` JPY. Amounts and minor
+units are exact strings. `evidence_verification: unchecked` means the calculator
+has not opened the evidence files; review those sources separately. Retain the
+request, calculation version, input hash and result in your Book's notes.
+`input_sha` hashes the parsed request in canonical field order; formatting changes
+preserve it.
+
+All dates are inclusive. The whole charge period must fit inside one basis
+period; a mid-period change needs an explicit source split first. Supply scale,
+fraction and rounding: `floor` drops the business fraction of one minor unit,
+`half_up` rounds a half up, and `ceil` rounds a nonzero fraction up. The private
+share is always the exact remainder. Never independently round both shares or
+allocate an already allocated amount again. The denominator is 1..1,000,000,000;
+the numerator is 0..denominator. There is no default rate or rounding.
+
+For two management Books owned by the same person, the paying personal Book can
+record the following, using the Book's actual chart paths:
+
+```yaml
+schema_version: 1
+date: 2026-01-10
+status: posted
+allocation_ref: notes/allocation-january.md
+counterpart_book: allocation-business
+counterpart_journal: journals/2026-01/2026-01-10-rent.md
+lines:
+  - {account: Expenses:Rent, debit: 7501}
+  - {account: Assets:BusinessClearing, debit: 2500}
+  - {account: Assets:Bank, credit: 10001}
+attachments:
+  - {path: raw/rent.csv, type: receipt, locator: L2}
+  - {path: raw/bank.csv, locator: L3}
+  - {path: raw/area.csv, locator: L2}
+```
+
+The business Book records the matching expense and clearing liability:
+
+```yaml
+schema_version: 1
+date: 2026-01-10
+status: posted
+allocation_ref: notes/allocation-january.md
+counterpart_book: allocation-personal
+counterpart_journal: journals/2026-01/2026-01-10-rent.md
+lines:
+  - {account: Expenses:Rent, debit: 2500}
+  - {account: Liabilities:PersonalClearing, credit: 2500}
+attachments:
+  - {path: raw/rent.csv, type: receipt, locator: L2}
+  - {path: raw/area.csv, locator: L2}
+```
+
+Use the actual `book_id` values for the example's counterpart Book IDs.
+These `counterpart_*` and `allocation_ref` fields are retained reference data;
+they do not trigger cross-Book writes or posting. The full paying-bank movement
+is **JPY 10,001**. When the business bank later pays JPY 2,500, debit its clearing
+liability and credit its bank; in the personal Book debit the bank and credit
+the receivable. This settlement adds no income or expense in this example.
+A separate JPY 5,000 owner transfer uses equity/owner-transfer accounts in both
+Books. Map accounts explicitly; analytical clearing is not a determination of
+legal debts, related-party tax treatment or corporate accounting.
+
+With personal/business opening banks of JPY 100,000/20,000, the complete checked
+example ends at JPY 97,499/12,500 after settlement and that owner transfer. Both
+clearing balances are zero. Consolidated expense is JPY 10,001 and income zero;
+check those totals separately, since a duplicated expense and reimbursement
+misclassified as income can leave net profit apparently correct. Use
+`iris reconcile` for each Book's independently evidenced bank/clearing observations.
+
+For `charge_kind: depreciation`, supply an already calculated **gross schedule
+charge**. Keep the acquisition payment, original acquisition cost, method and
+schedule book values intact. This calculator does not choose a depreciation
+regime, allocate acquisition cost, decide asset ownership or automate mixed-use
+asset posting. The existing asset task retains that limit. A full reversal
+reverses the original recorded shares; partial refunds need a separate explicit
+treatment. Neither tax eligibility nor posting/sync authority follows from a
+successful calculation.
+
+### Mixed-use equipment with a full acquisition basis
+
+This checked manual pattern keeps one complete physical asset in the owner's
+business management Book. The personal Book records its private-use expense;
+it does not duplicate the asset. The method, 48-month life, JPY 1 residual and
+3/5 use fraction are explicit assumptions for this example. They do not establish
+tax eligibility, a statutory life, an allowed tax method or corporate treatment.
+
+The business bank pays **JPY 240,049 in full**. Record debit `Assets:Equipment`
+240,049 and credit `Assets:Bank` 240,049, with the original purchase reference.
+Keep the original asset cost; do not replace it with the business fraction.
+The example's asset frontmatter is:
+
+```yaml
+schema_version: 1
+name: Shared equipment
+category: equipment
+acquisition_date: 2026-05-01
+acquisition_cost: 240049
+salvage_value: 1
+useful_life_months: 48
+method: straight_line
+asset_account: Assets:Equipment
+depreciation_expense_account: Expenses:Depreciation
+accumulated_depreciation_account: Assets:AccumulatedDepreciation
+acquisition_journal: '[[2026-05-01-equipment]]'
+```
+
+Read the native gross schedule and choose one posting cadence:
+
+```bash
+iris asset schedule --year 2026
+iris export assets --year 2026 --out raw/assets-2026.csv
+iris asset depreciate --year 2026
+```
+
+The engine calculates eight May–December charges of JPY 5,001: gross depreciation
+JPY 40,008 and closing carrying value JPY 200,041. `depreciate` writes a draft,
+not a posted journal. Review it under the Book's authority before posting.
+Its gross debit to depreciation expense and credit to accumulated depreciation
+must remain exactly once. Reruns preserve existing proposals; monthly and annual
+cadences cannot be mixed. A known sealed year, another active writer or a year
+outside this Book refuses new proposals. A missing seal mirror is not a live
+cloud-state check.
+
+For the worked example, `raw/gross-depreciation.csv` is a retained compact snapshot
+of those native figures and the asset source hash. It is generated calculation
+support, not an original supplier or bank statement. Tests compare its figures
+with the actual engine and native export. `raw/use.csv` holds the assumed use
+basis. These exact synthetic bytes match the request's hashes:
+
+`raw/gross-depreciation.csv`:
+
+```csv
+period_from,period_through,gross_depreciation,closing_book_value,asset_sha
+2026-05-01,2026-12-31,40008,200041,sha256:b0b0c527112dd0b042442edc23fb30bd0485969cc5fa97cf7ae7b5b62a4be4c9
+```
+
+`raw/use.csv`:
+
+```csv
+id,effective_from,effective_through,business_use_units,total_use_units,rounding
+equipment-2026,2026-05-01,2026-12-31,3,5,floor
+```
+
+Save the request as `raw/allocation-depreciation.json` and calculate the split:
+
+```json
+{
+  "schema_version": 1,
+  "gross_amount": "40008",
+  "currency": "JPY",
+  "scale": 0,
+  "charge_kind": "depreciation",
+  "period": {
+    "from": "2026-05-01",
+    "through": "2026-12-31"
+  },
+  "source": {
+    "path": "raw/gross-depreciation.csv",
+    "sha": "sha256:bb3d3bea2f8047617501c95b6328d76f2c98a5c29e9c0d389c9bf8cf2716172f",
+    "locator": "L2"
+  },
+  "basis": {
+    "id": "equipment-2026",
+    "description": "Three of five recorded use units; synthetic owner-reviewed annual charge",
+    "numerator": 3,
+    "denominator": 5,
+    "period": {
+      "from": "2026-05-01",
+      "through": "2026-12-31"
+    },
+    "rounding": "floor",
+    "evidence": {
+      "path": "raw/use.csv",
+      "sha": "sha256:69bf6934a2e83cf7712fb7fc2d5afd90aad2809232f99b52c3502a5a10729c3a",
+      "locator": "L2"
+    }
+  }
+}
+```
+
+```bash
+iris allocation --input raw/allocation-depreciation.json
+```
+
+The result is business `24004`, private `16004` JPY. This is **one annual rounding
+operation**. Allocating and flooring each JPY 5,001 monthly charge would instead
+give JPY 24,000 business expense. Record the chosen charge grain and keep it
+consistent; never silently substitute monthly rounding for the annual choice.
+A basis change inside the charge period requires an explicit split first.
+
+After keeping the gross depreciation once, author this separate reclassification
+in the business Book, using the actual account paths and counterpart Book ID:
+
+```yaml
+schema_version: 1
+date: 2026-12-31
+status: posted
+tags: [private-use-reclassification]
+allocation_ref: notes/equipment-allocation.md
+source_journal: journals/2026-12/auto/dep-annual-equipment.md
+counterpart_book: equipment-personal
+counterpart_journal: journals/2026-12/2026-12-31-equipment-use.md
+lines:
+  - {account: Equity:OwnerDrawings, debit: 16004}
+  - {account: Expenses:Depreciation, credit: 16004}
+attachments:
+  - {path: raw/gross-depreciation.csv, locator: L2}
+  - {path: raw/use.csv, locator: L2}
+```
+
+The personal management Book records the matching private expense/equity entry:
+
+```yaml
+schema_version: 1
+date: 2026-12-31
+status: posted
+allocation_ref: notes/equipment-allocation.md
+counterpart_book: equipment-business
+counterpart_journal: journals/2026-12/2026-12-31-private-use.md
+lines:
+  - {account: Expenses:EquipmentUse, debit: 16004}
+  - {account: Equity:BusinessUseContribution, credit: 16004}
+attachments:
+  - {path: raw/gross-depreciation.csv, locator: L2}
+  - {path: raw/use.csv, locator: L2}
+```
+
+Both entries above show the fixture's final posted form. Author/review drafts and
+post only under the Book's policy. These references are passive data; the
+calculator creates no entries and writes neither Book. No bank moves for this
+private-use recognition, and accumulated depreciation is not credited again.
+
+The checked closing figures are:
+
+| Figure | Business | Personal | Combined |
+| --- | ---: | ---: | ---: |
+| Bank | 259,951 | 100,000 | 359,951 |
+| Expense | 24,004 | 16,004 | 40,008 |
+| Income | 0 | 0 | 0 |
+| Net assets | 459,992 | 100,000 | 559,992 |
+
+The business asset remains gross cost 240,049 less accumulated depreciation
+40,008 = carrying value 200,041. Check original basis, bank, asset balances and
+separate/consolidated income and expense totals. Structural validation and bank
+reconciliation alone can still pass if the purchase is expensed again or the
+private reclassification is repeated; the complete fixture's controls reject
+those mistakes. Retain the request, result and references, review the ledger,
+and run `iris validate` / `iris reconcile` before authorized sync. Tax-return
+mapping and automatic mixed-use asset posting remain unsupported.
+
 ## Rows
 | id | date       | description | amount | status    | target / reason                          |
 |----|------------|-------------|--------|-----------|------------------------------------------|
@@ -737,7 +2122,7 @@ counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 A journal points at its evidence via `attachments`; the link walks both ways:
 
 - From a journal: which documents it cites.
-- From a document: which journals cite it — `iris show <path>` on the CLI, the
+- From a document: which journals cite it — `iris references <path>` on the CLI, the
   **Cited by** panel in the web app's Raw documents browser.
 
 This two-way link is the book's journal ↔ evidence audit trail: from any entry
@@ -748,7 +2133,9 @@ or disappears, fix the pointing side.
 
 ### Checking and updating the binary
 
-At setup or when a command/tool is missing, run `iris update --check --json`
+Before proposing installation, run `iris version` and reuse an available CLI.
+An existing local MCP connection has its own executable; use `check_update` to
+identify it. At setup or when a command/tool is missing, run `iris update --check --json`
 or call the local MCP `check_update` tool. These are explicit network checks
 with no sign-in, install, or book changes. Read `status` and `updateAvailable`;
 a failed check or development/prerelease build has null availability, never
@@ -823,8 +2210,10 @@ The parent itself is never initialized, existing files are never overwritten,
 and new books are discovered without a restart. Read the selected book's
 `AGENTS.md` before editing. Host paths may differ from Cowork's mounted paths.
 Use `list_recipes(book=...)` for that book's current recipe schemas and
-`run_recipe(book=..., recipe=..., params={...})` to execute them; `write`, when
-needed, belongs inside `params`. `--book PATH` retains the single-book tools.
+`run_recipe(book=..., recipe=..., params={...})` to preview. To record reviewed
+results, add top-level `apply=true` and `out`; `out` alone still previews.
+Use the canonical CLI recipe ID returned by `list_recipes`. Single-book mode
+(`--book-path PATH`) exposes the same interface without `book`.
 
 For a new cloud mirror of an existing local book, reuse a verified host sign-in;
 otherwise use `login → user approves in the host browser → auth_status`. Then
@@ -868,17 +2257,19 @@ folders, root symlinks, archived cloud books and any existing `<book>.partial`
 staging entry (including symlinks). It exposes no force option and is
 available only with `--books-dir`, not against a launch-pinned single book.
 
-Local MCP has no `show` tool. Use filesystem searches to inspect document/journal
-references; the CLI `iris show` command remains available.
+Use filesystem searches to inspect document/journal
+references; the CLI `iris references` command remains available.
+
+Unknown tool fields and incorrect types fail before execution. Use `seal(period="2026", dry_run=true)` to inspect closing; omitted/false executes closing.
 
 Bookkeeping tools: `search_journals` (date, amount, payee, status, account and tag
 filters), `post` (`paths` or `all`,
-with `dry_run=true` to preview), `list_conflicts`, `resolve_conflict`
-(`path`, `keep="mine"|"cloud"`), `list_attention`, `retry_attention` (optional
+with `dry_run=true` to preview and `local=true` to skip sync/login; default linked-book posting syncs the whole book, including unrelated pending changes), `list_conflicts`, `resolve_conflict`
+(`path`, `keep="mine"|"cloud"`), `list_sync_issues`, `retry_sync_issues` (optional
 `path`) and `export_local` (`kind="journals"|"assets"`, optional `year`,
 `as_of` for journals and `out_dir`, default `exports/`). Exports stay inside
 the selected book. Keeping mine during conflict resolution immediately syncs;
-keeping cloud removes the sidecar. Retrying attention clears rejections for
+keeping cloud removes the sidecar. `list_conflicts` returns JSON `{conflicts: [{path, local}]}`; `list_sync_issues` returns JSON `{records: [...]}`. Retrying sync issues clears rejections for
 the next explicit `sync`.
 
 Lifecycle tools: `asset_depreciate` (`month` or `year`, creates drafts without
@@ -886,8 +2277,8 @@ posting), `fiscal_years`, `history` (optional `path`, `from`, `to`, `limit`,
 `all`) and `reopen` (`year`, server-enforced owner access). The latter three
 require a linked book and sign-in. Parent mode additionally offers
 `yearend(book="freelance-2025", next_book="freelance-2026")`: it previews the
-opening entry, journal moves and cloud actions by default. Use `preview=false`
-to execute, or `local_only=true` to skip cloud creation/sync. It may move
+opening entry, journal moves and cloud actions by default. Use `dry_run=false`
+to execute, or `local=true` to skip cloud creation/sync. It may move
 journals, copy grants and transfer the inbound address; it does not seal the
 old year. `next_book` is an immediate child folder, with the same confinement
 rules as book creation. `link_existing="<id>"` selects an untouched next-year
@@ -902,7 +2293,7 @@ It accepts `as_of`, `currency`, and `mode="current"|"history"|"movers"`
 (with `months` for history or `compare` for movers). It uses the local price
 log; mixed currencies require `currency`. A single-book server can select only
 folders inside its pinned book; use parent mode for sibling books. `list_prices`
-defaults to cloud, or accepts `source="local"` for the offline log.
+defaults to the local offline log, matching `iris price list`; use `source="cloud"` for the authenticated cloud mirror.
 `record_price(unit="USD", currency="JPY", price="155.123456", date="2026-10-06")`
 records an observation locally; price must be a decimal string with at most
 six fractional digits. `sync_prices` publishes it and pulls other-device
@@ -912,7 +2303,7 @@ need no local `book` selector; local valuation requires book folders.
 
 Cloud `list_prices` accepts `unit`, `currency`, `year`, `limit` and `cursor`,
 and returns one page; follow `nextCursor` with the same filters. Local reads
-flag known conflicts and return the effective report price. Use `price_conflicts`
+flag known conflicts and return the effective report price. Use `list_price_conflicts`
 to inspect both candidates, and `resolve_price_conflict(unit, currency, date,
 choose="local"|"server", revision, edit)` only with the user's explicit choice
 and the displayed identifiers. Resolution is local; sync afterward to publish a
@@ -948,7 +2339,7 @@ iris balance                                     # trial balance today (posted o
 iris report pl --from 2026-04-01 --to 2026-06-30
 iris report bs --as-of 2026-06-30
 iris search --payee amazon --from 2026-04-01     # find entries
-iris show raw/2026-05-invoice.pdf                # what cites this document
+iris references raw/2026-05-invoice.pdf                # what cites this document
 ```
 
 Dates you leave out default to the book's fiscal year (`fiscal_year` — a
@@ -1005,7 +2396,7 @@ price list --json  [ { unit, currency, date, valueMicro, source?,
 Reports are always JSON (no flag needed) and share one row type:
 
 ```text
-Balance = { account, debits, credits, type?, net? }
+Balance = { account, debits, credits, type?, net }
 
 report tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
 report pl      { from?, to?, income[Balance], expenses[Balance],
@@ -1024,12 +2415,17 @@ report sum     { groupBy[], from?, to?,
 Cloud reads return:
 
 ```text
-api balance   [ { account, debits, credits, type?, net? } ]
+api balance   [ { account, debits, credits, type?, net } ]
 api holdings  [ { account, unit, quantity } ]
 api history   [ { id, path, op, sha?, version_id?, size_bytes,
                   actor, actor_display?, source?, reason?,
                   post_seal_period?, moved_from_path?, ts } ]
 ```
+
+`Balance.net` is always numeric, including `0` for a cleared account. With
+`type`, it follows the account's native direction; without classification it is
+`debits - credits`. Current CLI decoding also fills omitted legacy net fields
+before re-emitting JSON. Existing zero-row filters remain unchanged.
 
 Four things worth knowing before you parse:
 
@@ -1049,6 +2445,93 @@ Four things worth knowing before you parse:
   corrections included), `--from`/`--to` (when the change was made, in the
   book's time zone). With any of those it returns every match.
 
+### Separate accounts and environments
+
+Use **one private directory per account/environment pair**, outside every Book.
+Set `IRISBOOKS_TOKEN_FILE` to that directory's token path before login and keep
+it selected for completion and later CLI commands. Endpoint configuration,
+pending authorization and user price state also live in the directory.
+`personal.json` and `business.json` in one directory are therefore insufficient
+isolation. A separate Book folder does not select a different account.
+
+POSIX shell, selecting a personal production profile:
+
+```bash
+export IRISBOOKS_TOKEN_FILE="$HOME/.config/irisbooks/profiles/personal-prod/token.json"
+unset IRIS_API_TOKEN IRIS_API_ENDPOINT IRISBOOKS_APP_BASE IRISBOOKS_API_BASE
+IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login --device
+# Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
+iris api login --device-complete
+iris api whoami
+iris api books list
+```
+
+PowerShell, selecting the same kind of profile:
+
+```powershell
+$env:IRISBOOKS_TOKEN_FILE = Join-Path $HOME '.config/irisbooks/profiles/personal-prod/token.json'
+'IRIS_API_TOKEN','IRIS_API_ENDPOINT','IRISBOOKS_APP_BASE','IRISBOOKS_API_BASE' | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
+$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'
+$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'
+iris api login --device
+# Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
+iris api login --device-complete
+iris api whoami
+iris api books list
+```
+
+The URL is an example for this service; use the intended service's actual app/API
+pair. Directory names are labels; the URL configuration selects the service. Wait for `Authorized` and a successful `whoami`; a pending device check
+can exit 0 without saving a credential. Confirm the account and access on the
+human approval page. For another account, select a different directory such as
+`.../profiles/business-prod/token.json`, then authorize that account. To return,
+select the original profile path. Keep endpoint overrides cleared unless
+deliberately selecting another service. Do not put credentials or authorization
+downloads in `raw/`, notes, chat or any synced Book file.
+
+Cloud API requests resolve `IRIS_API_ENDPOINT`, then `IRISBOOKS_API_BASE`, then
+`IRISBOOKS_APP_BASE` plus `/api`, then the selected directory's saved
+`config.json`, then the production default. Login selects its app/API through
+`IRISBOOKS_APP_BASE` / `IRISBOOKS_API_BASE`; `IRIS_API_ENDPOINT` is a separate
+request override, so it can send later commands somewhere else if inherited.
+Successful login saves the original selection. `whoami` reports the actual API
+endpoint and checks the effective credential: `IRIS_API_TOKEN` wins over a cached
+session. It does not report a cached user's name for an environment token or
+fall back after that token is rejected. Environment-token identity is unavailable
+locally; successful authentication alone does not establish every Book permission.
+
+Starting authorization leaves an existing session intact. Successful completion
+replaces only the selected local credential; it does **not** revoke the old
+server session. Revoke an unwanted old session in web Settings → API tokens.
+`iris api logout` attempts server revocation and removes the selected local
+session/pending login. If revocation fails, follow its warning and revoke in the
+web app. Saved endpoint configuration and price data remain. Logout does not
+remove `IRIS_API_TOKEN`; unset it separately if it should stop applying. Price
+sync refuses a store already bound to another endpoint/user; use a fresh profile
+directory instead of deleting that binding or mixing another user's data.
+
+A local MCP server uses the host process's credential directory/environment,
+not a Book setting or the VM shell's variables. Configure the chosen profile in
+that host registration and restart the server; check `auth_status` for the
+credential source, endpoint and validated state. CLI and MCP processes using the
+same profile share its login. Book/client isolation and grants remain separate.
+
+#### Moving a saved old-production connection
+
+An old profile may still select `irisbooks.jp`; login now prints the resolved
+app/API before authorization and the API after completion. A binary upgrade
+neither transfers a server session nor changes a Book's cloud identity.
+Authorize the intended service in a new private profile, run `whoami` and
+`iris api books list`, and inspect that account's actual books. Do not copy an
+old token into the new service or assume equal email addresses/Book IDs imply
+access. Keep the old profile and a backup of local files. Prefer cloning an
+accessible existing cloud Book into an absent/empty folder for comparison.
+For an existing local Book, follow the [attachment rules](cli-reference.md#iris-api-books) and
+explicitly choose create versus attach before relinking; inspect retained
+connection state, conflicts and sync results. Do not rewrite dev/beta profiles
+or overwrite another account's data to make the migration appear complete.
+This is an explicit migration workflow, not automatic credential or Book copying.
+
 ### Going online (cloud)
 
 Cloud accounts are invitation-only; direct users to the
@@ -1064,10 +2547,18 @@ Regional services have separate accounts and cloud books.
 
 ```bash
 iris api login            # browser sign-in; this device gets its own CLI session
+iris api whoami           # confirm the effective credential and API endpoint
 iris api books new        # create a cloud book…
 iris api books link <book-id>   # …or link this folder to an existing one
 iris sync                 # one explicit push + pull pass
 ```
+
+Browser login needs a callback reachable from the CLI executor. For remote or
+headless work, or approval in another browser profile, choose `iris api login
+--device`, have the human approve on their own device, then run `iris api login
+--device-complete` and `iris api whoami`. A waiting result is not authorization.
+Keep the selected credential directory unchanged through both steps; see
+[login modes and account profiles](cli-reference.md#iris-api-login).
 
 Sync covers `AGENTS.md`, the book/chart/rules config files, YAML under `config/overlays/`,
 Markdown in `journals/`, `assets/`, `notes/`, `filings/`, and raw source bytes.
@@ -1206,7 +2697,7 @@ uploaded, schema/immutability violations). A rejected push shows up as a
 `iris validate` footer like *"N file(s) blocked in the sync queue"* — the
 files are fine; the *push* was rejected.
 
-1. `iris attention list` — read the field-level reason. Code `OVERLAY_RULE`
+1. `iris sync issues list` — read the field-level reason. Code `OVERLAY_RULE`
    means a region-overlay rule refused the file; each issue names the rule
    (`iris overlay list` shows it, published or book layer).
 2. Fix the cause (commonly: add the missing account to the chart, or make sure
@@ -1214,7 +2705,7 @@ files are fine; the *push* was rejected.
 3. **Re-save the rejected journal** — its content hash changes, the engine
    drops the per-file suppression, and the push retries on the next sync.
 4. If the fix was in a *different* file and the rejected journal won't be
-   re-saved: `iris attention retry` (or `--path <relpath>` for one file).
+   re-saved: `iris sync issues retry` (or `--path <relpath>` for one file).
 
 ### Fixed assets and depreciation
 
@@ -1242,8 +2733,9 @@ it at disposal (dispose of an asset and you rewrite the table — see
 
 **Three tiers, in this order.** (1) If the book's region overlay has a
 **recipe** for the method, run it — `iris overlay list` shows the recipes, and
-over MCP each is a tool named after it (`jp.teiritsu` → `jp_teiritsu`). Pass
-the published rates as params and a `write` path (the asset file): the recipe
+both MCP modes expose `list_recipes` and `run_recipe`. Use the canonical ID
+`jp-declining-balance.teiritsu`. Pass the published rates in `params`, and add
+`apply=true, out="assets/2026/equipment.md"` to record the reviewed result: the recipe
 composes the table in the prescribed order and records `schedule:` +
 `schedule_source:`, which `iris validate` replays. (2) If no recipe covers the
 method, compose the calculator tools below and paste the rows under
@@ -1254,12 +2746,29 @@ method, compose the calculator tools below and paste the rows under
 (`iris mcp serve`) each return `{rows, total, yaml}`; the `yaml` field is
 paste-ready under `schedule:`:
 
+For exact amounts above 9,007,199,254,740,991, supply `basis`, `salvage` and
+`amount_per_row` as decimal integer strings. Unsafe JSON floating-point inputs
+are rejected. Read each row's `amount_exact` and the result's `total_exact`
+strings, or use the exact `yaml`; legacy numeric fields remain for compatibility.
+Set the tool's `scale` to the destination Book's minor-unit exponent (default 0,
+JPY). This formats YAML in whole currency units; 12345 input units at scale 2
+becomes `amount: 123.45` and parses back to 12345 units. JSON amount strings stay
+in minor units, and the result reports `scale`.
+All native table tools stop before allocation at 4,096 rows, including the
+derived size of `flat_table`, and refuse dates after year 9999. Asset useful
+life is at most 4,096 months and recorded tables at most 4,096 rows. Local asset
+schedule/depreciation/export requests accept at most 4,096 files, 64 MiB of source and 100,000
+aggregate rows; each regular asset source is at most 256 KiB. These are runtime
+bounds, not tax rules. Excessive/invalid work fails; do not treat it as zero. New recipe results record table primitive version 2. Replay dispatches the
+recorded version 1 or 2; a missing/unknown version is never replaced with the
+latest arithmetic. Historical replay still obeys host work limits.
+
 | Tool | Arguments | Emits |
 | --- | --- | --- |
-| `declining_table` | `basis`, `rate_bp`, `periods`, `salvage`, `start_period`, `step_months`, `rounding` | remaining × rate_bp/10000 per row; a pure series, NOT forced onto salvage |
-| `flat_table` | `basis`, `amount_per_row`, `salvage`, `start_period`, `step_months` | the fixed charge each row until written down; row count derived |
-| `straight_line_table` | `basis`, `periods`, `salvage`, `start_period`, `step_months`, `rounding` | (basis − salvage) split evenly, remainder on the last row |
-| `jp_teiritsu` (one tool per overlay recipe) | the recipe's params (`iris overlay list`) + `write` | the finished table, recorded with provenance when `write` is given |
+| `declining_table` | `basis`, `rate_bp`, `periods`, `salvage`, `start_period`, `step_months`, `rounding`, `scale` | remaining × rate_bp/10000 per row; a pure series, NOT forced onto salvage |
+| `flat_table` | `basis`, `amount_per_row`, `salvage`, `start_period`, `step_months`, `scale` | the fixed charge each row until written down; row count derived |
+| `straight_line_table` | `basis`, `periods`, `salvage`, `start_period`, `step_months`, `rounding`, `scale` | (basis − salvage) split evenly, remainder on the last row |
+| `list_recipes` / `run_recipe` | canonical `recipe` ID, `params`, optional `apply`, `out`; parent mode also needs `book` | preview by default, including when only `out` is given; `apply=true` plus `out` records provenance |
 
 `rate_bp` is the rate **per row**, so with `step_months: 12` you pass the
 published *annual* rate verbatim (0.500 → 5000) — no conversion. `step_months`
@@ -1437,20 +2946,22 @@ book of the year being closed:
 iris yearend --yes                                # start the FY2026 book (+ its cloud copy); ask the user first
 # …決算整理 and the FY2025 return, in this book…
 iris yearend --yes                                # after late corrections: refresh FY2026's opening balances
-iris api seal --period 2025 --preview <book-id>   # see exactly what will be sealed
+iris api seal --period 2025 --dry-run <book-id>   # see exactly what will be sealed
 iris api seal --period 2025 <book-id>             # seal it
 ```
 
 Sealing is REFUSED while the year still contains `draft` drafts
 (UNRESOLVED_DRAFTS) — a sealed year must be fully resolved. Post each draft
 if it belongs in the year, delete it if abandoned, or change its date into an
-open year, then seal again; `--preview` lists the blockers.
+open year, then seal again; `--dry-run` lists the blockers.
 
-Before preview or close, recorded filings must replay against current cloud
-posted journals and recipe sources. Stale filings or unavailable replay sources
-can block even preview before it lists drafts. Re-run the filing recipe, validate,
-sync the filing and inputs, and retry preview. If replay projections remain
-unavailable after successful sync, seek support from the [Discord community](https://discord.gg/wZDsv9gyb9) rather than retrying close.
+Before close, run local `iris validate`, review its policy/replay diagnostics and
+sync. The cloud does not execute Overlay rules or replay recorded recipes.
+`iris api seal --dry-run` shows configured native balance observations against
+accepted cloud sources: exact actual/expected/difference, scope and evidence state.
+Unresolved balances or evidence block close; correct locally, review evidence,
+sync and preview again. Missing/stale native source mirrors after sync require a
+server projection rebuild. Local unsynced changes are outside the preview.
 
 To amend a sealed year:
 
@@ -1498,7 +3009,7 @@ their 税理士, or an auditor). Describe them by these names:
 | Correction/deletion history (訂正・削除の履歴) | Server records every change to every file, deletions included — who, when, prior content | `iris api history`; web app **Activity** timeline + per-journal **History** panel | Cloud only |
 | Search | Journals by date, amount, counterparty (payee), combinable with AND; also status, account, tag | `iris search`; web app **Journals** filters | Local, offline (+ web) |
 | Ledger ↔ journal | Ledgers/reports are computed live from the journals (nothing copied into a second book); every ledger row carries its source journal file | `iris report ledger`; web app **Accounts** ledger | Local, offline (+ web) |
-| Journal ↔ source document | Journals cite their evidence via `attachments`; walk it both ways | `iris show <path>`; web app **Cited by** panel (Raw documents) | Local, offline (+ web) |
+| Journal ↔ source document | Journals cite their evidence via `attachments`; walk it both ways | `iris references <path>`; web app **Cited by** panel (Raw documents) | Local, offline (+ web) |
 
 Facts that bound these features:
 
@@ -1547,14 +3058,13 @@ consumption_tax:
 
   **The return itself: run the recipe, record the filing.** The Japan overlay
   combines those sums the way the 申告書 needs them:
-  `jp.shouhizei-general` (本則課税; params `from`, `to`, `non_invoice_pct` — the
-  経過措置 percentage for purchases without a qualifying invoice: 80 until
-  2026-09-30, 50 until 2029-09-30, verify on the NTA site) and
-  `jp.shouhizei-simplified` (簡易課税; params `from`, `to`, `deemed_pct` — the
+  `jp-tax-filing.shouhizei-general` (本則課税; params `scope_confirmed`, `from`,
+  `to`; the package applies its dated non-invoice transition definitions) and
+  `jp-tax-filing.shouhizei-simplified` (簡易課税; params `scope_confirmed`, `from`, `to`, `deemed_pct` — the
   みなし仕入率 per 事業区分 as a map, e.g. `{"1": 90, "2": 80, "3": 70, "4": 60,
-  "5": 50, "6": 40}`, verify on the NTA site). Run it with `--write
-  filings/<recipe>.md` (CLI) or `write` (MCP tool `jp_shouhizei-general` /
-  `jp_shouhizei-simplified`): the figures land under `filings/` with provenance,
+  "5": 50, "6": 40}`, verify on the NTA site). Run it with `--apply --out
+  filings/<recipe>.md` (CLI) or `run_recipe` with `apply=true` and `out`
+  (recipe IDs `jp-tax-filing.shouhizei-general` / `jp-tax-filing.shouhizei-simplified`): the figures land under `filings/` with provenance,
   and `iris validate` replays them against the journals from then on. Fill
   the form from the recorded `figures`; the 国税 / 地方税 split and the 千円未満
   floor of the 課税標準額 are yours to apply from them. The general recipe
@@ -1562,7 +3072,7 @@ consumption_tax:
   (≥ 9500) and the ¥500M sales ceiling before relying on `deductible_tax`;
   otherwise 個別対応 / 一括比例配分 applies and you compute it.
   **税抜経理 books:** `iris validate` proposes `tax.amount` (the tax inside
-  each classified line) as a hint; `iris validate --fix` records it. Book that
+  each classified line) as a hint; `iris validate --apply` records it. Book that
   amount on 仮払消費税 / 仮受消費税 — never compute the split by hand.
 
   Never sum line amounts yourself — take the engine's buckets, then apply the
@@ -1649,12 +3159,12 @@ verify against the NTA's current pages, not from memory:
   備忘価額 1 円. Assets acquired 2012-04-01 or later use the 200% table;
   2007-04〜2012-03 the 250% table — an asset keeps its original table for life.
   The switch, the rounding and the concatenation are built into the
-  `jp.teiritsu` recipe; you supply only the inputs:
+  `jp-declining-balance.teiritsu` recipe; you supply only the inputs:
   1. Read 償却率 / 保証率 / 改定償却率 for the useful life from 別表第十.
-  2. Run `jp_teiritsu` (MCP) or `iris overlay recipe jp.teiritsu --set cost=<取得価額>
+  2. Run `run_recipe(recipe="jp-declining-balance.teiritsu", params={...}, apply=true, out="assets/YYYY/<name>.md")` (MCP) or `iris overlay recipe jp-declining-balance.teiritsu --set full_year_confirmed=true --set cost=<取得価額>
      --set life=<years> --set rate=<償却率> --set guarantee=<保証率>
      --set revised=<改定償却率> --set start=<first FY-end month, YYYY-MM>
-     --write assets/YYYY/<name>.md`. Pass the rates exactly as printed
+     --apply --out assets/YYYY/<name>.md`. Pass the rates exactly as printed
      (`0.250`, `0.07909`, `0.334`). It writes `schedule:` and `schedule_source:`.
   3. Run `iris validate`: it replays the recipe and confirms the rows. Tell the
      user the table is a proposal on the file for their review.
@@ -1707,14 +3217,14 @@ switch top-right, since no avatar menu exists there.
 | Page | What's there |
 | --- | --- |
 | **Dashboard** | Headline numbers, P&L flow chart, balance-sheet treemap, incomplete-entries banner; net-worth tile also appears with one book; with 2+ books adds cross-book action queue, consolidated P&L, top movers. Consolidating books that span currencies needs a base currency (`iris api config set --base-currency`) plus a recorded rate per other currency (`iris price add --unit USD --price 155`) — the same price store Net Worth uses; a book whose currency has no recorded rate is listed separately, never folded in silently. The card shows a **Conversion rates** row per currency with the rate and the date it was recorded, each editable — an edit re-converts that view only and is never saved. |
-| **Journals** | Filter/search by date range, payee, free text, status (incl. the derived `closed`), amount (=/>/<); CSV export; open/create/edit/delete entries (delete is soft — the entry moves to the Deleted view); entries in a sealed FY display as `closed` and refuse edit/delete/post until the year is reopened; one-click **Post** on draft entries (detail page) and checkbox **Post selected** for batches (list) — the review path for connector/email drafts when the user isn't at the CLI; **Deleted** view lists soft-deleted entries with who/when and a per-row **Restore** action. |
+| **Journals** | Filter/search and CSV export; read full source and history; approve reviewed draft versions singly or in bulk. Ordinary record mutations are unavailable. Named-view amounts and CSV carry unapproved preview scope. |
 | Journal detail → **History** | Full per-file audit trail (put/delete/move, who, when, source, reason); **"after seal"** badge on post-seal changes. |
 | **Reports** | General Ledger (per account, optional opening balance), Trial Balance (warns if D≠C), P&L, Balance Sheet. Date/as-of filters, hide-zero-rows toggle, CSV export. Posted only; "freshness" note + "incompletes" banner. |
 | **Accounts** | Chart grouped by type; click through to an account's ledger. |
 | **Raw documents** | Two-pane browser of `raw/`; inline rendering (images, PDFs, parsed CSV tables, text); **Cited by** panel → the journals that reference the document. |
 | **Notes** | Read-only Markdown viewer of the root `AGENTS.md` contract and `notes/` (incl. parse caches, which link back to their source). |
-| **Activity** | Book-wide audit log of every file operation; filter by actor/path/operation; expandable content **diff**; **Recover** button when a prior version exists; post-seal changes badged. |
-| **Year-end** | The book's fiscal year (a book is one year) with its close state (open / closed / reopened), journal + blocking-draft counts, and post-seal amendment counts. Owners close the year (preview shows the locked files and blocking drafts; recorded filings must replay successfully even before preview; sealing refuses while drafts remain) and reopen it for amendments. Closing removes nothing. History panel shows the full close/reopen chain. The book plate's year links here; a note says the next year is its own book (`iris yearend`). |
+| **Activity** | Durable file history, diffs and historical downloads. Restore through permitted local/CLI operations; Web does not replace current records. |
+| **Year-end** | The book's fiscal year (a book is one year) with its close state (open / closed / reopened), journal + blocking-draft counts, and post-seal amendment counts. Owners close the year (preview shows locked files, blocking drafts and configured native balance observations; closing refuses unresolved drafts/balances/evidence; local Overlay checks and recipe replay remain the client’s responsibility) and reopen it for amendments. Closing removes nothing. History panel shows the full close/reopen chain. The book plate's year links here; a note says the next year is its own book (`iris yearend`). |
 | **Settings — yours** (avatar menu, works outside any book) | User-scoped only: interface language (EN/日本語), appearance (light / dark / system), a Books directory (every book + role, each row opening that book's settings), Personal Access Tokens, Connect your AI (connector URL), Connected apps (list + disconnect connector consents). |
 | **Settings — book** (sidebar, inside the book) | Book-scoped only: book ID + fiscal year, Posting approval (owners only — makes posting + posted-entry changes web-only; cannot be changed from CLI/tokens), Inbound email (address, allowlist, quarantine), Grants (owners only), Danger zone (owners only — delete the book; see below). |
 | **Net Worth** | Cross-book balance sheet: assets − liabilities per book, `owner: true` accounts left out; cash, receivables, fixed assets, loans at book value, units at recorded prices (book value when unpriced); a book counts only inside its own fiscal year (a book whose year ended is listed as *year ended* until `iris yearend` creates the next one); total, month-over-month change, trend, movers, composition; per-book include/exclude in its Settings tab. Best-effort, not audited; units without a recorded price are listed as missing. |
@@ -1823,117 +3333,127 @@ intended books); Net Worth defaults to owned books, with invited books opt-in.
 
 ## The remote connector (cloud) — the user's books away from their computer
 
-`https://irisbooks.io/mcp` is a remote MCP server over the **cloud copy** of
-the user's synced books — how an AI app with no access to the book folder
-(phone, claude.ai on the web, a sandboxed client) still answers questions and
-captures expenses. The user adds it as a custom connector; sign-in is OAuth
-with a scope choice at consent: **Bookkeeper** (reads + draft-only writes,
-the default) or **Viewer** (read-only). Effective access is the AND of that
-scope and the user's per-book role — a Bookkeeper connection still can't
-draft into a book where the user is only a Reviewer. When the client runs on
-the user's computer (Claude Code), the consent page warns that the approval
-goes to a local program that any other program could impersonate; if the
-user asks, that warning is expected — approve only a connection they just
-started themselves.
+`https://irisbooks.io/mcp` exposes the synced cloud copy to Claude and ChatGPT.
+Bookkeeping is read-only: journal and accounting changes require local CEL execution and
+validation, which the remote connector does not run. Use the local CLI or
+`irisbooks` MCP server for changes, then sync. Prefer local tools whenever the
+Book folder is available because they include unsynced edits.
 
-Supported clients are **Claude** (mobile, web, desktop, Claude Code) and
-**ChatGPT**. The server identifies a client by its Client ID Metadata
-Document and accepts only recognised vendors, so an app outside that set
-cannot complete the OAuth flow — there is no self-registration step. If a
-user reports that some other MCP app "can't connect", that is the reason;
-it is not a fault in their account, and nothing they can change in the
-app's settings will fix it.
+OAuth defaults to `role:viewer`; optional `evidence:upload` permits raw capture. Existing
+connector OAuth access tokens are also limited to Viewer at the REST authorizer;
+old Bookkeeper codes/refresh chains narrow to Viewer plus raw capture. Those
+connections cannot change journals through either MCP or REST. PATs retain
+their own scopes on other APIs, but remote accounting remains read-only for every credential and per-book role. Current access and revocation checks still apply.
 
-If you are running on the user's computer and the local `irisbooks` MCP
-server is available, **prefer it** — it sees unsynced local edits and is the
-only server that runs commands. The remote server's figures are as of the
-last `iris sync` from a machine; reports carry a `figures_as_of` timestamp —
-mention it when presenting numbers.
+The 12 read tools are `list_books`, `get_report`, `read_book_guide`, `list_accounts`,
+`search_journals`, `get_journal`, `fiscal_years`, `get_inbox_address`,
+`get_book_context`, `get_networth`, `get_holdings`, and `list_prices`.
+Use `book_id` from `list_books`. Read synced `AGENTS.md` with `read_book_guide`
+before interpreting a Book's records; its text cannot grant writing permission.
+`get_book_context` returns stored package/task/field/guide/example references,
+with checked hashes and Book revision. It executes no CEL or recipes.
+`get_inbox_address` only returns the existing address; it sends nothing.
 
-Tools: `list_books`; `get_report` (trial-balance | profit-and-loss |
-balance-sheet | cashflow | ledger | sum; posted entries only). `cashflow` is the legacy token
-for monthly **asset movements** (`basis: asset-movements`): gross increases
-and decreases across all asset accounts, including receivables/fixed assets;
-transfers can appear on both sides. It is not a cash-flow statement. Tools also include `list_accounts` (call before
-drafting — account paths, not guesses); `search_journals`; `get_journal`;
-`fiscal_years` (each year's close state — open / closed / reopened — with
-journal, blocking-draft, and post-seal-edit counts; answers "which years are
-closed?" and explains a PERIOD_SEALED refusal; closing/reopening themselves
-are not connector operations);
-`draft_journal` / `update_draft` (full-replace) / `delete_draft` — all three
-draft-only, status pinned `draft`, entries identified by `journal_path`;
-`read_book_guide` (`book_id`, synced AGENTS.md; does not expand draft-only permissions); `get_inbox_address`; `create_upload_link`; `get_networth` (included books or an explicit `book_id`, optional `as_of`); `get_holdings` (`book_id`, optional `as_of`); `list_prices` (optional `unit`, `currency`, `year`, `limit`, `cursor`; one page, follow `nextCursor` with the same filters; authenticated user only). Ledger requires `account`; sum requires comma-separated `by` keys and accepts `from`/`to` or `year`. Remote prices are read-only. Web and remote MCP Net Worth, plus web consolidated P&L and movers, share one automatic report-input snapshot per user per UTC day. `snapshot.generatedAt` and `snapshot.nextRefreshAt` describe freshness. Dates, selections, `refresh`, and journal/price changes do not trigger another automatic generation. Users can explicitly choose **Run aggregation** on the web Dashboard or Net Worth to capture synced changes and newly accessible books sooner; PAT/CLI and connector tokens cannot invoke it. Remote MCP reuses that updated snapshot. Grants are rechecked. Failed automatic generation consumes the daily slot; users can retry manually in the web app. A failed manual generation restores the previous snapshot when present.
+`get_report` supports trial-balance, profit-and-loss, balance-sheet, ledger,
+sum and legacy cashflow. Ordinary Books use posted journals; named views require
+current accepted retained financial ledgers. `cashflow` means gross monthly
+asset movements, including receivables/fixed assets and both sides of transfers;
+it is not a cash-flow statement. Mention `figures_as_of` when available.
+Use `as_of` for trial balance/balance sheet; `from`/`to` for P&L; `account` and
+`from`/`to` or `as_of` for ledger; `by` and `from`/`to` or `year` for sum; `year`
+for asset movements. Inapplicable fields and conflicting selectors fail.
 
-The write surface **drafts, never posts**: a remote draft appears in the
-local book at the next `iris sync` and is posted there. Posting, sealing,
-touching `posted`/`closed` entries, and writes to sealed-year journals or accounting dependencies
-(`draft_journal` / `update_draft` / `delete_draft`) are refused by
-construction. `search_journals` shows sealed-FY entries as
-`closed` (and accepts `closed` in its status filter); `get_journal` returns
-`closed: true` for them. File bytes can't travel through tool calls: a document in the
-user's hand → `create_upload_link` (single-use, 15-minute expiry, image/PDF
-≤ 10 MB; scanned, lands in `raw/uploads/`, auto-attaches to a draft);
-a document already in their email → `get_inbox_address` (lands in
-`raw/email/`). The upload page confirms **delivery**, not just the upload:
-tell the user the receipt is in the book only when the page says so (usually
-under a minute); reopening the same link later shows the delivery status,
-and a scan/ingest rejection is reported on the page instead of a silent
-success. Remote-originated changes are labeled (`source=mcp-remote`)
-in the audit history.
+Search combines filters with AND. Amount bounds are nonnegative integer minor
+units, at most 9,007,199,254,740,991; minimum must not exceed maximum. Date ranges
+must be ordered. Follow `nextCursor` with unchanged filters. `get_journal` takes
+the returned `journal_path`; sealed-year entries are `closed`. These reads can
+inspect existing drafts but cannot create, replace or delete them. Former draft tools are removed, including direct calls; do not retry them.
 
-Disconnecting: removing the connector in the AI app revokes its access, and
-the user's Settings (avatar menu) → Connected apps lists every connected AI app with a
-server-side **Disconnect** — point users there when they've lost the device
-or app. Revocation propagates within a few minutes.
+`create_upload_link(book_id)` is the raw-evidence exception. It requires
+`evidence:upload` consent and OWNER/BOOKKEEPER access (writing PATs and earlier
+Bookkeeper connector grants also permit raw capture). The 15-minute one-time
+image/PDF link accepts at most 10 MB. Scanned bytes land under `raw/uploads/`;
+there is no `journal_path` input and no automatic journal attachment, including
+for earlier issued links. Wait for the upload page to confirm delivery. Link
+evidence to accounting records only through local validation. New connections
+default to reads; upload permission is an optional consent choice. It grants no
+journal writes or extra REST permissions.
+
+Remote `list_prices` reads the authenticated user's cloud store and accepts
+unit/currency/year/limit/cursor. Price recording/sync remain local. `get_networth`
+reads included books or one `book_id`; its omitted `as_of` uses the generation's
+reporting date. `get_holdings` reads one book and defaults to today.
+Net Worth shares one automatic input generation per user per UTC day with web
+cross-book reports. Dates, book selection and currency do not refresh captured
+inputs. Mention `snapshot.generatedAt` and `snapshot.nextRefreshAt`. Users may
+run aggregation in the web app; remote MCP reuses that snapshot and cannot
+invoke manual aggregation. Failed automatic generations consume that day's
+slot; explicit web retries remain available.
+
+Connectors identify supported apps through Client ID Metadata Documents; there
+is no client self-registration step. The localhost warning is expected for a
+local client: approve only a connection the user just started. Remove the
+connector in the AI app or use IrisBooks Settings → Connected apps → Disconnect.
+Successful revocation applies to the next request; already admitted work may finish.
 
 ## CLI reference (condensed)
 
-Two surfaces:
+Commands are grouped by purpose. Local folders use `--book-path PATH` or the
+documented positional path (default: nearest ancestor book). Cloud book commands
+use `--book-id ID`, their positional ID, or `IRIS_BOOK`; sign in with `iris api
+login` or `IRIS_API_TOKEN`. `--books-dir` selects a portfolio parent folder.
+Flags work before or after arguments; `--` ends option parsing. Help is offline,
+requires no book/login, writes stdout and exits 0. Errors use stderr; invalid
+arguments exit 2. `iris help <command>` also works.
 
-- **File-mode** commands operate on a local book folder. With no path argument
-  they walk up from the current directory to find the book — run them from
-  anywhere inside the book tree.
-- **Cloud** commands (`iris api …`) operate on a **book ID**, and need
-  `iris api login` or `IRIS_API_TOKEN`.
-
-`iris <command> -h` is authoritative for flags; `iris -h` and `iris api -h`
-list everything.
+Use `journal complete`, `references` and `sync issues`; the previous command
+names and the ambiguous `--book` selector are removed. Preview-first calculations
+and repairs use `--apply` to write; recipes also need `--out PATH`. Action verbs
+use `--dry-run` to preview. `yearend` carries opening balances into a new book;
+`api seal` locks the current year; `reopen` unlocks it. `api seal --dry-run`
+previews closing. Posting syncs the entire linked book, including other pending
+changes; `post --local` skips that sync. Linked `yearend` also creates/syncs cloud
+state unless `--local` is selected. These operations need network access.
+Reports/calculators always return JSON; other inspection commands document
+`--json`, including `sync issues list`, `conflicts list` and `api config show`.
+`iris <command> --help` is authoritative for flags.
 
 | Command | Purpose |
 | --- | --- |
 | `iris docs [topic] [--list \| --section ID \| --full] [--json]` | Read the running binary's bundled manual offline. Omit topic for chapter IDs/sizes; a topic defaults to sections; `--section` reads one and `--full` explicitly reads a chapter. No book/login/network; JSON includes version/source metadata. Local MCP: `read_docs` |
 | `iris init [flags] <path>` | Create a book (bare `iris init` opens the wizard; flags require a path, e.g. `.`). `--name --region --language --chart(JP: general/it/food) --currency --fiscal-start-month (default 1) --fiscal-year (the year the book covers; default: the one holding today) --sample --book-id` |
-| `iris onboard [--book PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]` | Wire the AI: register MCP (Claude Code always; other clients when detected/forced), write the Claude Code skill |
+| `iris onboard [--book-path PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]` | Wire the AI: register MCP (Claude Code always; other clients when detected/forced), write the Claude Code skill |
 | `iris onboard --status [--json]` | Read-only report: what is registered where, and whether each registered binary still exists |
-| `iris offboard [--book PATH] [--keep-skill] [--remove-path] [--dry-run]` | Inverse of onboard: remove MCP registrations + skill (book data and sign-in untouched) |
+| `iris offboard [--book-path PATH] [--keep-skill] [--remove-path] [--dry-run]` | Inverse of onboard: remove MCP registrations + skill (book data and sign-in untouched) |
 | `iris uninstall [--yes] [--dry-run]` | Remove iris itself from the machine: binaries, `~/.config/irisbooks` (CLI session revoked server-side first), skill, machine-level MCP registrations, PATH entry. Prints the exact deletion list and asks first; books and per-book `.mcp.json` are never touched (run `iris offboard` per book beforehand if wanted) |
 | `iris clone [--force] <book-id> [dest]` | Fetch a server book to disk (needs sign-in); works immediately on a brand-new server-created book; preserves synced `AGENTS.md`; fills missing contracts for older books and adds local `CLAUDE.md` / `README.md` without overwriting custom files |
-| `iris status [--json] [path]` | Book identity, FY start, archive flags, draft count (`draftCount` in JSON — drafts are not in reports) |
-| `iris validate [--v] [--json] [--fix] [path]` | Full validation (rules of the region overlay included, recorded schedules and filings replayed); `--json` emits issues + counts, exits 1 on errors; `--fix` records the overlay's derived values (hints) into the files |
+| `iris status [--json] [path]` | Book identity, FY start, archive flags, draft count, package hints and `sealStatus`: offline last-known state/reference/time. Closed/reopened references come from the current Book/endpoint mirror; missing/foreign/legacy freshness stays explicit. `unsealed` requires a successful complete read; archive is only its local marker. No login/network; refresh with sync; local unsynced files may differ. |
+| `iris validate [--v] [--json] [--apply] [path]` | Full validation (rules of the region overlay included, recorded schedules and filings replayed); `--json` emits issues + counts, exits 1 on errors; `--apply` records the overlay's derived values (hints) into the files |
 | `iris hash [--raw] <file>` | Canonical content hash of one file |
 | `iris organize [--apply] [--fix …] [--json] [path]` | Canonicalize layout (dry-run by default; fixes: month-folders — a journal whose date isn't its `journals/YYYY-MM/` folder's month moves to the right one, parse-cache `target:` links updated — extensions, empty-raw, config-typos) |
+| `iris allocation --schema` / `--input FILE` | Pure dated gross-expense split: explicit fraction/basis/rounding, exact business/private strings, unchecked evidence; no Book reads, writes or tax inference |
 | `iris balance [--as-of D] [path]` | Trial balance (posted only). JSON output |
 | `iris report tb\|pl\|bs\|ledger\|sum …` | Statements; `pl` takes `--from/--to`, `tb`/`bs` take `--as-of`, `ledger` takes `--account`. Unnamed dates default to the book's fiscal year up to today (the JSON states them). `sum --by KEY[,KEY...] [--from D] [--to D] [--year FY]` is the generic group-by over posted lines — keys are `account`, `unit`, `payee`, `month`, or dotted concern fields like `tax.category`; lines missing a key surface as an explicit empty group. Output is always JSON (minor units); `--json` is accepted as a no-op |
 | `iris search [--from D] [--to D] [--min N] [--max N] [--payee S] [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]` | Find journals; filters AND-combined; deterministic, offline. Status column shows the effective status (sealed-FY journals show as `closed`; `--status closed` filters them) |
-| `iris show [--json] <path> [path]` | Cross-references both directions |
+| `iris references [--json] <path> [path]` | Cross-references both directions |
 | `iris export [--out DIR] [--year YYYY] [--as-of D] [path]` / `iris export assets [--year YYYY] [--out FILE] [path]` | CSVs (UTF-8 + BOM) |
 | `iris asset schedule [--year YYYY] [path]` / `iris asset depreciate --month YYYY-MM\|--year YYYY [path]` | Depreciation plan / month's entries / FY-total annual entries (one cadence per FY — mixing refused) |
 | `iris overlay list [--json] [path]` | Published pins, book layer, fields and enum choices, rules with conditions/assertions, recipes and parameter schemas, derivations, guide IDs |
 | `iris overlay guide <id> [path]` | Read the named pinned guide as reference data |
-| `iris overlay recipe <id> --set k=v ... [--write <path>] [--json] [path]` | Run a recipe; `--write` records a schedule onto the asset file (`schedule:` + `schedule_source:`) or figures as a filing under `filings/`. Map params: `--set deemed_pct='{"1": 90}'` |
+| `iris overlay recipe <id> --set k=v ... [--out <path> --apply] [--json] [path]` | Run a recipe; `--apply --out PATH` records a schedule onto the asset file (`schedule:` + `schedule_source:`) or figures as a filing under `filings/`. Map params: `--set deemed_pct='{"1": 90}'` |
 | `iris overlay test [--json] [path]` | Run the golden tests of every pinned published overlay and of `config/overlays/`; exit 1 on a failure. `--dir <overlay-dir>` instead tests one published overlay directory (e.g. a checkout of the public overlays repo) outside any book |
 | `iris overlay fetch [path]` | Download + verify every overlay version `book.yaml` pins when this `iris` has neither built in nor fetched it; never changes the book |
 | `iris overlay upgrade [--to <id>@<version>] [--dry-run] [path]` | Move the pin to the newest published version (or `--to`) — only when the user asks. Verifies the signature, runs the version's golden tests, checks the book layer loads on it, then rewrites `overlay:` or `overlays:` (and the layer's `extends:`); `--dry-run` preserves book files |
-| `iris overlay trust [path]` | Record the book's `config/overlays/` (by content hash) as trusted on this machine — only after the user has seen the files |
-| `iris post [--dry-run] <file>...` / `iris post --all` | Promote to `posted` (validates non-empty + balanced), then sync if linked. `--all` sweeps every draft — incl. phone/connector + email drafts (the auto-post ritual). Refused entirely when the owner turned on posting approval (post from the web app instead). Refuses journals dated in a sealed FY ("FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it, then re-seal") |
+| `iris overlay trust [--source book:HASH] [path]` | Trust the current local layer or one verified retained local definition with its original parents on this machine — only after authorized review; selection and Book sources stay unchanged |
+| `iris post [--dry-run] [--local] <file>...` / `iris post --all` | Promote to `posted` (validates non-empty + balanced), then sync if linked. `--all` sweeps every draft — including existing imported or synced drafts (the auto-post ritual). Refused entirely when the owner turned on posting approval (post from the web app instead). Refuses journals dated in a sealed FY ("FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it, then re-seal") |
 | `iris diff [<relpath>] [--paths]` | What would be pushed vs the last-synced snapshot |
 | `iris sync [--quiet] [--json] [--allow-bulk-delete] [path]` | One explicit push+pull pass; per-file accept/reject. The server refuses a pass that would delete most of the book's cloud files (`BULK_DELETE_REFUSED`); re-run with `--allow-bulk-delete` only when the mass deletion is intentional |
 | `iris conflicts list` / `resolve <path> --keep mine\|cloud` | Conflict sidecar management |
-| `iris attention list` / `retry [--path <relpath>]` | Server-rejection queue |
+| `iris sync issues list` / `retry [--path <relpath>]` | Server-rejection queue |
 | `iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local \| --link-existing BOOK_ID] [--dry-run] [path]` | End the year: create next year's book as a standalone copy (config, guides, policy notes, held assets, 期首残高 opening entry; new-year entries moved) and, for a linked book, its cloud copy (grants copied, inbound address moved; `--yes` needed without a terminal — ask the user). Re-run to refresh the opening entry while the next year is open; frozen once it is sealed. Requires `fiscal_year` |
 | `iris reopen <fiscal-year> [path]` | Unlock a sealed FY (accounting-scope changes accepted again, flagged as post-seal edits). The year's files never left the working tree — edit directly, then `iris sync`, `iris yearend` to refresh the carry-forward, and re-seal with `iris api seal` |
 | `iris price add\|list\|sync\|conflicts\|resolve` | Unit prices, user-scoped (not stored in the book), offline + sync |
-| `iris mcp serve [--book PATH \| --books-dir PATH] [--http 127.0.0.1:PORT]` | MCP server for one book or a parent of immediate child books. Parent mode: list_books, create_book, clone_book (cloud book → new child folder), required book=<child-folder> on book operations, list_recipes/run_recipe for per-book overlays. Local: validate, diff, balance, report, status, asset_schedule; global: login, auth_status, logout, list_cloud_books, check_update and depreciation calculators; cloud (when authed): create_cloud_book, link_book, sync, seal, export_from_cloud (output inside the selected book). `--http` requires `Authorization: Bearer <token>`; token in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
+| `iris mcp serve [--book-path PATH \| --books-dir PATH] [--http 127.0.0.1:PORT]` | MCP server for one book or a parent of immediate child books. Parent mode: list_books, create_book, clone_book (cloud book → new child folder), required book=<child-folder> on book operations, list_recipes/run_recipe for per-book overlays. Local: validate, diff, balance, report, status, asset_schedule; global: login, auth_status, logout, list_cloud_books, check_update, allocation and depreciation calculators; cloud (when authed): create_cloud_book, link_book, sync, seal, export_from_cloud (output inside the selected book). `--http` requires `Authorization: Bearer <token>`; token in `~/.config/irisbooks/mcp-http.token` (created on first start, reused after) |
 | `iris update [--check] [--json]` | Check for a release or install a verified update; restart long-running MCP servers afterward |
 | `iris version` | Version |
 
@@ -1947,14 +3467,14 @@ Cloud (`iris api …`, book-ID–scoped unless noted):
 | `iris api config [set --base-currency … --set-unit BTC:8,XAU:4 --remove-unit …]` | Reporting currency and unit template; signed-in init copies available units into new books only (empty by default) |
 | `iris api grants list\|invite --email E\|role --user U --to OWNER\|BOOKKEEPER\|REVIEWER\|revoke --user U <book-id>` | Book access (owner-only) |
 | `iris api inbox show\|allow <pat>\|disallow <pat>\|quarantine <book-id>` | Inbound email |
-| `iris api seal --period YYYY [--type yearly] [--preview] <book-id>` | Period seal: closes AND locks the FY (dated journals and accounting dependencies locked until `iris reopen`; raw/notes remain writable); removes nothing (working tree untouched); re-sealing supersedes the prior seal |
+| `iris api seal --period YYYY [--type yearly] [--dry-run] <book-id>` | Period seal: closes AND locks the FY (dated journals and accounting dependencies locked until `iris reopen`; raw/notes remain writable); removes nothing (working tree untouched); re-sealing supersedes the prior seal |
 | `iris api balance [--as-of D] <book-id>` | Server-side trial balance (JSON output) |
 | `iris api holdings [--as-of D] [--json] <book-id>` | Per-unit net positions |
 | `iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id>` | The durable correction/deletion record; `--all --json` exports the book's — its fiscal year's — record as a file |
 | `iris api export [--out DIR] [--year YYYY] [--as-of D] <book-id>` | Server CSVs. `--year` restricts to journals dated in that FY; sealed years stay in the live tree and export like any other |
 | `iris api price add\|list` | Server-side unit prices |
 | `iris networth [history\|movers] --books-dir PARENT` or explicit folder list | Local cross-book valuation; no network; optional currency/date/months/compare |
-| `iris api networth --book id [--as-of D]` | One cloud book only |
+| `iris api networth --book-id id [--as-of D]` | One cloud book only |
 
 **Recording prices (Net Worth):** `--price` is the value of **one whole
 unit** in the reporting currency (decimals OK); `--unit` is the symbol
@@ -1989,6 +3509,7 @@ Environment variables:
 | Variable | Purpose |
 | --- | --- |
 | `IRIS_API_TOKEN` | PAT; takes precedence over the cached login token |
+| `IRISBOOKS_TOKEN_FILE` | Selected token path; a separate private directory per account/environment (default `~/.config/irisbooks/token.json`) |
 | `IRIS_BOOK` | Default book ID for cloud commands (positional arg wins) |
 | `IRIS_API_ENDPOINT` | API endpoint override; takes precedence over everything below |
 | `IRISBOOKS_APP_BASE` | App base URL (default `https://irisbooks.io`) |
@@ -2008,8 +3529,8 @@ only: book deleted, access revoked, session expired).
 | --- | --- | --- |
 | Entry missing from reports | Status is `draft` — reports are posted-only | `iris post <file>` or edit `status:` |
 | `iris validate` errors | Unbalanced entry; unknown account; `date:` ≠ filename prefix; bad status; YAML parse; incoherent JP `tax` block | Fix the named file; re-run. Add missing accounts to the chart — never invent paths in the journal |
-| `iris: command not found` | Binary not installed on this host | Install: `curl -fsSL https://irisbooks.io/install.sh \| sh` (macOS/Linux) or `irm https://irisbooks.io/install.ps1 \| iex` (Windows PowerShell), confirm with `iris version`. Sandboxed agents: there is **no** bundled copy in the book — use the host's `iris mcp serve` over MCP |
-| Validate footer: "N file(s) blocked in the sync queue" | Server rejected a push (not a file problem) | `iris attention list` → fix cause → re-save the journal (or `iris attention retry`) |
+| `iris: command not found` | CLI unavailable on the current PATH | Check the actual host/VM, refreshed PATH and installer's absolute executable path, then run `iris version`. Install only if missing; see [getting started](getting-started.md). A sandboxed assistant can use a reachable host MCP server after `check_update`; no executable is bundled in a Book. |
+| Validate footer: "N file(s) blocked in the sync queue" | Server rejected a push (not a file problem) | `iris sync issues list` → fix cause → re-save the journal (or `iris sync issues retry`) |
 | `CAPACITY_EXCEEDED` | Operation exceeds its capacity limit (chart replacement: 1,500 accounts) | Narrow report/search scope if possible; preserve accounts used by journals; seek support from the [Discord community](https://discord.gg/wZDsv9gyb9) when the operation cannot safely be reduced. Repeating the same request will not fix it |
 | Sync conflict | Same file changed on both sides; server took the canonical path, yours is a `.conflicted` sidecar | Merge by hand, delete the sidecar, `iris sync`; or `iris conflicts resolve --keep mine\|cloud` |
 | `iris sync` exit code 3 | Terminal disconnect — `--json` carries `disconnectReason`: `"deleted"` (owner deleted the cloud book; local files intact), `"forbidden"` (grant revoked), `"auth_expired"` (session gone) | deleted → keep working locally (reset `book_id` to the local id) or `iris api books new --no-link` + `link --force` (plain `new` refuses while `book_id` still names the deleted book); forbidden → ask the owner to re-invite; auth_expired → `iris api login` |

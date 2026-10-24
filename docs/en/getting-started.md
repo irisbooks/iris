@@ -10,7 +10,13 @@ See [the file workflow](cli-and-llm.md) for folder and tool access boundaries.
 
 ## Path A — Create a book on your machine (CLI)
 
-### 1. Install `iris`
+### 1. Check for `iris`
+
+Run `iris version` first. Reuse an installed CLI; do not install a second copy
+just because a new Book or assistant session is starting. Use `iris update
+--check --json` to inspect available updates and the executable path. A local
+MCP connection has its own `check_update`; updating a shell CLI does not update
+an MCP bundle. Install below only when the tool is missing from this machine.
 
 The CLI is free and provided **as is**. Individual support, bug fixes and
 continued updates are not guaranteed. See [CLI use and support](cli-and-llm.md#cli-use-and-support).
@@ -34,8 +40,8 @@ and puts it on your `PATH`. Confirm with:
 iris version
 ```
 
-If `iris` isn't found, open a new terminal (the `PATH` change takes effect in
-new shells) or run the install command above again.
+If `iris` still isn't found, open a new terminal or use the absolute executable
+path printed by the installer. Check PATH before installing another copy.
 
 ### 2. Create your first book
 
@@ -149,6 +155,13 @@ In PowerShell, set `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'` and
 `$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'` before `iris api login`.
 Successful login saves the service selection. Accounts and cloud books are
 separate between regional services.
+
+Browser login needs a callback reachable from the machine running the CLI.
+For remote/headless work or approval in another browser profile, choose
+`iris api login --device`, approve on your own device, then run
+`iris api login --device-complete`. A waiting result is not authorization;
+confirm with `iris api whoami` before creating, attaching or syncing a book.
+See [login modes and account profiles](cli-reference.md#iris-api-login).
 
 Run inside your book folder, `iris api books new` creates the cloud book from
 that folder's own settings (name, fiscal year, region, …) and links it for

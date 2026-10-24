@@ -113,7 +113,7 @@ Anything under `raw/` — bank CSVs, receipt photos, PDF invoices — is the
 `attachments` entry, and you can walk that link in both directions:
 
 - From a journal, see which documents it cites.
-- From a document, see which journals cite it (`iris show <path>`, or the
+- From a document, see which journals cite it (`iris references <path>`, or the
   "Cited by" panel in the web app's Raw documents browser).
 
 With it, you, your 税理士 or an auditor can go from any entry to its evidence
@@ -123,30 +123,34 @@ search), see [Japan tax & compliance](japan-tax-and-compliance.md).
 ## Region rules — the overlay
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
-law. What is specific to a country — how a line's tax is classified, which
-depreciation methods and specials apply and up to what limit, how a tax
-return's figures are assembled from the ledger — lives in a **region
-overlay**: a versioned set of rules and computations (**recipes**), written in
-YAML and CEL. Overlays are community-maintained open source, and can serve
-a region or another purpose. For a Japanese book, the JP pack covers the
-税区分 of consumption-tax lines, depreciation specials and their caps,
-when 定率法 switches to its revised rate, and the
-figures of the 消費税 return.
+law. Reusable accounting functions live in **Overlays**: versioned rules and
+computations (**recipes**) written in YAML and CEL. Each function is selected
+independently. Japanese tax classification, tax amount proposals, filing aids,
+small-asset deduction checks and declining-balance calculations are separate
+Overlays. The public repository holds their sources, guides and examples.
 
 Your book pins published versions in `config/book.yaml` — a Japanese book, for
 example:
 
 ```yaml
 region: JP
-overlay: jp@2026.09.1
+overlays:
+  - journal-balance@2026.10.1
+  - inventory-disposal@2026.10.1
+  - jp-tax-classification@2026.10.1
+  - jp-tax-amount@2026.10.1
+  - jp-tax-filing@2026.10.1
+  - jp-small-asset-deduction@2026.10.1
+  - jp-declining-balance@2026.10.1
 ```
 
-Compatible published packs can also be selected together with `overlays:`.
-You and your AI can choose packs, create book-specific rules and contribute
-improvements to the community.
+This is the new Japanese business preset's candidate selection; signed publication
+is pending. Each selected function needs an exact verified copy inside the Book.
+You and your AI can change the selection, create Book-specific rules and
+contribute improvements to the community.
 
-- **Rules** check your entries. `iris validate` runs them, and the cloud runs
-  the same version on every write.
+- **Rules** check your entries through local `iris validate`. The cloud stores
+  definitions and results without executing Overlay policy.
 - **Recipes** compute region figures — a 定率法 schedule, the 消費税 return —
   and record the result together with its source (the overlay version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
@@ -156,9 +160,9 @@ improvements to the community.
   you decide. Figures recorded under an older version keep being checked
   against that version.
 
-By default, a book in a region without an overlay yet has no `overlay:` line
-and gets universal checks only (balanced entries, known accounts, dates, amounts);
-once an overlay for its region is published, `iris overlay upgrade` pins it.
+An omitted or empty selection enables no optional functions. Universal checks
+(balanced entries, known accounts, dates and amounts) remain active. Region never
+enables an Overlay automatically; upgrades change already selected versions.
 
 The published overlays are open source (Apache-2.0) at
 [github.com/irisbooks/overlays](https://github.com/irisbooks/overlays), so you

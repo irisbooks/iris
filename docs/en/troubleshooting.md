@@ -37,12 +37,12 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 
 ## "iris: command not found"
 
-The `iris` binary isn't on this machine's `PATH` yet. Install it
-(`curl -fsSL https://irisbooks.io/install.sh | sh` on macOS/Linux,
-`irm https://irisbooks.io/install.ps1 | iex` on Windows PowerShell), then check
-with `iris version`. If you're working in a sandboxed AI environment, there is
-**no** copy bundled inside the book — the host runs `iris mcp serve` and your
-assistant calls the verbs over MCP instead.
+The shell cannot find `iris` on its current `PATH`. Check which machine or VM
+the shell uses, open a new terminal after installation, or try the absolute
+executable path reported by the installer. Run `iris version` on that copy.
+Install only if the tool is actually missing; see [getting started](getting-started.md).
+A sandboxed assistant may instead use a reachable host MCP server; verify
+`check_update` there. A Book contains no bundled CLI executable.
 
 ## Sync rejections (needs-attention)
 
@@ -55,7 +55,7 @@ queue"* — the files are fine, the *push* was rejected.
 To clear it:
 
 ```bash
-iris attention list      # read the field-level reason
+iris sync issues list      # read the field-level reason
 ```
 
 Then fix the cause — usually:
@@ -71,8 +71,8 @@ If your fix was in a *different* file (e.g. you fixed the chart days ago and
 won't touch the journal again), nudge the engine instead:
 
 ```bash
-iris attention retry            # re-push everything in the queue
-iris attention retry --path <relpath>   # just one file
+iris sync issues retry            # re-push everything in the queue
+iris sync issues retry --path <relpath>   # just one file
 ```
 
 ## Capacity limits (`CAPACITY_EXCEEDED`)

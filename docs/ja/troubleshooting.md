@@ -35,12 +35,12 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 
 ## 「iris: command not found」
 
-`iris` バイナリがまだこのマシンの `PATH` にありません。インストールして
-（macOS / Linux は `curl -fsSL https://irisbooks.io/install.sh | sh`、
-Windows PowerShell は `irm https://irisbooks.io/install.ps1 | iex`）、
-`iris version` で確認します。サンドボックスの AI 環境で作業して
-いる場合、帳簿内に同梱コピーは**ありません**。ホストが `iris mcp serve` を実行し、
-アシスタントが各動詞を MCP 経由で呼び出します。
+現在のシェルの `PATH` から `iris` を見つけられない状態です。
+シェルが動くマシン・VMを確認し、インストール後なら新しいターミナルを開くか、
+インストーラーが表示した実行ファイルの絶対パスを使います。そのコピーで `iris version` を確認してください。
+実際にCLIがない場合だけ、[はじめに](getting-started.md)の手順でインストールします。
+サンドボックスのAIは、接続できるホストのMCPで `check_update` を確認して使う方法もあります。
+BookにCLIの実行ファイルは同梱されません。
 
 ## 同期の拒否（needs-attention）
 
@@ -53,7 +53,7 @@ Windows PowerShell は `irm https://irisbooks.io/install.ps1 | iex`）、
 解消するには:
 
 ```bash
-iris attention list      # フィールド単位の理由を読む
+iris sync issues list      # フィールド単位の理由を読む
 ```
 
 そして原因を直します。たいていは:
@@ -68,8 +68,8 @@ iris attention list      # フィールド単位の理由を読む
 は、エンジンを促します。
 
 ```bash
-iris attention retry            # キュー内すべてを再 push
-iris attention retry --path <relpath>   # 1ファイルのみ
+iris sync issues retry            # キュー内すべてを再 push
+iris sync issues retry --path <relpath>   # 1ファイルのみ
 ```
 
 ## 容量の上限（`CAPACITY_EXCEEDED`）

@@ -8,7 +8,7 @@
 |---|---|---|
 | [`llm.md`](llm.md) | The AI-facing manual — the working contract an AI assistant follows when operating on an IrisBooks book | <https://irisbooks.io/llms-full.txt> |
 | [`llms-key-facts.md`](llms-key-facts.md) | The overview + key-facts block spliced into the `llms.txt` index | <https://irisbooks.io/llms.txt> |
-| [`en/`](en/) · [`ja/`](ja/) | The user manual (English / Japanese) | <https://irisbooks.io/manual/> |
+| [`en/`](en/) · [`ja/`](ja/) | The user manual (English / Japanese) | <https://irisbooks.io/docs/> |
 
 The region overlays a book pins by `overlay:` (YAML + CEL rules, recipes,
 derivations) are open source in <https://github.com/irisbooks/overlays>.
