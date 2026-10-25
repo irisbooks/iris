@@ -45,8 +45,23 @@ require("secrets.MINISIGN_" in sign_job and "secrets.MINISIGN_" not in validate_
         "signing.yml: key secrets belong to the approved sign job")
 require("secrets.CANDIDATE_SIGNER_ROLE_ARN" not in validate_job, "signing.yml: the signer role belongs to the approved sign job")
 names = set(re.findall(r"secrets\.([A-Z0-9_]+)", signing))
-require(names <= {"MINISIGN_SECRET_KEY", "MINISIGN_KEY_PASSWORD", "CANDIDATE_BUCKET",
-                  "CANDIDATE_VALIDATOR_ROLE_ARN", "CANDIDATE_SIGNER_ROLE_ARN"}, f"signing.yml: unexpected secrets {sorted(names)}")
+require(names <= {"MINISIGN_SECRET_KEY", "MINISIGN_KEY_PASSWORD", "CANDIDATE_BUCKET", "CANDIDATE_VALIDATOR_ROLE_ARN",
+                  "CANDIDATE_SIGNER_ROLE_ARN", "RELEASE_DISPATCH_APP_KEY"}, f"signing.yml: unexpected secrets {sorted(names)}")
+
+# The dispatch App key mints one token, after signatures are stored, that can
+# only dispatch workflows in the application repo.
+app_steps = [i for i, step in enumerate(steps) if "secrets.RELEASE_DISPATCH_APP_KEY" in step]
+store = [i for i, step in enumerate(steps) if "upload.sh" in step]
+require(len(app_steps) == 1 and bool(store) and app_steps[0] > store[-1],
+        "signing.yml: the dispatch App key is used once, after the signatures are stored")
+if len(app_steps) == 1:
+    app_step = steps[app_steps[0]]
+    require("uses: actions/create-github-app-token@" in app_step, "signing.yml: the App key only feeds create-github-app-token")
+    require(re.findall(r"permission-[a-z-]+: \w+", app_step) == ["permission-actions: write"],
+            "signing.yml: the dispatch token is limited to actions: write")
+    require("repositories: irisbooks.io\n" in app_step and "owner: fluxlynx\n" in app_step,
+            "signing.yml: the dispatch token is limited to fluxlynx/irisbooks.io")
+    require("secrets.RELEASE_DISPATCH_APP_KEY" not in validate_job, "signing.yml: the dispatch key belongs to the approved sign job")
 # Public logs: staging identifiers must come from secrets (masked), never vars.
 require(re.search(r"vars\.CANDIDATE_(BUCKET|\w*ROLE_ARN)", signing) is None,
         "signing.yml: bucket and role ARNs must be secrets so public logs mask them")

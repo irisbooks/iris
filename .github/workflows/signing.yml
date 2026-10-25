@@ -17,7 +17,9 @@
 # Repository secrets: CANDIDATE_BUCKET, CANDIDATE_VALIDATOR_ROLE_ARN (from SSM
 # /irisbooks/dev/candidate-*); variable CANDIDATE_AWS_REGION. Environment
 # secrets (release-signing only): CANDIDATE_SIGNER_ROLE_ARN,
-# MINISIGN_SECRET_KEY, MINISIGN_KEY_PASSWORD.
+# MINISIGN_SECRET_KEY, MINISIGN_KEY_PASSWORD, and RELEASE_DISPATCH_APP_KEY,
+# the irisbooks-release-dispatch App key (Actions write only), used after
+# signatures are stored to start "collect" in the application repo.
 name: release-signing
 
 on:
@@ -127,3 +129,22 @@ jobs:
           DIGEST: ${{ inputs.digest }}
           CANDIDATE_BUCKET: ${{ secrets.CANDIDATE_BUCKET }}
         run: .github/signing/upload.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/signatures"
+      # After the key is gone: a token that can only dispatch workflows in the
+      # application repo, to start its verifying "collect".
+      - id: dispatch
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: Iv23liYw2gc8LwXUKIXC # irisbooks-release-dispatch (public)
+          private-key: ${{ secrets.RELEASE_DISPATCH_APP_KEY }}
+          owner: fluxlynx
+          repositories: irisbooks.io
+          permission-actions: write
+      - name: Request collection
+        env:
+          GH_TOKEN: ${{ steps.dispatch.outputs.token }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          DIGEST: ${{ inputs.digest }}
+        run: |
+          gh workflow run release-coordinator.yml -R fluxlynx/irisbooks.io --ref main \
+            -f action=collect -f release_id="$RELEASE_ID" -f digest="$DIGEST"
+          echo "Requested collection of $RELEASE_ID ($DIGEST) in the application repository." >>"$GITHUB_STEP_SUMMARY"
