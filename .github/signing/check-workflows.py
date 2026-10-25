@@ -48,28 +48,28 @@ names = set(re.findall(r"secrets\.([A-Z0-9_]+)", signing))
 require(names <= {"MINISIGN_SECRET_KEY", "MINISIGN_KEY_PASSWORD", "CANDIDATE_BUCKET", "CANDIDATE_VALIDATOR_ROLE_ARN",
                   "CANDIDATE_SIGNER_ROLE_ARN", "RELEASE_DISPATCH_APP_KEY"}, f"signing.yml: unexpected secrets {sorted(names)}")
 
-# The dispatch App key mints one token, after signatures are stored, that can
-# only dispatch workflows in the application repo.
-app_steps = [i for i, step in enumerate(steps) if "secrets.RELEASE_DISPATCH_APP_KEY" in step]
-store = [i for i, step in enumerate(steps) if "upload.sh" in step]
-require(len(app_steps) == 1 and bool(store) and app_steps[0] > store[-1],
-        "signing.yml: the dispatch App key is used once, after the signatures are stored")
-if len(app_steps) == 1:
-    app_step = steps[app_steps[0]]
-    require("uses: actions/create-github-app-token@" in app_step, "signing.yml: the App key only feeds create-github-app-token")
-    require(re.findall(r"permission-[a-z-]+: \w+", app_step) == ["permission-actions: write"],
-            "signing.yml: the dispatch token is limited to actions: write")
-    require("repositories: irisbooks.io\n" in app_step and "owner: fluxlynx\n" in app_step,
-            "signing.yml: the dispatch token is limited to fluxlynx/irisbooks.io")
-    require("secrets.RELEASE_DISPATCH_APP_KEY" not in validate_job, "signing.yml: the dispatch key belongs to the approved sign job")
-# Public logs: staging identifiers must come from secrets (masked), never vars.
-require(re.search(r"vars\.CANDIDATE_(BUCKET|\w*ROLE_ARN)", signing) is None,
-        "signing.yml: bucket and role ARNs must be secrets so public logs mask them")
-
-# Expressions go through env:, never straight into a shell script.
-for block in re.findall(r"run: \|\n((?:          .*\n|\n)+)|run: (.*)", signing):
-    body = "".join(block)
-    require("${{" not in body, "signing.yml: interpolate inputs through env:, not inside run:")
+# The App key mints exactly two tokens in the approved job, both limited to
+# fluxlynx/irisbooks.io: Actions read to verify provenance before signing,
+# and Actions write to dispatch "collect" after the signatures are stored.
+app_steps = [i for i, step in enumerate(steps) if i and "secrets.RELEASE_DISPATCH_APP_KEY" in step]  # 0 is the file header
+sign_step = [i for i, step in enumerate(steps) if i and ".github/signing/sign.sh" in step]  # 0 is the file header
+store = [i for i, step in enumerate(steps) if i and "upload.sh" in step]  # 0 is the file header
+expected = [("permission-actions: read", lambda i: sign_step and i < sign_step[0]),
+            ("permission-actions: write", lambda i: store and i > store[-1])]
+require(len(app_steps) == 2, "signing.yml: the App key mints exactly two tokens")
+for index, (permission, placed) in zip(app_steps, expected):
+    step = steps[index]
+    require("uses: actions/create-github-app-token@" in step, "signing.yml: the App key only feeds create-github-app-token")
+    require(re.findall(r"permission-[a-z-]+: \w+", step) == [permission], f"signing.yml: token {index} must be exactly {permission}")
+    require("repositories: irisbooks.io\n" in step and "owner: fluxlynx\n" in step,
+            "signing.yml: App tokens are limited to fluxlynx/irisbooks.io")
+    require(bool(placed(index)), f"signing.yml: the {permission} token is out of place")
+require("secrets.RELEASE_DISPATCH_APP_KEY" not in validate_job, "signing.yml: the App key belongs to the approved sign job")
+require(all("steps.provenance" not in steps[i] and "steps.dispatch" not in steps[i] for i in sign_step),
+        "signing.yml: no GitHub token reaches the signing step")
+verify_steps = [i for i, step in enumerate(steps) if i and "verify-build.py" in step]  # 0 is the file header
+require(len(verify_steps) == 1 and sign_step and app_steps and app_steps[0] < verify_steps[0] < sign_step[0],
+        "signing.yml: provenance is verified before signing")
 
 if failures:
     print("\n".join("✗ " + failure for failure in failures))

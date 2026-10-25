@@ -87,7 +87,8 @@ jobs:
           print(f"- Engine: {engine['version'] + ' (bindings ' + str(engine['bindings']) + ')' if engine else 'none — compatible with ' + c['compatible_engine']}")
           print(f"- Packages: {', '.join(o['pin'] for o in c['overlays']) or 'none'}")
           print(f"- Targets: {', '.join(c['targets'])}; acceptance: {', '.join(c['acceptance'])}")
-          print("\nSigns `checksums.txt` and each package bundle (`overlay:<pin>` trusted comment). Approve only if this matches the release you merged.")
+          print("\nSigns `checksums.txt` and each package bundle (`overlay:<pin>` trusted comment). Before signing, the approved job confirms with GitHub that coordinator run "
+                f"`{c['build']['run_id']}` on main froze exactly this digest; a forged candidate is refused there. Approve only if this matches the release you merged.")
           PY
 
   sign:
@@ -116,6 +117,20 @@ jobs:
           DIGEST: ${{ inputs.digest }}
           CANDIDATE_BUCKET: ${{ secrets.CANDIDATE_BUCKET }}
         run: .github/signing/fetch.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/candidate"
+      # Staging alone does not prove origin: confirm with GitHub that a real
+      # coordinator run on main froze this digest, before the key is used.
+      - id: provenance
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: Iv23liYw2gc8LwXUKIXC # irisbooks-release-dispatch (public)
+          private-key: ${{ secrets.RELEASE_DISPATCH_APP_KEY }}
+          owner: fluxlynx
+          repositories: irisbooks.io
+          permission-actions: read
+      - name: Verify the coordinator run that froze the candidate
+        env:
+          GH_TOKEN: ${{ steps.provenance.outputs.token }}
+        run: python3 -I .github/signing/verify-build.py "$RUNNER_TEMP/candidate/candidate.json"
       - name: Sign the batch
         env:
           MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
