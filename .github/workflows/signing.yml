@@ -12,9 +12,11 @@
 # uploads Actions artifacts (this repository is public). Every action is pinned
 # to a reviewed commit; minisign is pinned by hash.
 #
-# Repository variables: CANDIDATE_BUCKET, CANDIDATE_AWS_REGION,
-# CANDIDATE_VALIDATOR_ROLE_ARN, CANDIDATE_SIGNER_ROLE_ARN (from SSM
-# /irisbooks/dev/candidate-*). Environment secrets (release-signing only):
+# Staging identifiers are secrets, not variables: GitHub echoes a step's
+# env:/with: values into this public repo's logs, and only secrets are masked.
+# Repository secrets: CANDIDATE_BUCKET, CANDIDATE_VALIDATOR_ROLE_ARN (from SSM
+# /irisbooks/dev/candidate-*); variable CANDIDATE_AWS_REGION. Environment
+# secrets (release-signing only): CANDIDATE_SIGNER_ROLE_ARN,
 # MINISIGN_SECRET_KEY, MINISIGN_KEY_PASSWORD.
 name: release-signing
 
@@ -60,14 +62,14 @@ jobs:
           [[ "$DIGEST" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::invalid digest"; exit 1; }
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.CANDIDATE_VALIDATOR_ROLE_ARN }}
+          role-to-assume: ${{ secrets.CANDIDATE_VALIDATOR_ROLE_ARN }}
           aws-region: ${{ vars.CANDIDATE_AWS_REGION }}
           role-session-name: release-signing-validate
       - name: Fetch and verify candidate
         env:
           RELEASE_ID: ${{ inputs.release_id }}
           DIGEST: ${{ inputs.digest }}
-          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+          CANDIDATE_BUCKET: ${{ secrets.CANDIDATE_BUCKET }}
         run: .github/signing/fetch.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/candidate"
       - name: Summarize the signing request
         run: |
@@ -103,14 +105,14 @@ jobs:
         run: .github/signing/install-minisign.sh
       - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ vars.CANDIDATE_SIGNER_ROLE_ARN }}
+          role-to-assume: ${{ secrets.CANDIDATE_SIGNER_ROLE_ARN }}
           aws-region: ${{ vars.CANDIDATE_AWS_REGION }}
           role-session-name: release-signing-sign
       - name: Re-fetch and re-verify the approved candidate
         env:
           RELEASE_ID: ${{ inputs.release_id }}
           DIGEST: ${{ inputs.digest }}
-          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+          CANDIDATE_BUCKET: ${{ secrets.CANDIDATE_BUCKET }}
         run: .github/signing/fetch.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/candidate"
       - name: Sign the batch
         env:
@@ -123,5 +125,5 @@ jobs:
         env:
           RELEASE_ID: ${{ inputs.release_id }}
           DIGEST: ${{ inputs.digest }}
-          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+          CANDIDATE_BUCKET: ${{ secrets.CANDIDATE_BUCKET }}
         run: .github/signing/upload.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/signatures"
