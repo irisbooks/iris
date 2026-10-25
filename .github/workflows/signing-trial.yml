@@ -1,0 +1,30 @@
+# Prove the signing path with a disposable key on every change to it:
+# a valid batch signs and verifies, and each negative control refuses.
+# Holds no secrets and never touches the release-signing environment.
+name: signing-trial
+
+on:
+  pull_request:
+    paths: [".github/**"]
+  push:
+    branches: [main]
+    paths: [".github/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Workflow guards
+        run: python3 -I .github/signing/check-workflows.py
+      - name: Install pinned minisign
+        run: .github/signing/install-minisign.sh
+      - name: Disposable-key trial
+        run: python3 -I .github/signing/trial.py
