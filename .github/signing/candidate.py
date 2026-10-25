@@ -212,6 +212,9 @@ def build_identity(commit, environ):
     if environ.get("GITHUB_ACTIONS") != "true":
         return {"kind": "local"}
     values = {key: environ.get("GITHUB_" + key.upper(), "") for key in GITHUB_BUILD}
+    # A workflow_run job's GITHUB_SHA is main's latest commit, not the one it
+    # builds; the coordinator names the checked-out source explicitly.
+    values["sha"] = environ.get("RELEASE_SOURCE_SHA") or values["sha"]
     if not all(values.values()):
         fail("GitHub build identity is incomplete.")
     if values["sha"] != commit:
