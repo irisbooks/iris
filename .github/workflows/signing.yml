@@ -21,6 +21,7 @@
 # the irisbooks-release-dispatch App key (Actions write only), used after
 # signatures are stored to start "collect" in the application repo.
 name: release-signing
+run-name: Sign ${{ inputs.release_id }} (${{ inputs.digest }})
 
 on:
   workflow_dispatch:
