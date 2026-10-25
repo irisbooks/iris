@@ -35,13 +35,21 @@ require(signing.count("environment: release-signing") == 1, "signing.yml: exactl
 require(signing.count("if: github.ref == 'refs/heads/main'") == 2, "signing.yml: both jobs must refuse non-main refs")
 require("contents: write" not in signing and "id-token: write" in signing, "signing.yml: no write tokens beyond OIDC")
 
-# Secrets appear only in the one step that runs sign.sh, after approval.
+# Key material reaches only the one step that runs sign.sh, after approval.
+# Other secrets are staging identifiers kept secret so logs mask them.
 steps = re.split(r"\n      - ", signing)
-holders = [step for step in steps if "secrets." in step]
-require(len(holders) == 1 and "sign.sh" in holders[0], "signing.yml: secrets may reach only the sign.sh step")
-sign_job = signing.split("\n  sign:\n", 1)[1]
-require("secrets." in sign_job and "secrets." not in signing.split("\n  sign:\n", 1)[0],
-        "signing.yml: secrets belong to the approved sign job")
+holders = [step for step in steps if "secrets.MINISIGN_" in step]
+require(len(holders) == 1 and "sign.sh" in holders[0], "signing.yml: key secrets may reach only the sign.sh step")
+validate_job, sign_job = signing.split("\n  sign:\n", 1)
+require("secrets.MINISIGN_" in sign_job and "secrets.MINISIGN_" not in validate_job,
+        "signing.yml: key secrets belong to the approved sign job")
+require("secrets.CANDIDATE_SIGNER_ROLE_ARN" not in validate_job, "signing.yml: the signer role belongs to the approved sign job")
+names = set(re.findall(r"secrets\.([A-Z0-9_]+)", signing))
+require(names <= {"MINISIGN_SECRET_KEY", "MINISIGN_KEY_PASSWORD", "CANDIDATE_BUCKET",
+                  "CANDIDATE_VALIDATOR_ROLE_ARN", "CANDIDATE_SIGNER_ROLE_ARN"}, f"signing.yml: unexpected secrets {sorted(names)}")
+# Public logs: staging identifiers must come from secrets (masked), never vars.
+require(re.search(r"vars\.CANDIDATE_(BUCKET|\w*ROLE_ARN)", signing) is None,
+        "signing.yml: bucket and role ARNs must be secrets so public logs mask them")
 
 # Expressions go through env:, never straight into a shell script.
 for block in re.findall(r"run: \|\n((?:          .*\n|\n)+)|run: (.*)", signing):
