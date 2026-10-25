@@ -142,6 +142,50 @@ def staging_round_trip(temp, environ, pubkey):
     check("a stored signature set is never replaced", again.returncode != 0 and "trial-bucket" not in again.stderr, again.stderr)
 
 
+def build_provenance(temp):
+    """verify-build.py against a fake GitHub API: a real run passes, forgeries refuse."""
+    spec = importlib.util.spec_from_file_location("verify_build", HERE / "verify-build.py")
+    verify_build = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verify_build)
+    root = temp / "provenance"
+    root.mkdir()
+    candidate, _, digest = fixture(root)
+    raw = candidate.read_bytes()
+    real_run = {"id": 1, "run_attempt": 1, "path": ".github/workflows/release-coordinator.yml", "head_branch": "main",
+                "status": "completed", "conclusion": "success", "repository": {"full_name": "fluxlynx/irisbooks.io"}}
+    real_artifact = {"name": f"approval-{digest}", "workflow_run": {"id": 1}}
+
+    def api(run=None, artifacts=None):
+        def fetch(path):
+            if "/artifacts?" in path:
+                return {"artifacts": [real_artifact] if artifacts is None else artifacts}
+            return {**real_run, **(run or {})}
+        return fetch
+
+    try:
+        verify_build.verify(raw, api())
+        check("provenance accepts the real coordinator run", True)
+    except ValueError as error:
+        check("provenance accepts the real coordinator run", False, str(error))
+    forgeries = {
+        "another workflow": api(run={"path": ".github/workflows/check.yml"}),
+        "a branch run": api(run={"head_branch": "topic"}),
+        "another attempt": api(run={"run_attempt": 2}),
+        "an unfinished run": api(run={"status": "in_progress", "conclusion": None}),
+        "a failed run": api(run={"conclusion": "failure"}),
+        "another repository": api(run={"repository": {"full_name": "someone/irisbooks.io"}}),
+        "no approval artifact": api(artifacts=[]),
+        "another digest": api(artifacts=[{"name": "approval-" + "0" * 64, "workflow_run": {"id": 1}}]),
+        "an artifact from another run": api(artifacts=[{**real_artifact, "workflow_run": {"id": 2}}]),
+    }
+    for name, fetch in forgeries.items():
+        try:
+            verify_build.verify(raw, fetch)
+            check(f"provenance refuses {name}", False, "accepted")
+        except ValueError:
+            check(f"provenance refuses {name}", True)
+
+
 def main():
     if not shutil.which("minisign"):
         sys.exit("trial: minisign is required")
@@ -240,6 +284,7 @@ def main():
             f"exec {real} \"$@\"\n"))
 
         staging_round_trip(temp, environ, pubkey)
+        build_provenance(temp)
 
     print(f"\n{len(failures)} failure(s)" if failures else "\nall signing trial checks passed")
     return 1 if failures else 0
