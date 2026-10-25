@@ -1,0 +1,127 @@
+# Sign one frozen release candidate with the release key, after owner approval.
+#
+# Dispatched with the release id and candidate digest the coordinator in the
+# private application repo reports. `validate` (no key) fetches the candidate
+# by identity from private staging and checks it was frozen by the trusted
+# workflow on main; its summary is what the owner reviews. `sign` runs only
+# after approval of the `release-signing` environment, re-fetches and
+# re-verifies the same bytes, signs the batch with .github/signing/sign.sh and
+# stores the signatures create-only beside the candidate.
+#
+# Nothing here builds source, restores caches, executes candidate payloads or
+# uploads Actions artifacts (this repository is public). Every action is pinned
+# to a reviewed commit; minisign is pinned by hash.
+#
+# Repository variables: CANDIDATE_BUCKET, CANDIDATE_AWS_REGION,
+# CANDIDATE_VALIDATOR_ROLE_ARN, CANDIDATE_SIGNER_ROLE_ARN (from SSM
+# /irisbooks/dev/candidate-*). Environment secrets (release-signing only):
+# MINISIGN_SECRET_KEY, MINISIGN_KEY_PASSWORD.
+name: release-signing
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_id:
+        description: Release id from release/request.json (YYYY-MM-DD.N)
+        required: true
+        type: string
+      digest:
+        description: SHA-256 of the frozen candidate.json
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-signing
+  cancel-in-progress: false
+
+env:
+  TRUSTED_WORKFLOW: fluxlynx/irisbooks.io/.github/workflows/release-coordinator.yml@refs/heads/main
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check request
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          DIGEST: ${{ inputs.digest }}
+        run: |
+          [[ "$RELEASE_ID" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\.[1-9][0-9]{0,2}$ ]] || { echo "::error::invalid release id"; exit 1; }
+          [[ "$DIGEST" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::invalid digest"; exit 1; }
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.CANDIDATE_VALIDATOR_ROLE_ARN }}
+          aws-region: ${{ vars.CANDIDATE_AWS_REGION }}
+          role-session-name: release-signing-validate
+      - name: Fetch and verify candidate
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          DIGEST: ${{ inputs.digest }}
+          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+        run: .github/signing/fetch.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/candidate"
+      - name: Summarize the signing request
+        run: |
+          python3 -I - "$RUNNER_TEMP/candidate/candidate.json" >>"$GITHUB_STEP_SUMMARY" <<'PY'
+          import hashlib, json, sys
+          raw = open(sys.argv[1], "rb").read()
+          c = json.loads(raw)
+          engine = c["engine"]
+          print(f"## Signing request {c['release_id']}\n")
+          print(f"- Candidate digest: `{hashlib.sha256(raw).hexdigest()}`")
+          print(f"- Application commit: `{c['application']['commit']}`")
+          print(f"- Built by run `{c['build']['run_id']}` attempt `{c['build']['run_attempt']}`")
+          print(f"- Engine: {engine['version'] + ' (bindings ' + str(engine['bindings']) + ')' if engine else 'none — compatible with ' + c['compatible_engine']}")
+          print(f"- Packages: {', '.join(o['pin'] for o in c['overlays']) or 'none'}")
+          print(f"- Targets: {', '.join(c['targets'])}; acceptance: {', '.join(c['acceptance'])}")
+          print("\nSigns `checksums.txt` and each package bundle (`overlay:<pin>` trusted comment). Approve only if this matches the release you merged.")
+          PY
+
+  sign:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release-signing
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned minisign
+        run: .github/signing/install-minisign.sh
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.CANDIDATE_SIGNER_ROLE_ARN }}
+          aws-region: ${{ vars.CANDIDATE_AWS_REGION }}
+          role-session-name: release-signing-sign
+      - name: Re-fetch and re-verify the approved candidate
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          DIGEST: ${{ inputs.digest }}
+          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+        run: .github/signing/fetch.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/candidate"
+      - name: Sign the batch
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_KEY_PASSWORD: ${{ secrets.MINISIGN_KEY_PASSWORD }}
+        run: |
+          .github/signing/sign.sh "$RUNNER_TEMP/candidate/candidate.json" "$RUNNER_TEMP/candidate" \
+            "$RUNNER_TEMP/signatures" "$(cat .github/signing/minisign.pub)"
+      - name: Store signatures
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          DIGEST: ${{ inputs.digest }}
+          CANDIDATE_BUCKET: ${{ vars.CANDIDATE_BUCKET }}
+        run: .github/signing/upload.sh "$RELEASE_ID" "$DIGEST" "$RUNNER_TEMP/signatures"
