@@ -28,6 +28,8 @@ for workflow in sorted((ROOT / ".github/workflows").glob("*.yml")):
     require("pull_request_target" not in text and "workflow_run" not in text, f"{workflow.name}: privileged trigger")
 
 signing = (ROOT / ".github/workflows/signing.yml").read_text()
+require("\nrun-name: Sign ${{ inputs.release_id }} (${{ inputs.digest }})\n" in signing,
+        "signing.yml: run title must bind the approved release id and candidate digest")
 triggers = signing.split("\non:", 1)[1].split("\npermissions:", 1)[0]
 require(re.findall(r"^  (\w+):", triggers, re.M) == ["workflow_dispatch"], "signing.yml: workflow_dispatch is the only trigger")
 require("\npermissions: {}\n" in signing, "signing.yml: top-level permissions must be empty")
