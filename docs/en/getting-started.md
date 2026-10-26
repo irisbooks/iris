@@ -33,8 +33,13 @@ On Windows (PowerShell):
 irm https://irisbooks.io/install.ps1 | iex
 ```
 
-The installer downloads the binary for your platform, verifies its signature,
-and puts it on your `PATH`. Confirm with:
+The installer downloads the binary for your platform, checks its SHA-256
+checksum, and puts it on your `PATH`. When `minisign` is installed, it also
+verifies the signed checksum file; otherwise it prints a notice and uses
+SHA-256 only. A checksum alone checks download integrity, not release
+authenticity. Install `minisign` first if you require signature verification.
+Later, `iris update` verifies signatures with its built-in verifier and needs
+no external `minisign`. Confirm the installed version with:
 
 ```bash
 iris version

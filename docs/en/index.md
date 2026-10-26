@@ -16,8 +16,8 @@ account; optional cloud sync adds web access and collaboration.
 - **Personal tracking** — understand everyday spending and balances without
   keeping every receipt. Start with a cash check-in or a statement and let
   your AI help at a level of detail you can maintain.
-- **Business owners** — freelancers, sole proprietors (個人事業主), and SMBs
-  who keep their own books and file 青色申告 / 確定申告. Start with the CLI +
+- **Business owners** — freelancers, sole proprietors, and SMBs
+  who keep their own books. Start with the CLI +
   your own AI ([Bookkeeping with the CLI and your own LLM](cli-and-llm.md)),
   add the web app if you use the cloud.
 - **Accountants / 税理士** — firms managing many client books. The
@@ -38,7 +38,7 @@ account; optional cloud sync adds web access and collaboration.
 5. [Receipts by email](email-inbox.md) — your book's receiving address,
    the sender allowlist, and the quarantine.
 6. [Your AI on the go (remote connector)](remote-connector.md) — figures,
-   drafts, and receipts from your phone (cloud).
+   journal reads, and optional receipt capture from your phone (cloud).
 7. [Japan tax & compliance](japan-tax-and-compliance.md) — correction
    history and search, consumption tax (消費税), fixed assets & depreciation,
    year-end close.

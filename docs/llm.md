@@ -555,10 +555,10 @@ your-book/
   back to the canonical layout.
 - The journal **filename is the entry's permanent identity** — it stays put as
   status changes. Files you write follow `YYYY-MM-DD-<payee-slug>-NN.md`;
-  entries created in the web app or through the remote connector are named by
-  the server `YYYY-MM-DD-<slug>-jNNN.md`, the slug keeping native script. Both
-  are valid and never collide (separate numbering); never rename one to match
-  the other.
+  older server-created entries use `YYYY-MM-DD-<slug>-jNNN.md`, the slug
+  keeping native script. Both are valid and never collide (separate numbering);
+  never rename one to match the other. Current web/remote accounting access does
+  not create journals; author changes locally and sync them.
 
 Before reusing parsed source data, compare `source_sha` with the current
 `iris hash`. Reconcile changed rows and existing journal links instead of
@@ -675,7 +675,7 @@ before the first sync, files appear as added. Synced earlier changes need file
 history. The locked writer preserves recorded results and retains the original
 local layer/parents; archive and known seal guards still apply. Known seals are
 cached observations, not current cloud authority. Preview performs no network,
-ledger evaluation, historical replay or runtime/cache writes. `affected_results`
+ledger evaluation, historical replay or runtime/cache writes. `affectedResults`
 uses zero-based journal lines (`-1` for whole records), field paths and raw view
 declarations; this is not resolved-view financial acceptance. Source availability
 (`retained`, `will-retain`, `unavailable`), machine trust and successful replay
@@ -1016,7 +1016,7 @@ Save the explicit request as `raw/allocation-april.json` in both Books:
 ```
 
 Run the same pure calculator; it returns gross 10,001, business 3,333,
-private 6,668 and `evidence_verification: unchecked`. Verify the cited source
+private 6,668 and `evidenceVerification: unchecked`. Verify the cited source
 bytes and facts separately, and retain the result/input hash in
 `notes/allocation-april.md`. Personal pays the full 10,001 on April 10:
 
@@ -1438,6 +1438,12 @@ source_sha: <iris hash>
 parsed_at: 2026-05-11
 counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
 ---
+
+## Rows
+| id | date       | description | amount | status    | target / reason                          |
+|----|------------|-------------|--------|-----------|------------------------------------------|
+| 1  | 2026-04-01 | Amazon JP   |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
+```
 
 ## Fund units, partial sales and dated valuation
 
@@ -1862,10 +1868,10 @@ iris allocation --input raw/allocation-jan.json
 ```
 
 The result is gross `10001`, business `2500`, private `7501` JPY. Amounts and minor
-units are exact strings. `evidence_verification: unchecked` means the calculator
+units are exact strings. `evidenceVerification: unchecked` means the calculator
 has not opened the evidence files; review those sources separately. Retain the
 request, calculation version, input hash and result in your Book's notes.
-`input_sha` hashes the parsed request in canonical field order; formatting changes
+`inputSha` hashes the parsed request in canonical field order; formatting changes
 preserve it.
 
 All dates are inclusive. The whole charge period must fit inside one basis
@@ -2111,12 +2117,6 @@ those mistakes. Retain the request, result and references, review the ledger,
 and run `iris validate` / `iris reconcile` before authorized sync. Tax-return
 mapping and automatic mixed-use asset posting remain unsupported.
 
-## Rows
-| id | date       | description | amount | status    | target / reason                          |
-|----|------------|-------------|--------|-----------|------------------------------------------|
-| 1  | 2026-04-01 | Amazon      |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
-```
-
 ### Cross-references
 
 A journal points at its evidence via `attachments`; the link walks both ways:
@@ -2156,6 +2156,13 @@ A standalone CLI update does not update a bundle. Older binaries lacking
 `update` need the installer; compare `iris version` with
 `https://irisbooks.io/dl/latest/version.txt` first. Keep local bookkeeping
 available if the release server cannot be reached.
+
+The shell and PowerShell installers always check SHA-256 and also verify the
+signed checksum file when external `minisign` is installed. Without it they
+print a notice and use SHA-256 only, which checks download integrity without
+authenticating the release. Install `minisign` first when signature verification
+is required, and report which checks actually ran. `iris update` uses its
+built-in signature verifier and needs no external `minisign`.
 
 ### Creating a book (CLI)
 
@@ -2219,8 +2226,8 @@ For a new cloud mirror of an existing local book, reuse a verified host sign-in;
 otherwise use `login → user approves in the host browser → auth_status`. Then
 `create_cloud_book(book=...) → sync(book=...)`. Do not create a local book
 first when the user wants to clone an existing cloud book.
-`login` returns immediately with `status=pending`, `authorization_url` and
-`expires_at`; show the URL if the browser did not open. Repeating it while
+`login` returns immediately with `status=pending`, `authorizationUrl` and
+`expiresAt`; show the URL if the browser did not open. Repeating it while
 pending returns the same URL. Ask the user to approve, then call `auth_status`
 to confirm `signed_in`; never read or request a token or PKCE verifier.
 `auth_status` validates the host credential by default (`validate=false` only
@@ -2235,7 +2242,7 @@ login and revokes/removes the cached session; it cannot remove an environment PA
 `create_cloud_book` adopts the selected local config and links the resulting
 cloud ID without syncing automatically. It uses a stable local-identity retry
 key: retry an uncertain create on the same book. A `created_unlinked` result
-includes `book_id` for recovery with `link_book`. Existing-cloud path:
+includes `bookId` for recovery with `link_book`. Existing-cloud path:
 `list_cloud_books → link_book(book=..., cloud_book_id=...) → sync(book=...)`;
 attachment requires Owner access, matching settings and an untouched starter or
 a target without file history. It atomically adopts config/chart/AGENTS.md;
@@ -2249,7 +2256,7 @@ folder, parent mode supports
 Do not call `create_book` first: clone needs an absent or empty destination.
 It reuses `iris clone`, downloads files atomically, installs local AI guides
 and initializes sync state/snapshots. The result includes `status=cloned`,
-`book`, host `path`, `book_id`, name, region, currency and fiscal year; the
+`book`, host `path`, `bookId`, name, region, currency and fiscal year; the
 book is immediately available to `list_books`, `status`, `diff` and `sync`.
 An ordinary clone starts with no pending diff. A legacy book missing `AGENTS.md`
 gains a contract pending for the first sync. `clone_book` refuses populated
@@ -2370,11 +2377,22 @@ in the book currency's minor units** (scale 0 for JPY, 2 for USD), dates are
 `YYYY-MM-DD` strings, and the document is pretty-printed. `?` marks a key that
 is omitted when empty. Parse these — the human-readable text is not a contract.
 
+CLI and local MCP result fields use lowerCamelCase across command families:
+`fiscalYear`, `commonCompletions`, `referenceData`, `newPath`, `localSha`,
+`detectedAt`, `versionId` and `sizeBytes`. The old snake_case result keys are
+replaced; update scripts and result readers. Dictionary keys, package fields,
+recipe parameters, source documents and JSON input schemas keep their declared
+names. Allocation result metadata uses `grossAmount`, `businessAmount`,
+`privateAmount` and `inputSha`; its embedded `input` retains the replayable
+request schema (`schema_version`, `gross_amount`, etc.). CLI flags, MCP input
+arguments, stored Book files, REST and remote MCP wire schemas keep their
+separate documented spelling.
+
 ```text
 validate --json    { book, bookOk, chartOk, journals, assets, notes,
                      errors, warnings, hints, ok,
                      issues[{ severity, file, code?, message }] }
-autocomplete       { path, view?, revision, changed, applied, proposal,
+journal complete  { path, view?, revision, changed, applied, proposal,
                      completion?, overlay?, primitive?, primitiveVersion, params?,
                      allocations[{ line, account, unit, method, quantity, cost,
                        lots[{ lot, quantity, cost }] }] }
@@ -2383,12 +2401,12 @@ status --json      { name, bookId, region, language, currency,
                      archive?{ sourceBookId, fiscalYear },
                      draftCount?, remoteDeleted? }
 search --json      [ { path, date, payee, status, amount, lines } ]
-show --json        { ref, mode,
+references --json  { ref, mode,
                      citedBy[{ path, date, payee, status }],
                      cites[{ path, type?, locator?, alsoCitedBy[] }] }
-organize --json    [ { family, code, path, new_path?, delete?, reason } ]
-attention list     { records[{ path, local_fs, local_sha, code?,
-                       issues[{ field, message, rule? }], detected_at, reason? }] }
+organize --json    [ { family, code, path, newPath?, delete?, reason } ]
+sync issues list --json { records[{ path, localFs, localSha, code?,
+                       issues[{ field, message, rule? }], detectedAt, reason? }] }
 price list --json  [ { unit, currency, date, valueMicro, source?,
                        origin, recordedAt, revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
@@ -2417,9 +2435,9 @@ Cloud reads return:
 ```text
 api balance   [ { account, debits, credits, type?, net } ]
 api holdings  [ { account, unit, quantity } ]
-api history   [ { id, path, op, sha?, version_id?, size_bytes,
-                  actor, actor_display?, source?, reason?,
-                  post_seal_period?, moved_from_path?, ts } ]
+api history   [ { id, path, op, sha?, versionId?, sizeBytes,
+                  actor, actorDisplay?, source?, reason?,
+                  postSealPeriod?, movedFromPath?, ts } ]
 ```
 
 `Balance.net` is always numeric, including `0` for a cleared account. With
@@ -2438,7 +2456,7 @@ Four things worth knowing before you parse:
   Lines missing a key form an explicit empty-keys group, so unclassified lines
   stay visible instead of being dropped.
 - `api history` is the durable correction/deletion record (訂正・削除の履歴).
-  `actor` is the stable audit identity; `post_seal_period` is set when the
+  `actor` is the stable audit identity; `postSealPeriod` is set when the
   change landed *after* that fiscal year was sealed. It returns the newest
   100 events unless narrowed: `--path` (one file), `--all` (every event — a
   book is one fiscal year, so this is the year's whole record, post-seal
@@ -2593,7 +2611,7 @@ A cloud book's fiscal year is fixed; a different year requires another book.
 For annual reuse, use `iris yearend --link-existing <next-year-book-id>` or
 parent MCP `yearend(..., link_existing="<id>")`. Preflight and attachment run
 before journal moves. The target retains its grants and inbox; dry-run reports
-`copy_grants=false` and `transfer_inbox=false`. The successor syncs before the
+`copyGrants=false` and `transferInbox=false`. The successor syncs before the
 old linked book. This option cannot be combined with `--local`.
 
 For an LLM in a VM without usable browser/passkey/localhost callbacks, prefer
@@ -2724,8 +2742,11 @@ iris export assets                        # per-asset schedule as CSV
 `asset_account`; `iris asset depreciate` books the charges (for `expensed`,
 the whole cost in the acquisition month). Never also expense the purchase.
 
-**`schedule:` — recorded vs computed.** `straight_line` and `expensed` iris
-computes from `useful_life_months`. `declining_balance` has no engine math:
+**`schedule:` — recorded vs computed.** `straight_line` computes charges from
+a positive `useful_life_months`. For `expensed`, omit `useful_life_months` or set
+it to `0`, and omit `schedule`: iris writes off the whole cost in the acquisition
+month. A positive useful life or a recorded table is rejected for `expensed`.
+`declining_balance` requires a positive useful life and has no engine math:
 it REQUIRES a recorded table. A recorded table is authoritative — iris emits
 it verbatim, does not recompute it, does not prorate it, and does not truncate
 it at disposal (dispose of an asset and you rewrite the table — see
@@ -2748,7 +2769,7 @@ paste-ready under `schedule:`:
 
 For exact amounts above 9,007,199,254,740,991, supply `basis`, `salvage` and
 `amount_per_row` as decimal integer strings. Unsafe JSON floating-point inputs
-are rejected. Read each row's `amount_exact` and the result's `total_exact`
+are rejected. Read each row's `amountExact` and the result's `totalExact`
 strings, or use the exact `yaml`; legacy numeric fields remain for compatibility.
 Set the tool's `scale` to the destination Book's minor-unit exponent (default 0,
 JPY). This formats YAML in whole currency units; 12345 input units at scale 2
@@ -2811,10 +2832,13 @@ account with `accumulated`, debit cash / receivable with `proceeds`, and book
 first: delete rows after the disposal month and set the disposal-period row to
 the held part of that year (JP: 月割). The table may then sum to less than
 `acquisition_cost − salvage_value`, never more; with `schedule_source` on the
-file, validate replays only the rows before the disposal month. **Exception —
-JP 一括償却資産 (`toku_rei: ikkatsu_3yr`):** the 1/3-a-year deduction continues
-after disposal, so do NOT add `disposal:` to those items (iris would stop the
-schedule); record the disposal in the file body and keep depreciating.
+file, validate replays only the rows before the disposal month. **JP 一括償却資産
+(`toku_rei: ikkatsu_3yr`) and pool disposal are unsupported:** the current
+`jp-small-asset-deduction` package rejects the regime with
+`asset.ikkatsu-unsupported`. An ordinary 36-month straight-line schedule cannot
+represent its annual deduction. Retain evidence and record the unresolved
+treatment in `notes/open-questions.md` for review; omitting `disposal:` is not
+a supported workaround.
 
 ### Exporting
 
@@ -2999,6 +3023,9 @@ archive zip or audit bundle command; don't offer one.
 
 ## Japan tax & compliance
 
+This section covers bookkeeping for Japanese tax purposes. Apply regional
+rules through the book's selected overlays.
+
 ### History, search and traceability
 
 Four features keep a book's records checkable after the fact (by the user,
@@ -3136,7 +3163,8 @@ verify against the NTA's current pages, not from memory:
 
 ### Depreciation, JP specifics
 
-- **`useful_life_months`** comes from the 耐用年数省令 tables — *you* look up
+- **`useful_life_months`** for `straight_line` and `declining_balance` comes
+  from the 耐用年数省令 tables — *you* look up
   the right life on the NTA's current pages and record the resolved number on
   the asset file, so the book carries its own justification. Sources: 耐用年数
   省令 別表第一 (general) / 別表第二 (machinery) at
@@ -3146,7 +3174,8 @@ verify against the NTA's current pages, not from memory:
 - **Methods:** `straight_line` (定額法), `declining_balance` (定率法),
   `expensed` (immediate write-off). 定額法 and 即時償却 iris computes; 定率法
   you record as a `schedule:` (procedure below).
-- **即時償却 (`expensed`, e.g. `toku_rei: shoutoku_300k`):** book the purchase
+- **即時償却 (`expensed`, e.g. `toku_rei: shoutoku_300k`):** use
+  `useful_life_months` omitted or `0` and no `schedule`. Book the purchase
   to `asset_account`, NOT to 消耗品費 / 減価償却費 — `iris asset depreciate`
   writes the whole cost off in the acquisition year, which is what puts the
   item into `period_dep` for the 決算書 depreciation table and 別表16(7).
@@ -3182,8 +3211,8 @@ verify against the NTA's current pages, not from memory:
 - **償却資産税 traps:** the 評価額 (assessed value) is computed from
   acquisition cost with the 減価残存率 table — it is **not** the CSV's
   `closing_nbv` (that's the income-tax book value). Items with `toku_rei:
-  shoutoku_300k` are still declarable; `toku_rei: ikkatsu_3yr` items are
-  exempt (地方税法施行令49条) — mark them `shoukyaku_shisanzei.exempt: true`.
+  shoutoku_300k` are still declarable. The current package does not support
+  pooled `toku_rei: ikkatsu_3yr` assets, their disposal or their filings.
   The return is calendar-year (assessment date Jan 1, due Jan 31) even for
   non-January fiscal years.
 
@@ -3560,3 +3589,13 @@ these are the product-level constants:
   estimates and inferred categories at the agreed detail level. Never guess
   silently or present estimates as verified facts.
 - Sync only when asked — it's explicit by design.
+
+Investment allocation openings (bindings 6): an exported `inventory/*.yaml`
+policy can retain generic `allocation_cost_minor` and `allocation_policy`
+alongside native acquisition/carrying values. Never replace the source carrying
+value with rounded statutory basis or market price. `iris yearend` replays active
+policies and carries their independent state into the successor Book. The
+`jp-securities-basis`, `jp-rsu` and `jp-foreign-currency` 2026.10.2 sources are
+unreleased candidates, not additions to the signed catalog. Their figures are
+filing preparation aids, without regional financial-view acceptance or e-Tax
+submission. They require complete local journals; streaming sums are insufficient.

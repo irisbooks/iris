@@ -47,6 +47,18 @@ scale 2), dates are `YYYY-MM-DD` strings, and the document is pretty-printed
 with a two-space indent. The output shapes below are written as key skeletons —
 `?` marks a key that is omitted when empty.
 
+JSON result fields use **lowerCamelCase** across CLI commands and local MCP
+results: `fiscalYear`, `commonCompletions`, `referenceData`, `newPath`, `localSha`,
+`detectedAt`, `versionId` and `sizeBytes`. This replaces the former snake_case
+result keys; update scripts to use the new names.
+
+Dictionary keys, package fields, recipe parameters, source documents and JSON
+input schemas retain their declared names. For example, allocation results use
+`grossAmount` and `inputSha`, while the embedded `input` keeps the versioned
+request's `schema_version` and `gross_amount` so it can be replayed. CLI flags,
+MCP input arguments, saved Book files, REST and remote MCP wire schemas keep
+their documented spelling.
+
 ## Setup
 
 ### iris docs
@@ -324,7 +336,7 @@ not post or sync. Archived books and known sealed years refuse apply.
 
 Packages with bindings v5 preparation points can first fill missing scalar
 concern fields through fixed classification/calculation stages. JSON includes
-`preparation_plan` and `preparation_trace` with exact providers, consumed inputs
+`preparationPlan` and `preparationTrace` with exact providers, consumed inputs
 and proposed values. Apply saves per-field provenance in `preparation_source`;
 ordinary `iris validate` can replay it from retained Book definitions. Preparation
 preserves authored values and requires balanced source postings. The same preview
@@ -380,10 +392,10 @@ isn't its date's month into the right one, and updates the parse caches'
 **Output shape** (`--json`) — the plan, which is exactly what `--apply` executes:
 
 ```text
-[ { family, code, path, new_path?, delete?, reason } ]
+[ { family, code, path, newPath?, delete?, reason } ]
 ```
 
-`family` is one of the `--fix` categories. A move carries `new_path`; a removal
+`family` is one of the `--fix` categories. A move carries `newPath`; a removal
 carries `delete: true`.
 
 ## Reports & search
@@ -595,6 +607,9 @@ iris context --task jp-small-asset-deduction.equipment --record assets/2026/lapt
 iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
 ```
 
+Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
+supported flag, including repeatable `--view` and the explicit `--book-path` selector.
+
 The task must exist in the exact selected Book package. Older releases report
 limited discovery instead of receiving metadata from a newer release. The
 response separates package sources, inputs, diagnostics, supported operations
@@ -678,10 +693,10 @@ changed rules, recipes, derivations, completions, fields and preparation points.
 A missing provider, incompatible version or cycle blocks apply; choose a complete
 compatible set explicitly. No dependency is downloaded or enabled automatically.
 
-`affected_results` inventories recorded asset schedules, filing sources and
+`affectedResults` inventories recorded asset schedules, filing sources and
 prepared journal fields whose recorded providers would become inactive. Each
 entry identifies its path, zero-based journal line (`-1` for whole records),
-field and any raw `source_view` declaration. This is a provenance inventory,
+field and any raw `sourceView` declaration. This is a provenance inventory,
 not a resolved accounting view or a calculation. `retained` means verified
 source bytes are present; `will-retain` means apply will preserve the current
 local definition with its original parent pins. Availability, machine trust and
@@ -724,7 +739,7 @@ selected and compatible; upgrade never adds them. An exact target already
 verified inside the Book works offline. Otherwise preview may download verified
 release bytes into the distribution cache, while leaving all Book files unchanged.
 
-The preview includes planned `copies`, package `golden_tests`, dependency and
+The preview includes planned `copies`, package `goldenTests`, dependency and
 retained-result impact, and `local_source` / `local_source_after` identities and
 trust. Fixture test success does not validate the owner's ledger or replay its
 recorded results. Scalar/plural selection formats and unrelated settings are
@@ -794,8 +809,8 @@ iris post [--dry-run] [--local] --all
 ```
 
 `--all` posts every `draft` draft in the book instead of naming files —
-including drafts you didn't author (phone/connector drafts, email-ingested
-entries, generated depreciation). Drafts that fail validation are reported
+including drafts you didn't author, such as other collaborators' entries and
+generated depreciation. Drafts that fail validation are reported
 and left as drafts. This is the ritual for books with the `auto` posting
 policy.
 
@@ -896,8 +911,8 @@ iris sync issues retry --path <relpath> [path]   # just one file
 **Output shape** (`list --json`):
 
 ```text
-{ records[ { path, local_fs, local_sha, code?,
-             issues[{ field, message, rule? }], detected_at, reason? } ] }
+{ records[ { path, localFs, localSha, code?,
+             issues[{ field, message, rule? }], detectedAt, reason? } ] }
 ```
 
 `code` is the server invariant that refused the file — `UNBALANCED_JOURNAL`,
@@ -959,7 +974,7 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | 
 `--link-existing BOOK_ID` reuses an untouched next-year cloud starter you own.
 It checks the target before local moves and attaches config/chart/AGENTS.md before moving
 entries. The existing target keeps its grants and inbound address; the preview
-sets `copy_grants` and `transfer_inbox` to false. It creates no cloud book and
+sets `copyGrants` and `transferInbox` to false. It creates no cloud book and
 cannot be combined with `--local`. Re-running against the same linked successor
 verifies its cloud settings and seals, then refreshes it. The successor syncs
 successfully before the old linked book syncs its removals.
@@ -1155,7 +1170,7 @@ For reference lookup, use file tools or CLI `iris references`.
 
 Call `auth_status` first and reuse `signed_in`. Otherwise call `login`, have the
 user approve in the host browser, then require `status="signed_in"` from
-`auth_status`. `login` returns an `authorization_url` and a five-minute expiry;
+`auth_status`. `login` returns an `authorizationUrl` and a five-minute expiry;
 repeating it while pending returns the same URL. `validate=false` on
 `auth_status` checks credential presence only.
 
@@ -1558,19 +1573,19 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 ```text
 balance   [ { account, debits, credits, type?, net } ]
 holdings  [ { account, unit, quantity } ]
-history   [ { id, path, op, sha?, version_id?, size_bytes,
-              actor, actor_display?, source?, reason?,
-              post_seal_period?, moved_from_path?, ts } ]
+history   [ { id, path, op, sha?, versionId?, sizeBytes,
+              actor, actorDisplay?, source?, reason?,
+              postSealPeriod?, movedFromPath?, ts } ]
 ```
 
 `holdings` counts only unit-tagged lines, and positions that net to zero are
 omitted server-side.
 
 In `history` — the durable correction/deletion record — `actor` is the stable
-account identifier (the audit identity) and `actor_display` is the server's
+account identifier (the audit identity) and `actorDisplay` is the server's
 read-time resolution of it to a name or email, for human readers.
-`post_seal_period` is set when the change landed *after* that fiscal year was
-sealed; that is the flag an auditor looks for. `moved_from_path` records a
+`postSealPeriod` is set when the change landed *after* that fiscal year was
+sealed; that is the flag an auditor looks for. `movedFromPath` records a
 rename rather than a delete plus a create.
 
 `history` returns the newest 100 events unless you narrow it:

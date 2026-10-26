@@ -1,9 +1,8 @@
 # Japan tax & compliance
 
-IrisBooks is built for Japanese bookkeeping. This page covers the things a
-Japanese owner or 税理士 needs: the record-keeping features (correction
-history, search, traceability), classifying consumption tax (消費税),
-depreciating fixed assets, and closing the year.
+This page covers bookkeeping for Japanese tax purposes: record-keeping
+features (correction history, search, traceability), classifying consumption
+tax (消費税), depreciating fixed assets, and closing the year.
 
 > **How IrisBooks splits the work.** The engine handles the universal,
 > stable parts — double-entry math, per-line classification, totals, data
@@ -180,7 +179,8 @@ accumulated_depreciation_account: "資産:減価償却累計額"
 ---
 ```
 
-- **`useful_life_months`** comes from the 耐用年数省令 tables — your AI looks
+- **`useful_life_months`** for `straight_line` and `declining_balance` comes
+  from the 耐用年数省令 tables — your AI looks
   up the right life on the NTA's current pages (耐用年数省令 別表第一・第二;
   for 定率法, the 償却率 in 別表第十) and records the resolved number on the
   file, so the book carries its own justification and its git history answers
@@ -193,7 +193,9 @@ accumulated_depreciation_account: "資産:減価償却累計額"
 - **Immediate write-offs** (`expensed` — the 少額減価償却資産 special,
   `toku_rei: shoutoku_300k`): book the purchase to the asset account like
   any other asset; `iris asset depreciate` writes the whole cost off in the
-  acquisition year. That is what puts the item into the year's depreciation
+  acquisition month. Omit `useful_life_months` or set it to `0`, and omit
+  `schedule`; a positive useful life or a recorded table is rejected.
+  That is what puts the item into the year's depreciation
   figures (`period_dep`), where the 青色申告決算書's depreciation table and
   別表16(7) list it.
 

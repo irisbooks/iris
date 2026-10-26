@@ -46,6 +46,17 @@ JSON を出すコマンドには共通の約束があります。**金額は帳�
 `YYYY-MM-DD` の文字列、出力は2スペースインデントで整形されます。以下の出力形は
 キーの骨組みで書いてあり、`?` は値が空のとき省略されるキーです。
 
+CLIとローカルMCPのJSON結果は、**lowerCamelCase** に統一しています。
+例は `fiscalYear`、`commonCompletions`、`referenceData`、`newPath`、`localSha`、
+`detectedAt`、`versionId`、`sizeBytes` です。以前のsnake_caseの結果キーは
+置き換えたため、スクリプトも新しい名前に更新してください。
+
+辞書のキー、パッケージの項目、レシピのパラメーター、元資料、JSON入力スキーマは、
+定義された名前を使います。たとえば按分結果は `grossAmount` と `inputSha` を使い、
+結果内の `input` は再計算できるように、入力形式の `schema_version` と
+`gross_amount` を保ちます。CLIフラグ、MCPの入力引数、保存済み帳簿ファイル、
+RESTとリモートMCPの通信形式も、それぞれ記載された名前を使います。
+
 ## セットアップ
 
 ### iris docs
@@ -311,7 +322,7 @@ iris journal complete --apply --revision <preview-revision> journals/2026-10/202
 
 Bindings v5 の定義があるパッケージでは、分類・計算の順に、未記入の追加フィールドを
 先に埋められます。対象は単一の値で、元の仕訳は貸借が一致している必要があります。
-JSON の `preparation_plan` と `preparation_trace` に、計算元の固定バージョン、
+JSON の `preparationPlan` と `preparationTrace` に、計算元の固定バージョン、
 使った入力、提案した値を返します。適用時はフィールドごとの計算情報を
 `preparation_source` に保存し、`iris validate` で帳簿内の定義から再計算できます。
 記入済みの値は保持します。同じプレビューとリビジョンによる適用確認を、
@@ -368,10 +379,10 @@ iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] 
 **出力形**（`--json`）— `--apply` がそのまま実行する計画そのものです。
 
 ```text
-[ { family, code, path, new_path?, delete?, reason } ]
+[ { family, code, path, newPath?, delete?, reason } ]
 ```
 
-`family` は `--fix` のカテゴリ。移動なら `new_path`、削除なら `delete: true` が
+`family` は `--fix` のカテゴリ。移動なら `newPath`、削除なら `delete: true` が
 付きます。
 
 ## レポート・検索
@@ -574,6 +585,10 @@ iris context --task jp-small-asset-deduction.equipment --record assets/2026/lapt
 iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
 ```
 
+出力は常にJSONです。`--json` も受け付けますが、出力は変わりません。繰り返し指定
+できる `--view` や帳簿フォルダを指定する `--book-path` を含め、対応する全フラグは
+`--help` で確認できます。
+
 タスクは、帳簿が選択した固定バージョンに含まれている必要があります。
 古いリリースでは案内が限定的であることを明示し、新版の情報を旧版のものとして
 表示しません。出典、入力、診断、対応操作と人の判断が必要な点を分けて返します。
@@ -655,9 +670,9 @@ iris overlay select --off --revision REVISION_FROM_PREVIEW ./books/example
 組み合わせ、循環があれば適用できません。互換性のある組み合わせを明示して指定し、
 依存先を勝手にダウンロードしたり有効にしたりすることはありません。
 
-`affected_results` は、記録された出典が無効になる資産の償却表、申告記録、準備済みの
+`affectedResults` は、記録された出典が無効になる資産の償却表、申告記録、準備済みの
 仕訳項目を列挙します。各行にはファイル、仕訳行番号（0 始まり。記録全体は `-1`）、
-項目、保存された `source_view` 宣言が含まれます。出典の一覧であり、会計ビューを
+項目、保存された `sourceView` 宣言が含まれます。出典の一覧であり、会計ビューを
 解決した結果や再計算結果ではありません。`retained` は出典の内容を確認できたこと、
 `will-retain` は現在の帳簿独自の定義と元の親バージョンを適用時に保存することを表します。
 内容の存在、このマシンでの信頼、再計算の成功は別の情報です。過去の出典が不足していれば
@@ -698,7 +713,7 @@ iris overlay upgrade --to id@version --revision REVISION_FROM_PREVIEW ./books/ex
 オフラインで使えます。不足時はプレビューでも署名を検証して配布キャッシュに保存する
 場合がありますが、帳簿のファイルは変更しません。
 
-プレビューには保存予定の `copies`、パッケージ自身の検証例 `golden_tests`、依存関係・
+プレビューには保存予定の `copies`、パッケージ自身の検証例 `goldenTests`、依存関係・
 記録済みの結果への影響と、変更前後の `local_source` / `local_source_after`・信頼状態が
 含まれます。検証例の成功は、利用者の帳簿の集計や記録済みの結果の再計算が成功したことを
 意味しません。単一・複数の選択形式とほかの設定は保ち、帳簿独自の層の親を更新する前に、
@@ -765,8 +780,8 @@ iris post [--dry-run] [--local] --all
 ```
 
 `--all` はファイルを指名する代わりに、帳簿内のすべての `draft` 下書きを
-記帳します — 自分が書いていない下書き(スマホ/コネクタ経由、メール取り込み、
-自動生成の減価償却)も対象です。検証に失敗した下書きは報告のうえ下書きの
+記帳します。ほかの共同作業者が書いた仕訳や、自動生成の減価償却も対象です。
+検証に失敗した下書きは報告のうえ下書きの
 まま残ります。記帳ポリシー `auto` の帳簿での定型操作です。
 
 記帳時は元の文書の `status` を変更し、ほかのフィールド・添付・数量・注記・
@@ -866,8 +881,8 @@ iris sync issues retry --path <relpath> [path]   # 1ファイルのみ
 **出力形**（`list --json`）:
 
 ```text
-{ records[ { path, local_fs, local_sha, code?,
-             issues[{ field, message, rule? }], detected_at, reason? } ] }
+{ records[ { path, localFs, localSha, code?,
+             issues[{ field, message, rule? }], detectedAt, reason? } ] }
 ```
 
 `code` はそのファイルを拒否したサーバー側の不変条件です
@@ -927,8 +942,8 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | 
 
 `--link-existing BOOK_ID` は Owner 権限のある新年度の初期クラウド帳簿を再利用します。
 移動前にリンク先を確認し、設定と勘定科目表の反映が成功してから仕訳を移動します。
-リンク先の権限と受信アドレスは保持し、プレビューの `copy_grants` と
-`transfer_inbox` は false です。クラウド帳簿の新規作成は行いません。
+リンク先の権限と受信アドレスは保持し、プレビューの `copyGrants` と
+`transferInbox` は false です。クラウド帳簿の新規作成は行いません。
 `--local` とは併用できません。同じリンク済み新年度へ再実行する場合はクラウドの
 設定と締めを確認して更新します。新年度の同期が成功してから旧年度を同期します。
 親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
@@ -1119,7 +1134,7 @@ complete_journal はプレビュー後、版を確認して下書きへ適用し
 
 最初に `auth_status` を呼び、`signed_in` ならその認証を使います。それ以外は `login` を
 呼び、ホストのブラウザでユーザーが許可した後、`auth_status` の
-`status="signed_in"` を確認します。`login` は `authorization_url` と 5 分後の有効期限を
+`status="signed_in"` を確認します。`login` は `authorizationUrl` と 5 分後の有効期限を
 返し、許可待ちの再呼び出しでは同じ URL を返します。`auth_status` の
 `validate=false` は認証情報の有無だけを調べます。
 
@@ -1494,19 +1509,19 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 ```text
 balance   [ { account, debits, credits, type?, net } ]
 holdings  [ { account, unit, quantity } ]
-history   [ { id, path, op, sha?, version_id?, size_bytes,
-              actor, actor_display?, source?, reason?,
-              post_seal_period?, moved_from_path?, ts } ]
+history   [ { id, path, op, sha?, versionId?, sizeBytes,
+              actor, actorDisplay?, source?, reason?,
+              postSealPeriod?, movedFromPath?, ts } ]
 ```
 
 `holdings` は単位が付いた行だけを数え、正味ゼロのポジションはサーバー側で
 除かれます。
 
 `history`（訂正・削除の恒久的な記録）の `actor` は安定したアカウント識別子
-（監査上の身元）で、`actor_display` はそれをサーバーが読み取り時に名前や
-メールへ解決した人間向けの表示です。`post_seal_period` は、その会計年度を
+（監査上の身元）で、`actorDisplay` はそれをサーバーが読み取り時に名前や
+メールへ解決した人間向けの表示です。`postSealPeriod` は、その会計年度を
 締めた**後**に着地した変更に付きます — 監査人が探すのはこの印です。
-`moved_from_path` は削除+作成ではなく改名であったことを記録します。
+`movedFromPath` は削除+作成ではなく改名であったことを記録します。
 
 `history` は、絞り込まなければ新しい順に 100 件を返します。
 

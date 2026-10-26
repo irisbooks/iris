@@ -44,10 +44,10 @@ Notes:
   and exports read dates, not folders), and `iris organize` moves
   misplaced journals back to the canonical layout.
 - The filename is the entry's permanent identity. Files you or your AI
-  write follow `YYYY-MM-DD-<payee>-NN.md`; entries created in the web app or
-  through the remote connector are named by the server
+  write follow `YYYY-MM-DD-<payee>-NN.md`; older server-created entries use
   `YYYY-MM-DD-<payee>-jNNN.md`, keeping the payee's own script. Both are
-  valid, and the separate numbering means they never collide.
+  valid, and the separate numbering means they never collide. Current web and
+  remote connector access cannot create journals; author changes locally and sync.
 - `.iris/` holds the local book ID and sync state; it's machine-local and
   never synced.
 
@@ -956,10 +956,10 @@ iris allocation --input raw/allocation-jan.json
 ```
 
 The result is gross `10001`, business `2500`, private `7501` JPY. Amounts and minor
-units are exact strings. `evidence_verification: unchecked` means the calculator
+units are exact strings. `evidenceVerification: unchecked` means the calculator
 has not opened the evidence files; review those sources separately. Retain the
 request, calculation version, input hash and result in your Book's notes.
-`input_sha` hashes the parsed request in canonical field order; formatting changes
+`inputSha` hashes the parsed request in canonical field order; formatting changes
 preserve it.
 
 All dates are inclusive. The whole charge period must fit inside one basis
@@ -1260,7 +1260,7 @@ Save the explicit request as `raw/allocation-april.json` in both Books:
 ```
 
 Run the same pure calculator; it returns gross 10,001, business 3,333,
-private 6,668 and `evidence_verification: unchecked`. Verify the cited source
+private 6,668 and `evidenceVerification: unchecked`. Verify the cited source
 bytes and facts separately, and retain the result/input hash in
 `notes/allocation-april.md`. Personal pays the full 10,001 on April 10:
 
@@ -1624,11 +1624,17 @@ For an `expensed` asset that is one charge: the whole cost, in the
 acquisition month. Booking the purchase straight to an expense account as
 well would count it twice.
 
+For `method: expensed`, omit `useful_life_months` or set it to `0`; a positive
+useful life is rejected. Leave `schedule` out too: the single acquisition-month
+charge is computed directly. `straight_line` and `declining_balance` require a
+positive `useful_life_months`.
+
 ### `schedule:` — recording the table instead of computing it
 
-For straight-line and expensed assets you can leave `schedule` out: iris
-computes the charges from `useful_life_months` (an expensed asset: the whole
-cost in its acquisition month). For anything else — Japan's
+For straight-line assets you can leave `schedule` out: iris computes the charges
+from `useful_life_months`. An expensed asset must omit `schedule` and has one
+charge for the whole cost in its acquisition month, with no useful life.
+For anything else — Japan's
 定率法 with its switch to 改定償却率, US MACRS with its straight-line
 crossover — the table is recorded on the file (`method: declining_balance`
 requires one), and iris uses it verbatim.
@@ -1649,7 +1655,7 @@ version-1 records replay their original arithmetic within the same host limits.
 Replay never substitutes the latest version for missing or unknown provenance.
 
 MCP table tools take integer minor units and accept exact decimal integer
-strings for large amounts. Read `amount_exact` / `total_exact` or the generated
+strings for large amounts. Read `amountExact` / `totalExact` or the generated
 YAML rather than converting large numeric fields to floating point. Set the
 tool's `scale` to the destination Book's scale; its default is 0. For example,
 12,345 minor units with `scale: 2` becomes YAML `amount: 123.45`, which parses
@@ -1708,10 +1714,12 @@ the asset was held (in Japan, 月割). The table may then add up to less than
 `iris validate` still replays the rows before the disposal month; the
 disposal-period row is yours.
 
-Japan's 一括償却資産 (`toku_rei: ikkatsu_3yr`) is the exception: the
-one-third-a-year deduction continues after the item is gone. Leave
-`disposal:` off those items and note the disposal in the file body instead —
-with `disposal:` set, iris would stop the schedule at the disposal month.
+Japan's three-year pooled depreciation (`toku_rei: ikkatsu_3yr`) and pool
+disposal are unsupported. The current `jp-small-asset-deduction` package rejects
+that regime with `asset.ikkatsu-unsupported`. An ordinary 36-month straight-line
+schedule does not represent the pooled annual deduction. Keep the evidence and
+record the unresolved treatment in `notes/open-questions.md` for review; omitting
+`disposal:` does not make it a supported workflow.
 
 ## Filings — `filings/<recipe>.md`
 
@@ -1901,3 +1909,12 @@ Do not infer acquisition cost from a revalued opening amount.
 Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics derives
 one from the fiscal year, journal path and original line index within this book’s
 inventory. Changing the book’s cloud ID does not change that lot ID.
+
+An exported inventory policy can also retain `allocation_cost_minor` and
+`allocation_policy` on an opening. The first is a separate calculated basis;
+the second identifies the exact package pin and qualified policy. Neither
+replaces acquisition cost or recorded carrying value. For policies that round
+unit cost, retain this state through `iris yearend`; do not reconstruct it from
+market value. These fields require an engine supporting bindings 6. Regional
+investment packages using that contract are development candidates; they do not
+add approved financial-view calculations or tax-return submission.
