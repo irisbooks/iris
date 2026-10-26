@@ -87,7 +87,7 @@ jobs:
           print(f"- Built by run `{c['build']['run_id']}` attempt `{c['build']['run_attempt']}`")
           print(f"- Engine: {engine['version'] + ' (bindings ' + str(engine['bindings']) + ')' if engine else 'none — compatible with ' + c['compatible_engine']}")
           print(f"- Packages: {', '.join(o['pin'] for o in c['overlays']) or 'none'}")
-          print(f"- Targets: {', '.join(c['targets'])}; acceptance: {', '.join(c['acceptance'])}")
+          print(f"- Acceptance: {', '.join(c['acceptance'])}")
           print("\nSigns `checksums.txt` and each package bundle (`overlay:<pin>` trusted comment). Before signing, the approved job confirms with GitHub that coordinator run "
                 f"`{c['build']['run_id']}` on main froze exactly this digest; a forged candidate is refused there. Approve only if this matches the release you merged.")
           PY
