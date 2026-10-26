@@ -1757,6 +1757,15 @@ shows up as an error until you re-run the recipe (or revert the correction).
 Your AI fills the government form from `figures`; it never re-adds lines by
 hand. Filings sync and are sealed with the book, unlike `compiled/`.
 
+New local CLI/MCP filings record `source.journal_paths: book-relative-v1`.
+Their ledger paths and factual input hashes use Book-relative forward-slash
+paths, so copying or moving the whole Book preserves replay. The host writes
+this provenance; do not change it manually. Filings made without the field
+retain their original path convention. A legacy filing that hashed absolute
+paths still replays in its original location; after moving it, re-run and
+review the recipe to record portable provenance. Changed factual inputs and
+unknown path contracts still fail replay.
+
 ## Your book's overlay layer — `config/overlays/` (optional)
 
 Published function packages are selected explicitly by `overlay:` or `overlays:`
