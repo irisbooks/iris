@@ -30,9 +30,10 @@ Key facts for agents:
   separate assistant work folder/session with only that client's books;
   web is for viewing and review. Restrict connected tools and credentials
   too: a mounted folder alone does not limit a firm-wide cloud credential.
-- Reports (trial balance, P&L, balance sheet) are computed from `posted`
-  journal entries only — `draft` entries are drafts and never appear in
-  reports. Cloud cross-book analytics use daily snapshots; check freshness.
+- Reports exclude drafts by default. Local reports and `iris balance` accept
+  `--include-drafts` (MCP `report`: `include_drafts=true`) to preview them;
+  comparison mode is selected when mode is omitted. JSON identifies the scope.
+  Cloud cross-book analytics use daily snapshots; check freshness.
 - Sync is explicit (`iris sync`); nothing uploads in the background. The
   local `iris` workflow is offline; the AI service may need a connection.
   An IrisBooks account adds sync, the web

@@ -284,7 +284,7 @@ A book covers one fiscal year. The next year starts as a book of its own —
 created from the CLI with [`iris yearend`](cli-reference.md#iris-yearend) —
 and appears in **My Books** beside this one, with the same people's access.
 
-The same flow works from the CLI (`iris api seal`, `iris reopen`) — see
+The same flow works from the CLI (`iris seal`, `iris reopen`) — see
 [Japan tax & compliance](japan-tax-and-compliance.md). Members who aren't
 the owner see the same year list read-only.
 

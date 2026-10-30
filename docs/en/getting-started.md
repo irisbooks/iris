@@ -12,11 +12,9 @@ See [the file workflow](cli-and-llm.md) for folder and tool access boundaries.
 
 ### 1. Check for `iris`
 
-Run `iris version` first. Reuse an installed CLI; do not install a second copy
-just because a new Book or assistant session is starting. Use `iris update
---check --json` to inspect available updates and the executable path. A local
-MCP connection has its own `check_update`; updating a shell CLI does not update
-an MCP bundle. Install below only when the tool is missing from this machine.
+Run `iris version`. If it prints a version, `iris` is already installed: use
+it, and run `iris update` when you want the latest release. Otherwise install
+it as below.
 
 The CLI is free and provided **as is**. Individual support, bug fixes and
 continued updates are not guaranteed. See [CLI use and support](cli-and-llm.md#cli-use-and-support).
@@ -56,8 +54,8 @@ Run the guided wizard in an empty directory:
 iris init
 ```
 
-It asks for a book name, region, language, fiscal-year start month (January
-unless you pick another), the fiscal year the book covers (a book is one year —
+It asks for a book name, region (required — there is no default), currency
+(defaults to the region's), fiscal-year start month (January unless you pick another), the fiscal year the book covers (a book is one year —
 pick last year's if you're catching up on its filing), and whether your AI assistant should **post entries
 automatically** after validating (say no to review and post them yourself —
 you can change this later by editing the "Posting policy" section of
@@ -118,6 +116,11 @@ with estimates recorded explicitly; business records need precision and
 supporting evidence. See [the everyday workflow](cli-and-llm.md).
 Local `iris` needs no account or network; your AI service may need a connection.
 
+At each handoff, ask how the work supports the result you requested, what you
+can use now and what needs to happen next.
+Saved evidence, draft proposals and posted report figures serve different
+purposes; see [what is ready to use](cli-and-llm.md#the-mental-model).
+
 ## Path B — Use the web app (cloud)
 
 The web app gives you a graphical interface, cloud sync, multi-device access,
@@ -137,7 +140,8 @@ the wizard and follow the linking step below before creating a separate cloud
 book. After linking and syncing, use **Refresh book list** in the wizard to open it.
 
 If you have no books yet, the app drops you into the **New book** wizard. Give
-the book a name and region, choose the fiscal year it covers, and pick the
+the book a name, choose its region (there is no default; it fills in the region's
+currency, which you can change), choose the fiscal year it covers, and pick the
 month its fiscal year starts (January unless you pick another). It's created in the cloud — already seeded
 with its `config/book.yaml`, a starter chart of accounts and `AGENTS.md`, so
 `iris clone <book-id>` gives you a working local folder right away.
@@ -151,22 +155,16 @@ year covers, so check them there.
 Already have a book on disk from Path A? Connect the two so they sync:
 
 ```bash
-IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login
+iris api login
 iris api books new             # or: iris api books link <book-id>
 iris sync                      # push your local files up
 ```
 
-In PowerShell, set `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'` and
-`$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'` before `iris api login`.
-Successful login saves the service selection. Accounts and cloud books are
-separate between regional services.
-
-Browser login needs a callback reachable from the machine running the CLI.
-For remote/headless work or approval in another browser profile, choose
-`iris api login --device`, approve on your own device, then run
-`iris api login --device-complete`. A waiting result is not authorization;
-confirm with `iris api whoami` before creating, attaching or syncing a book.
-See [login modes and account profiles](cli-reference.md#iris-api-login).
+Browser login needs a browser on the machine running the CLI. On a server or
+an assistant's VM, use `iris api login --device` and approve on your own
+phone, then `iris api login --device-complete`. Check with `iris api whoami`
+before creating, linking or syncing a book. See
+[login modes and account profiles](cli-reference.md#iris-api-login).
 
 Run inside your book folder, `iris api books new` creates the cloud book from
 that folder's own settings (name, fiscal year, region, …) and links it for

@@ -267,7 +267,7 @@ Overlay の検証やレシピの再計算に成功したことを示しません
 [`iris yearend`](cli-reference.md#iris-yearend) で作成し、**My Books** に
 この帳簿と並んで表示されます。アクセスできるメンバーも同じです。
 
-同じ流れは CLI からも行えます（`iris api seal`、`iris reopen`）—
+同じ流れは CLI からも行えます（`iris seal`、`iris reopen`）—
 [日本の税務・コンプライアンス](japan-tax-and-compliance.md)を参照。オーナー以外の
 メンバーには、同じ年度一覧が読み取り専用で表示されます。
 

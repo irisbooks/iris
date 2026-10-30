@@ -6,7 +6,7 @@
 
 | File | What it is | Canonical live URL |
 |---|---|---|
-| [`llm.md`](llm.md) | The AI-facing manual — the working contract an AI assistant follows when operating on an IrisBooks book | <https://irisbooks.io/llms-full.txt> |
+| [`llm.md`](llm.md) | The English manual in one file for AI assistants, including their agent-only guidance | <https://irisbooks.io/llms-full.txt> |
 | [`llms-key-facts.md`](llms-key-facts.md) | The overview + key-facts block spliced into the `llms.txt` index | <https://irisbooks.io/llms.txt> |
 | [`en/`](en/) · [`ja/`](ja/) | The user manual (English / Japanese) | <https://irisbooks.io/docs/> |
 

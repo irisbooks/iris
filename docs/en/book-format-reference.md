@@ -873,8 +873,8 @@ double entry still balances, but reconciliation reports `980`, `990`, `-10`.
   when amounts match. Hash equality proves file identity, not bank authenticity
   or correct transcription of the observation.
 
-The optional file supports at most 256 uniquely named observations. An empty
-`assertions: []` checks none. Reads are bounded to 10,000 journals, 1,000,000 lines,
+The optional file supports at most 256 uniquely named observations. A missing file
+or an empty `assertions: []` checks none. Reads are bounded to 10,000 journals, 1,000,000 lines,
 16 MiB per evidence file and 128 MiB of input. The output revision binds the
 captured config, chart, assertions, journals and referenced evidence; it is not a
 cloud acceptance receipt. Sync/clone keep the declarations; config seals protect
@@ -1927,3 +1927,4 @@ unit cost, retain this state through `iris yearend`; do not reconstruct it from
 market value. These fields require an engine supporting bindings 6. Regional
 investment packages using that contract are development candidates; they do not
 add approved financial-view calculations or tax-return submission.
+

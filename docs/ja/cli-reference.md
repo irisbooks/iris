@@ -10,7 +10,7 @@
 - 帳簿単位のクラウド操作（`iris api …`）は、`--book-id ID`、位置引数の帳簿 ID、
   `IRIS_BOOK` の順で指定できます。アカウント単位の操作には帳簿の指定は不要です。
   クラウドへのアクセスには `iris api login` または `IRIS_API_TOKEN` が必要です。
-- `clone`・`sync`・`reopen` は通信します。`post` は記帳後に連携済みの帳簿全体を
+- `clone`・`sync`・`seal`・`reopen` は通信します。`post` は記帳後に連携済みの帳簿全体を
   同期し、`--local` を付けると同期を省略します。連携済み帳簿の `yearend` は、
   `--local` を選ばない限り翌年度のクラウド帳簿を作成・同期します。
   `price sync`、パッケージのダウンロード、`update` も通信します。
@@ -23,9 +23,9 @@
 計算・修復（`journal complete`・`organize`・`financial prepare`・`overlay recipe`、
 `validate` の導出値）は、`--apply` を付けたときだけ書き込みます。レシピには
 `--out PATH`、計算結果の保存には確認済みの `--revision` も必要です。
-`post`・`yearend`・`overlay select`・`overlay upgrade`・`api seal` は指定した操作を
+`post`・`yearend`・`overlay select`・`overlay upgrade`・`seal` は指定した操作を
 実行し、`--dry-run` を付けると変更せずに確認できます。`yearend` は翌年度の帳簿に
-残高を繰り越します。今年度のロックは別途 `api seal` で行い、修正時は `reopen` で
+残高を繰り越します。今年度のロックは別途 `seal` で行い、修正時は `reopen` で
 解除します。
 
 `report`・`balance`・`reconcile`・`allocation`・`context`・`financial`・
@@ -38,13 +38,15 @@
 コマンド名は `journal complete`・`references`・`sync issues` に統一し、旧名の
 `autocomplete`・`show`・`attention` は削除しました。フォルダ指定には
 `--book-path` を使い、曖昧だった `--book` は削除しました。締めの確認は
-`api seal --dry-run`、計算結果の書き込みは `validate --apply`・
+`seal --dry-run`、計算結果の書き込みは `validate --apply`・
 `financial prepare --apply`・`overlay recipe --out PATH --apply` を使います。
 
 JSON を出すコマンドには共通の約束があります。**金額は帳簿通貨のマイナー単位の
 整数**（scale 0 なら ¥1,200 は `1200`、scale 2 なら $12.00 が `1200`）、日付は
 `YYYY-MM-DD` の文字列、出力は2スペースインデントで整形されます。以下の出力形は
-キーの骨組みで書いてあり、`?` は値が空のとき省略されるキーです。
+キーの骨組みで書いてあり、`?` は値が空のとき省略されるキーです。レポートと残高の
+JSON には帳簿の `currency` と `currencyScale` も入るため、$1,000.00 の仕訳は
+`"currencyScale": 2` で `100000` と読めます。
 
 CLIとローカルMCPのJSON結果は、**lowerCamelCase** に統一しています。
 例は `fiscalYear`、`commonCompletions`、`referenceData`、`newPath`、`localSha`、
@@ -57,60 +59,7 @@ CLIとローカルMCPのJSON結果は、**lowerCamelCase** に統一していま
 `gross_amount` を保ちます。CLIフラグ、MCPの入力引数、保存済み帳簿ファイル、
 RESTとリモートMCPの通信形式も、それぞれ記載された名前を使います。
 
-## セットアップ
-
-### iris docs
-
-使用中の実行ファイルに同梱された、LLM 向けの英語資料を読みます。帳簿・ログイン・
-通信・キャッシュのダウンロードは不要です。各章はその実行ファイルのリリースに
-対応します。人向けの日本語マニュアルはオンラインで参照できます。
-
-```bash
-iris docs                                      # トピック一覧
-iris docs cli-reference                         # 節 ID と語数の一覧
-iris docs cli-reference --full                  # 章の全文を明示的に読む
-iris docs cli-reference --section iris-sync     # 指定した節とその下位の節
-iris docs --json cli-reference --section iris-sync
-```
-
-フラグはトピックの前後に置けます。トピックを指定すると、既定で節の一覧を返します。
-`--list` でも同じ一覧を明示的に指定できます。`--section` は指定した節と下位の節、
-`--full` は章の全文を読みます。これらの指定は併用できません。一覧には語数も含みます。
-JSON には `version`・`source: "bundled"`・`language: "en"`・`words` と、指定に応じて
-`topics`・`sections`・`markdown` が含まれます。存在しない指定は終了コード 2 で
-確認方法を案内し、全マニュアルへ切り替えることはありません。
-実行方法は `iris <command> --help`、クラウドの利用条件や認証手順は現在の
-オンライン情報も確認してください。資料の参照は操作の許可にはなりません。
-ローカル MCP の `read_docs(topic?, section?, outline?, full?)` も同じ内容を返し、
-帳簿の指定は不要です。トピックだけなら節の一覧、`full=true` なら章の全文です。
-オフライン資料の参照先には `iris docs` コマンドを示し、MCP でも同じ topic と section を使えます。
-
-### iris update
-
-```bash
-iris update --check [--json]   # 最新の公開版と比較する（変更なし）
-iris update [--json]           # 署名・チェックサム・バージョンを検証して更新する
-```
-
-使用中の実行ファイルを更新します。シンボリックリンクは実体の場所を使うため、
-MCP の登録先は変わりません。JSON には `currentVersion`、`latestVersion`、`status`、
-`updateAvailable`、`executablePath`、`pathExecutable`、`pathMismatch`、`installKind`、
-`downloadURL`、`updateCommand`（コマンドと引数の配列）、`instructions`、`updated`、
-`restartRequired`、失敗時の `error` が含まれます。確認に失敗した場合や開発版・
-リリース候補では、`updateAvailable` は null です。`status` は `update_available`、
-`up_to_date`、`newer_than_latest`、`development`、`check_failed`、`updated` のいずれかです。
-終了コードは正常時が 0、失敗時が 1、引数の誤りが 2 です。更新不要の場合も 0 です。
-
-帳簿の操作中に自動で通信することはありません。`IRIS_DL_BASE` でダウンロード元を
-指定できます（既定は `https://irisbooks.io/dl`）。署名は組み込みの公開鍵で必ず検証し、
-`minisign` のインストールは不要です。検証に失敗した場合、古い実行ファイルは残ります。
-開発版の置き換えや、古いバージョンへの更新は自動では行いません。
-
-`.mcpb` の場合、確認結果に対応するバンドルの URL が表示されます。クライアントの
-拡張設定から入れ直してください。CLI の更新後は帳簿のフォルダーで `iris onboard` を
-再実行し、MCP を再起動します。`check_update` で AI が使うバージョンを確認してください。
-Windows で使用中のファイルを置き換えられない場合は、MCP サーバーを停止して再実行します。
-このコマンドがない古い版は、まずインストーラーで更新します。
+## 帳簿と会計年度
 
 ### iris init
 
@@ -125,11 +74,11 @@ iris init [flags] <path>
 | フラグ | 意味 |
 | --- | --- |
 | `--name` | 帳簿の表示名 |
-| `--region` | 地域コード（JP, US。既定 JP） |
+| `--region` | 地域コード（JP または US）。必須で、既定値はありません |
 | `--preset` | 用途: `personal`（家計の勘定科目）/ `business`（事業用。既定）。法人・個人事業の区分や税務上の取扱いは別に設定 |
 | `--language` | 言語（ISO 639-1） |
 | `--chart` | 勘定科目テンプレートの種類（地域に複数ある場合）— 日本: general / it / food（既定 general）。専用の勘定科目表が無い地域では、特定の国に依存しない最小構成の勘定科目表になります |
-| `--currency` | 通貨（ISO 4217。地域既定） |
+| `--currency` | 通貨（ISO 4217）。省略時は地域の通貨（JP: JPY、US: USD） |
 | `--fiscal-start-month` | 会計年度開始月 1〜12（既定は 1 月。4 月に始まる年度なら `4`） |
 | `--fiscal-year` | この帳簿が扱う会計年度（YYYY。既定は今日を含む年度）— 前年度の申告をこれから済ませる場合は前年度など |
 | `--sample` | 事業用の勘定科目に対応するデモ仕訳を約40件追加。personal では利用不可 |
@@ -146,68 +95,12 @@ iris init [flags] <path>
 共通のコンテキスト取得処理を使い、古い定義にタスク情報がなければ、その制約を示します。
 新版のタスクを旧版のものとして表示しません。
 
-新しいクラウド帳簿にも、`iris api books new --preset personal --name "家計" --fy 2026`
+新しいクラウド帳簿にも、`iris api books new --preset personal --name "家計" --fy 2026 --region JP`
 で同じ設定を使えます。新規作成時は `--chart general|it|food` と `--language en|ja`
 も指定できます。既存のローカル帳簿を接続する場合は、実際の設定・勘定科目・記帳方針を
 保持し、プリセットによる上書きを拒否します。クラウドで作成を再試行しても、最初に
 保存した初期ファイルとハッシュを使います。ローカル帳簿の接続では、サーバーが保持する
 元の初期ファイルと変更履歴を確認してから、設定・勘定科目・記帳方針を置き換えます。
-
-### iris onboard
-
-このマシンの AI アシスタントを帳簿につなぎます。`iris mcp serve` を MCP クライアント
-に登録し、Claude Code スキルを書き込みます。Claude Code のプロジェクト設定
-（`.mcp.json`）は常に書き込まれます。Claude Desktop・Codex CLI・Cursor・
-Gemini CLI・VS Code は、マシン上で検出された場合（または各フラグで強制した
-場合）に登録されます。
-
-```bash
-iris onboard [--book-path PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]
-iris onboard --status [--json]    # 読み取り専用レポート: どこに何が登録されているか
-```
-
-`--status` は各クライアントの登録状態を報告します（登録先のバイナリがまだ存在
-するかも含む — 存在しない場合は `iris onboard` の再実行で直る古い状態です）。
-`--json` で機械可読な出力になります。`iris onboard` の再実行は常に安全です。
-登録はその場で更新され、重複しません。
-
-### iris offboard
-
-`iris onboard` の逆操作: すべてのクライアント設定から `irisbooks` の MCP 登録を
-削除し（アンインストール済みクライアントの残骸も含む）、Claude Code スキルも
-削除します。帳簿のデータやサインイン状態には触れません。冪等なので、クリーン
-再インストール前の実行も安全です。
-
-```bash
-iris offboard [--book-path PATH] [--keep-skill] [--remove-path] [--dry-run]
-```
-
-| フラグ | 意味 |
-| ---- | ------- |
-| `--keep-skill` | Claude Code スキルを残す（他の帳簿がまだ使っている場合） |
-| `--remove-path` | `onboard --install-path` で入れたバイナリも削除し、PATH 追加を戻す |
-| `--dry-run` | 削除される内容の表示のみで、何も削除しない |
-
-### iris uninstall
-
-iris そのものをこのマシンから削除します: iris バイナリ、サインイン情報と
-ローカル設定（`~/.config/irisbooks` — CLI セッションは先にサーバー側で失効
-させます）、Claude Code スキル、マシン全体の MCP 登録（Claude Desktop・
-Codex CLI）、`iris onboard --install-path` が追加した PATH 設定。実行前に、
-このマシンで見つかった削除対象の正確な一覧を必ず表示し、確認を求めます。
-
-帳簿には一切触れません — 帳簿はあなたが所有するただのファイルです。帳簿内の
-エージェント設定（帳簿内の `.mcp.json`）もそのまま残ります。それも消したい
-場合は、先に `iris offboard --book-path PATH` を実行してください。
-
-```bash
-iris uninstall [--yes] [--dry-run]
-```
-
-| フラグ | 意味 |
-| ---- | ------- |
-| `--yes` | 確認プロンプトを省略する |
-| `--dry-run` | 削除計画の表示のみで、何も削除しない |
 
 ### iris clone
 
@@ -224,12 +117,9 @@ iris uninstall [--yes] [--dry-run]
 iris clone [--force] <book-id> [dest]
 ```
 
-## 確認・検証
-
 ### iris status
 
-帳簿の識別情報、会計年度開始、アーカイブのフラグ、そして `draft` 下書きの
-件数(下書きはレポートに含まれません)を表示します。
+帳簿の識別情報、会計年度開始、アーカイブのフラグと、`draft` 下書きの件数を表示します。
 
 ```bash
 iris status [--json] [path]
@@ -264,6 +154,113 @@ iris status [--json] [path]
 ありません。定義のコピーがなければ診断を示し、インストールはしません。
 アーカイブではこの取得を省略します。タスクの全一覧、出典・会計ビューのエラー、
 メタデータの制約は `iris context` で確認してください。
+
+### iris yearend
+
+翌年度の帳簿を作り、期首残高を繰り越します。今年度はロックされません。
+締めるときは別途 `iris seal` を実行します。1つの帳簿は1会計年度分
+なので、`iris yearend` は翌年度の帳簿を独立したコピーとして、この帳簿と同じ
+階層の新しいフォルダに作ります（`acme-2025` → `acme-2026`。フォルダは `--to` で
+指定できます）。新しい帳簿には次のものが入ります。
+
+- `config/` — `fiscal_year` を翌年度に進め、独自の帳簿 ID を持つ `book.yaml`、
+  勘定科目表、`rules.yaml`、`config/overlays/`
+- ガイド（`README.md`・`AGENTS.md`・`CLAUDE.md`）と方針のノート
+  （`decisions.md`・`workflow.md`・`todos.md`・`open-questions.md`）
+- 新年度の開始時点でまだ保有している固定資産
+- 期首残高の仕訳。`journals/<YYYY-MM>/0000-opening-balances.md` に、新年度の
+  初日の日付で `opening-balance` タグを付けて作られます。貸借対照表科目は
+  期末残高のまま繰り越され（外貨・暗号資産など数量を管理している保有資産は
+  数量も含めて）、収益・費用はゼロにリセットされ、当期純利益は
+  `config/chart-of-accounts.yaml` で `retained_earnings: true` を付けた資本科目
+  （どの科目にも付いていなければ勘定科目表で唯一の資本科目）へ折り込まれます。
+  資本科目が複数あってどれにも付いていない場合は、いずれか 1 つに付けるよう
+  求めて止まります。
+
+すでに新年度の日付で記録した仕訳は、参照している元資料とともに新しい帳簿へ
+**移動**します。それより前の仕訳、`compiled/`、`filings/`、パースキャッシュ、
+処分済みの資産はこの帳簿に残ります。`--carry notes,raw` を付けると、`notes/` や
+`raw/` もまるごとコピーします。
+
+この帳簿がクラウドにリンクされている場合は、同じ実行で新しい帳簿のクラウド側も
+作ります。この帳簿にアクセスできる人は全員、新しい帳簿にも同じ権限でアクセスできるように
+なり、この帳簿の受信アドレスは新しい帳簿へ移ります。そのうえで両方の帳簿を同期します。
+実行前に確認を求めます。`--yes` で確認を省略でき（端末が接続されていない場合は
+必須です）、`--local` を付けるとローカルの帳簿だけを作ります。
+
+作成後、2つの帳簿の間につながりはありません。前年度への遅れた訂正を反映するには、
+前年度の帳簿で修正し、同じ `--to` を付けてもう一度 `iris yearend` を実行します。
+新しい帳簿の期首残高仕訳が更新され（結果が同一なら何もしません）、前回の実行後に
+前年度の帳簿に加わった新年度の日付の仕訳が移動します。新しい帳簿の設定とノートは
+そのまま残ります。新年度が締め済みになると、期首残高仕訳はその時点の内容で
+凍結されます — 不一致は対処方法とともに報告され、無言で書き換えられることは
+ありません。締める年度の日付の未記帳の下書きは警告されます（繰越に含まれません）。
+
+`<fiscal-year>` は省略できます。既定は帳簿の `fiscal_year` で、それ以外の年度を
+指定すると拒否されます。
+
+```bash
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
+```
+
+`--link-existing BOOK_ID` は Owner 権限のある新年度の初期クラウド帳簿を再利用します。
+移動前にリンク先を確認し、設定と勘定科目表の反映が成功してから仕訳を移動します。
+リンク先の権限と受信アドレスは保持し、プレビューの `copyGrants` と
+`transferInbox` は false です。クラウド帳簿の新規作成は行いません。
+`--local` とは併用できません。同じリンク済み新年度へ再実行する場合はクラウドの
+設定と締めを確認して更新します。新年度の同期が成功してから旧年度を同期します。
+親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
+
+`--dry-run` は開始仕訳、移動、クラウド操作、繰越から除外する未記帳の下書き件数を
+JSON で表示します。ファイルやクラウドには書き込みません。
+
+### iris seal
+
+連携済み帳簿のクラウド上の会計年度を締めます（seal）。サーバーが年度内の仕訳と
+`config/`・`assets/`・`filings/`・`compiled/` を**ロック**します。`raw/` と `notes/` は
+引き続き変更できます。ローカルのファイル自体は編集できますが、ロック対象の変更は
+同期できません。年度のファイルは作業ツリーにそのまま残ります。締め済み年度を
+修正するには `iris reopen <fiscal-year>` を実行します — 再オープン中のロック対象の
+変更は監査証跡（`iris api history`）にフラグ付きで記録されます — 修正が終わったら
+もう一度 `iris seal` を実行して年度を締めます（新しい締めが古い締めを引き継ぎます）。
+`--dry-run` は、締めでロックされるファイルの一覧を表示するだけで、何も締めません。
+年度内に下書きが残っている場合、締めは**拒否**されます — 締めた年度は完全に
+整理されていなければなりません。年度に属する仕訳なら先に記帳し、不要なら削除し、
+翌期のものなら日付を開いている年度へ変更してください。`--dry-run` が締めを妨げて
+いる下書きを一覧表示します。
+
+同期して締める前に、ローカルで `iris validate` を実行してください。
+Overlay のルール検証と保存済みレシピの再計算は、帳簿内に保持した定義を使って
+ローカルで行います。クラウドはこれらを実行せず、検証済みであるとも保証しません。
+`config/balance-assertions.yaml` がある場合、`--dry-run` は同期済みデータに対する
+共通処理の結果として、帳簿残高・確認残高・差額、対象範囲、証拠ファイルの確認状況を
+表示します。残高や証拠の不一致が残ると締められません。元の記録や残高確認の設定を
+ローカルで修正し、証拠を確認してから同期し、プレビューをやり直してください。
+未同期の変更は対象外です。同期後も元文書の参照データの不足・古さを報告する場合は、
+サーバー側での再構築が必要です。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
+
+```bash
+iris seal [--dry-run] <fiscal-year> [book-path]
+```
+
+連携済み帳簿のフォルダで実行するか、`--book-path` を指定します。その帳簿の
+クラウド側を締めます。ローカル MCP の `seal` ツールも、選んだ帳簿に同じ操作をします。
+
+### iris reopen
+
+締め済み会計年度のロックを解除して修正できるようにします。サーバー上で締めの
+ロックが解除されます。対象は年度内の仕訳と `config/`・`assets/`・`filings/`・
+`compiled/` で、再オープン後の対象ファイルの変更は締め後の編集として恒久的に
+記録されます。`raw/` と `notes/` は締めたままでも変更できます。年度の
+ファイルは作業ツリーから離れていません — 締めは年度をロックするだけで、
+ファイルを取り除きません — ので復元するものはありません。そのまま編集し、
+`iris sync` で編集を push し、`iris seal <fiscal-year>` で年度を再度締めてください。
+
+```bash
+iris reopen <fiscal-year> [path]
+```
+
+## 記帳と会計ルール
 
 ### iris validate
 
@@ -354,57 +351,58 @@ JSON の `preparationPlan` と `preparationTrace` に、計算元の固定バー
 同じ ID の定義は組み込みルールを置き換えます。有効な提案同士が食い違う場合は
 処理を止めます。選択したポリシーが取得できない場合や未信頼の場合は、先に修正が必要です。
 
-### iris hash
+### iris post
 
-単一ファイルの正規コンテンツハッシュを表示します（ローカルのバイト列とサーバーが
-受理した内容を比較するときに便利）。
+記帳後は、ほかの未同期変更も含む連携済み帳簿の全体を同期します。
+`--local` を付けると、ローカルで記帳するだけで同期しません。
+
+仕訳を `draft` から `posted` にして記帳し、（リンク済みなら）同期します。帳簿の
+オーナーが**記帳承認**（Web アプリ → 設定）をオンにしている場合、記帳は Web
+アプリ専用です。`iris post` はローカルで拒否し、サーバーも push された
+ステータス変更を `APPROVAL_REQUIRED` で拒否します。
+Web アプリでは保存済みのソースを確認してから承認します。送信するのは
+`status: posted` と、確認したファイルのハッシュだけです。一括承認では最大32件の
+ソースを先に表示し、同じハッシュを使います。その後ファイルが変わった場合は
+再確認が必要です。未確認の最新版を取り直して記帳することはありません。
+ブラウザーでの通常の記録の作成・編集・削除・復元はできません。修正は、オーナーが
+定めた記帳方針に従ってローカルクライアントで行います。
+事前に各ファイルが空でない・貸借一致であることを検証します。日付が締め済み
+会計年度に入っている仕訳は拒否されます（*"FY \<n\> is sealed (closed period) —
+run `iris reopen <n>` to amend it, then re-seal"*）。
 
 ```bash
-iris hash [--raw] <file>
+iris post [--dry-run] [--local] <file>...
+iris post [--dry-run] [--local] --all
 ```
 
-### iris organize
+`--all` はファイルを指名する代わりに、帳簿内のすべての `draft` 下書きを
+記帳します。ほかの共同作業者が書いた仕訳や、自動生成の減価償却も対象です。
+検証に失敗した下書きは報告のうえ下書きの
+まま残ります。記帳ポリシー `auto` の帳簿での定型操作です。
 
-帳簿のレイアウトを正規の形に整えます。既定はドライラン。
-
-```bash
-iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] [--json] [path]
-```
-
-`month-folders` は、`journals/YYYY-MM/` フォルダにあるのに日付がその月でない
-仕訳を正しい月のフォルダへ移し、`notes/raw/` のパースキャッシュにある
-`target:` のリンクを新しいパスに書き換えます。月より下のサブフォルダ（`auto/`
-など）はそのまま残り、月フォルダの外にある仕訳は動かしません。
-
-**出力形**（`--json`）— `--apply` がそのまま実行する計画そのものです。
-
-```text
-[ { family, code, path, newPath?, delete?, reason } ]
-```
-
-`family` は `--fix` のカテゴリ。移動なら `newPath`、削除なら `delete: true` が
-付きます。
-
-## レポート・検索
+記帳時は元の文書の `status` を変更し、ほかのフィールド・添付・数量・注記・
+Markdown 本文を残します。YAML の字下げは変わることがあるため、スクリプトでは
+文字列の書式に依存せず YAML を解析してください。仕訳の旧フィールド `source` と
+`source.ref` は書き込み前に拒否します。代わりに `attachments` に
+`path: raw/bank/x.csv`、`type: bank_statement`、`locator: L2` を指定すると、
+1行のヘッダーに続く最初のデータレコードを指します。CSV の `L` はヘッダーや
+引用符内の改行も含めた物理行の番号です。不明な単位も仕訳を変更せず拒否します。
+単位は `config/book.yaml` に宣言してください。
 
 ### iris reconcile
 
-`config/balance-assertions.yaml` の観測残高を、取得したローカルのルート仕訳と
-元資料のハッシュで照合します。パッケージ・ログイン・通信は不要です。
+`config/balance-assertions.yaml` に記録した残高（通帳の期末残高、現金の実査額など）を、
+帳簿とオフラインで照合します。
 
 ```bash
 iris reconcile [--json] [path]
 ```
 
-出力は常に JSON です。科目・基準日・年度、金額または数量、単位と小数桁数、
-記帳済みまたは明示した下書き込みの範囲、科目の通常の向き、正確な記録上・資料上の
-残高と差額を、10進数と整数の文字列で返します。元資料の状態も含みます。
-不一致、資料の不足・変更、入力エラーがあれば終了コードは1です。観測の一覧が空なら
-照合対象はありません。書き換えや記帳は行わず、`iris validate` でも失敗を報告します。
-ローカル MCP の `reconcile` も、単一帳簿・親フォルダの両モードで同じ処理を使います。
-クラウドの締めプレビューでも、受け入れ済みデータに対して同じ共通処理を実行し、
-未解決の観測残高があれば締めを拒否します。ローカルの変更は先に同期してください。
-Overlay の判定や元資料の真正性を証明するものではありません。
+JSON には観測ごとに、帳簿上と資料上の残高、差額、元資料のファイルが記録時と同じか
+どうかが入ります。不一致、資料の不足・変更、入力エラーがあれば終了コードは1です。
+ファイルがない場合や一覧が空の場合は、照合するものはありません。書き換えや記帳は行わず、
+`iris validate` でも同じ失敗を報告します。クラウドで年度を締めるときも同期済みの
+データで同じ照合を行い、未解決の観測があれば締めを拒否するため、先に同期してください。
 [書式と一連の例](book-format-reference.md#残高照合)を参照してください。
 
 ### iris allocation
@@ -424,133 +422,6 @@ iris allocation --input -     # 標準入力から一つのJSONオブジェク�
 入力の上限は8192バイトです。入力の不備は終了コード1、使い方の誤りは2を返します。
 取得価額の按分や記帳は行いません。
 [費用の按分の例](book-format-reference.md#費用の事業分と家事分を分ける)も参照してください。
-
-### iris balance
-
-基準日時点の試算表（記帳済みのみ）。
-
-```bash
-iris balance [--as-of YYYY-MM-DD] [path]
-```
-
-出力は `iris report tb` と同じ試算表のドキュメントです（下記）。
-
-### iris report
-
-財務諸表。サブコマンド:
-
-```bash
-iris report tb [--as-of YYYY-MM-DD] [path]               # 試算表
-iris report pl [--from D] [--to D] [path]                # 損益計算書
-iris report bs [--as-of YYYY-MM-DD] [path]               # 貸借対照表
-iris report ledger --account PATH [--as-of D] [path]     # 科目別元帳
-iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
-                                                         # 仕訳明細のグループ別集計
-```
-
-レポートの出力は **JSON** です（金額は最小単位の整数）。クラウドのレスポンスには、
-リビジョンや鮮度などの追加情報が含まれる場合があります。
-テキスト表モードはありません: 日本語の勘定科目名では端末の列揃えが安定せず、
-AI はもともと JSON を読み、人間向けの整形表示は Web アプリが担います。
-互換性のため `--json` フラグは受け付けます（no-op）。
-
-`report sum` は記帳済みの仕訳明細を指定キー — `account`、`unit`、`payee`、
-`month`、または `tax.category` のようなドット記法のフィールド — でグループ化し、
-グループごとの借方・貸方・純額と明細数を返します（例: 消費税の集計は
-`--by tax.category,tax.rate --year 2026`）。キーを持たない明細は空キーの
-グループとして明示されるため、未分類の明細が黙って消えることはありません。
-`--year` は会計年度（開始年ベース）、`--from/--to` は任意の日付範囲（両端含む）です。
-
-**日付の既定値**。省略した日付は、帳簿の会計年度（`fiscal_year`。帳簿は1年に
-1冊）から補います。残高（`balance`・`tb`・`bs`・`ledger`）は今日時点、その年度が
-終わっていれば年度末時点で出します。「今日」は帳簿の地域での日付で、日本の帳簿
-なら日本時間です。`pl` と `sum` は、年度の初日から同じ日までを集計します。
-前年度の帳簿を年が明けてから申告のために開くと、前年度を通年で表示します。
-`--to` だけを指定すると、その日が属する会計年度の
-初日から集計します。`--from` だけなら今日までです。今日より後の日付の仕訳は、
-その日が来るまで含みません。JSON には使った日付が必ず入り、Web アプリ・MCP ツール・
-リモートコネクタも同じ既定値を使います。申告に使う数字は、期間（`--year` または
-`--from`/`--to`）を指定して出してください。
-
-**出力形**。5つとも1つの行型の上に組み立てられています。
-
-```text
-Balance = { account, debits, credits, type?, net }
-
-tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
-pl      { from?, to?, income[Balance], expenses[Balance],
-          totalIncome, totalExpense, net }
-bs      { asOf?, assets[Balance], liabilities[Balance], equity[Balance],
-          totalAssets, totalLiabilities, totalEquity,
-          currentEarnings, balanced }
-ledger  { account, asOf?,
-          entries[{ date, file, payee, debit, credit, balance }],
-          totalDebits, totalCredits, balance }
-sum     { groupBy[], from?, to?,
-          rows[{ keys[], debit, credit, net, lines }],
-          totalDebit, totalCredit, totalNet, totalLines }
-```
-
-`net` は数値で返し、相殺済みの科目でも `0` を省略しません。`type` があれば
-科目の通常残高の向き、未分類なら `debits - credits` です。現在のCLIは、旧サーバーが
-省略した `net` も補ってからJSONを出します。既存の絞り込みで残高ゼロの行全体を
-除く場合はあります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
-は元の仕訳ファイルなので、元帳のどの行からも元の仕訳へたどれます。
-`sum.rows[].keys` は位置対応で、`--by` に渡したキーと同じ順に1つずつ並びます。
-
-### iris search
-
-任意のフィルタの組み合わせ（AND）で仕訳を探します。決定論的・オフライン。
-
-```bash
-iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
-  [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
-```
-
-ステータス列には**実効**ステータスが表示されます。日付が締め済み会計年度に
-入っている仕訳は、ファイルの記載にかかわらず `closed` と表示され、
-`--status closed` はまさにそれらを絞り込みます。
-
-**出力形**（`--json`）:
-
-```text
-[ { path, date, payee, status, amount, lines } ]
-```
-
-`amount` はその仕訳の借方合計（マイナー単位）、`lines` は明細行数です。
-
-### iris references
-
-パスの相互参照。資料に対してはそれを引用する仕訳、仕訳に対しては引用する資料と
-兄弟を表示します。
-
-```bash
-iris references [--json] <path> [path]
-```
-
-**出力形**（`--json`）:
-
-```text
-{ ref, mode,
-  citedBy[{ path, date, payee, status }],
-  cites[{ path, type?, locator?, alsoCitedBy[] }] }
-```
-
-`mode` は `ref` を書類として読んだか仕訳として読んだかを示します。`type` は添付の
-由来（`receipt` / `invoice` / `bank_statement`）で、補助資料には付きません。
-`alsoCitedBy` は同じ書類を引いている**他の**仕訳の一覧で、領収書の二重計上を
-見つける手がかりになります。
-
-### iris export
-
-仕訳・試算表・元帳・資産を CSV（UTF-8 BOM 付き）で書き出します。
-
-```bash
-iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
-iris export assets [--year YYYY] [--out FILE] [path]
-```
-
-## 固定資産
 
 ### iris asset
 
@@ -572,7 +443,24 @@ iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末�
 資産の計算量には上限があります。不正な償却表や上限を超えた入力はエラーになります。
 [償却表の上限](book-format-reference.md#schedule-計算させるか表を記録するか)を参照してください。
 
-## 地域オーバーレイ
+### iris financial
+
+名前付きビューを読み取り専用で計算し、JSON の集計額と識別子を確認してから、その計算結果を保持します。
+
+```sh
+iris financial prepare --view management ./my-book
+iris financial prepare --view management --apply --revision GENERATION_ID ./my-book
+iris financial accept --generation GENERATION_ID ./my-book
+iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
+```
+
+`prepare` のビュー省略時は既定のビューを使います。`calculations/financial/` に元文書、型付きの raw 証憑参照のハッシュ、計算後の仕訳、標準計算エンジンの版と状態を保持します。承認はその識別子に対するもので、元仕訳の記帳とは別です。元文書は変更しません。ファイルの追加・削除、内容、ビュー定義、証憑が変わると、現在の入力に対する承認は無効になります。過去の計算結果は標準計算の再現に使えます。
+
+人による記帳承認が必要な帳簿では、下書きの計算結果を保持・同期し、Web の**帳簿設定 → 会計ビューの承認**で確認します。現在の Owner/Bookkeeper のブラウザーセッションで承認できます。ローカル承認はローカル操作を記録するもので、認証済みの承認者を示しません。ローカル MCP は `preview_financial_ledger`、`retain_financial_ledger`（確認した `revision`）、`accept_financial_ledger`（`generation`）を提供し、親フォルダモードでは `book` も指定します。
+
+承認済みレポートは1つの承認済みビューを選びます。複数ビューの合成はローカルの未承認比較用です。出力にはビュー名、計算結果の識別子、入力の最終日、未記帳の元取引数を残します。純資産・分析は各帳簿の承認済みの既定ビューを使います。年度締めは同一の入力版に対して全ビューが確定していることを確認し、承認済みのクラウド版を固定します。SQLite スキーマ2は各ビューと元の計算結果を別々に保存し、通常の表には既定ビューの金額を入れます。再開後の訂正でも、作成済みアーカイブは変わりません。
+
+対象は標準の在庫原価計算と当年度取得資産の減価償却です。地域別 Overlay レシピや申告要件の適否は評価しません。ビュー別の期首・翌年度繰越、例外取引、期別原価配分、勘定科目表・ルールの差分は未対応です。入力・参照は1,024パス、元文書512 KiB、資産64件、計算後明細8,192行、証憑1件16 MiB・合計128 MiB、計算結果1 MiBまでです。履歴は1,024件・64 MiBまでで、上限超過時は切り詰めずに拒否します。
 
 ### iris context
 
@@ -753,59 +641,173 @@ iris overlay trust --source book:HASH ./books/example
 配布キャッシュで過去の内容を代用しません。年度繰越では翌年度の選択を保ったまま
 保存済みのコピーを引き継ぎ、コピー前に両年度を合わせた保存先の上限を確認します。
 
-## 編集・記帳
+### iris organize
 
-### iris post
-
-記帳後は、ほかの未同期変更も含む連携済み帳簿の全体を同期します。
-`--local` を付けると、ローカルで記帳するだけで同期しません。
-
-仕訳を `draft` から `posted` にして記帳し、（リンク済みなら）同期します。帳簿の
-オーナーが**記帳承認**（Web アプリ → 設定）をオンにしている場合、記帳は Web
-アプリ専用です。`iris post` はローカルで拒否し、サーバーも push された
-ステータス変更を `APPROVAL_REQUIRED` で拒否します。
-Web アプリでは保存済みのソースを確認してから承認します。送信するのは
-`status: posted` と、確認したファイルのハッシュだけです。一括承認では最大32件の
-ソースを先に表示し、同じハッシュを使います。その後ファイルが変わった場合は
-再確認が必要です。未確認の最新版を取り直して記帳することはありません。
-ブラウザーでの通常の記録の作成・編集・削除・復元はできません。修正は、オーナーが
-定めた記帳方針に従ってローカルクライアントで行います。
-事前に各ファイルが空でない・貸借一致であることを検証します。日付が締め済み
-会計年度に入っている仕訳は拒否されます（*"FY \<n\> is sealed (closed period) —
-run `iris reopen <n>` to amend it, then re-seal"*）。
+帳簿のレイアウトを正規の形に整えます。既定はドライラン。
 
 ```bash
-iris post [--dry-run] [--local] <file>...
-iris post [--dry-run] [--local] --all
+iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] [--json] [path]
 ```
 
-`--all` はファイルを指名する代わりに、帳簿内のすべての `draft` 下書きを
-記帳します。ほかの共同作業者が書いた仕訳や、自動生成の減価償却も対象です。
-検証に失敗した下書きは報告のうえ下書きの
-まま残ります。記帳ポリシー `auto` の帳簿での定型操作です。
+`month-folders` は、`journals/YYYY-MM/` フォルダにあるのに日付がその月でない
+仕訳を正しい月のフォルダへ移し、`notes/raw/` のパースキャッシュにある
+`target:` のリンクを新しいパスに書き換えます。月より下のサブフォルダ（`auto/`
+など）はそのまま残り、月フォルダの外にある仕訳は動かしません。
 
-記帳時は元の文書の `status` を変更し、ほかのフィールド・添付・数量・注記・
-Markdown 本文を残します。YAML の字下げは変わることがあるため、スクリプトでは
-文字列の書式に依存せず YAML を解析してください。仕訳の旧フィールド `source` と
-`source.ref` は書き込み前に拒否します。代わりに `attachments` に
-`path: raw/bank/x.csv`、`type: bank_statement`、`locator: L2` を指定すると、
-1行のヘッダーに続く最初のデータレコードを指します。CSV の `L` はヘッダーや
-引用符内の改行も含めた物理行の番号です。不明な単位も仕訳を変更せず拒否します。
-単位は `config/book.yaml` に宣言してください。
+**出力形**（`--json`）— `--apply` がそのまま実行する計画そのものです。
 
-### iris diff
+```text
+[ { family, code, path, newPath?, delete?, reason } ]
+```
 
-push される内容 — ローカル変更と最後の同期スナップショットの差 — を表示します。
-ローカルだけの帳簿でもオフラインで使え、一度も同期していない場合はファイルを追加として
-表示します。同期済みの過去の変更は、ファイル履歴で確認してください。
+`family` は `--fix` のカテゴリ。移動なら `newPath`、削除なら `delete: true` が
+付きます。
+
+## レポートと証憑
+
+### iris balance
+
+基準日時点の試算表（既定では記帳済みのみ）。
 
 ```bash
-iris diff                # 保留中の全変更を一覧
-iris diff <relpath>      # 1ファイルの行単位差分
-iris diff --paths        # 名前と種別のみ
+iris balance [--as-of YYYY-MM-DD] [path]
 ```
 
-## 同期・コンフリクト（クラウド）
+出力は `iris report tb` と同じ試算表のドキュメントです（下記）。
+
+### iris report
+
+財務諸表。サブコマンド:
+
+```bash
+iris report tb [--as-of YYYY-MM-DD] [path]               # 試算表
+iris report pl [--from D] [--to D] [path]                # 損益計算書
+iris report bs [--as-of YYYY-MM-DD] [path]               # 貸借対照表
+iris report ledger --account PATH [--as-of D] [path]     # 科目別元帳
+iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
+                                                         # 仕訳明細のグループ別集計
+```
+
+5つのレポートコマンドと `iris balance` は、`--include-drafts` で下書きを含めて
+確認できます。`--mode` を省略すると、読み取り専用の比較モードになります。
+例: `iris report pl --include-drafts`。JSON には実際のモードと下書きを含むかどうかを
+示します。このフラグを付けない場合、下書きは除外します。
+`--mode approved --include-drafts` の併用はできません。比較モードでは在庫原価と
+減価償却もファイルを変更せずに計算します。名前付きビューの承認済みレポートは、
+現在の入力に対して承認された計算結果を使います。
+
+レポートの出力は **JSON** です（金額は最小単位の整数）。クラウドのレスポンスには、
+リビジョンや鮮度などの追加情報が含まれる場合があります。
+テキスト表モードはありません: 日本語の勘定科目名では端末の列揃えが安定せず、
+AI はもともと JSON を読み、人間向けの整形表示は Web アプリが担います。
+互換性のため `--json` フラグは受け付けます（no-op）。
+
+`report sum` は記帳済みの仕訳明細を指定キー — `account`、`unit`、`payee`、
+`month`、または `tax.category` のようなドット記法のフィールド — でグループ化し、
+グループごとの借方・貸方・純額と明細数を返します（例: 消費税の集計は
+`--by tax.category,tax.rate --year 2026`）。キーを持たない明細は空キーの
+グループとして明示されるため、未分類の明細が黙って消えることはありません。
+`--year` は会計年度（開始年ベース）、`--from/--to` は任意の日付範囲（両端含む）です。
+
+**日付の既定値**。省略した日付は、帳簿の会計年度（`fiscal_year`。帳簿は1年に
+1冊）から補います。残高（`balance`・`tb`・`bs`・`ledger`）は今日時点、その年度が
+終わっていれば年度末時点で出します。「今日」は帳簿の地域での日付で、日本の帳簿
+なら日本時間です。`pl` と `sum` は、年度の初日から同じ日までを集計します。
+前年度の帳簿を年が明けてから申告のために開くと、前年度を通年で表示します。
+`--to` だけを指定すると、その日が属する会計年度の
+初日から集計します。`--from` だけなら今日までです。今日より後の日付の仕訳は、
+その日が来るまで含みません。JSON には使った日付が必ず入り、Web アプリ・MCP ツール・
+リモートコネクタも同じ既定値を使います。申告に使う数字は、期間（`--year` または
+`--from`/`--to`）を指定して出してください。
+
+**出力形**。5つとも1つの行型の上に組み立てられています。
+
+```text
+Balance = { account, debits, credits, type?, net }
+
+tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
+pl      { from?, to?, income[Balance], expenses[Balance],
+          totalIncome, totalExpense, net }
+bs      { asOf?, assets[Balance], liabilities[Balance], equity[Balance],
+          totalAssets, totalLiabilities, totalEquity,
+          currentEarnings, balanced }
+ledger  { account, asOf?,
+          entries[{ date, file, payee, debit, credit, balance }],
+          totalDebits, totalCredits, balance }
+sum     { groupBy[], from?, to?,
+          rows[{ keys[], debit, credit, net, lines }],
+          totalDebit, totalCredit, totalNet, totalLines }
+```
+
+`net` は数値で返し、相殺済みの科目でも `0` を省略しません。`type` があれば
+科目の通常残高の向き、未分類なら `debits - credits` です。現在のCLIは、旧サーバーが
+省略した `net` も補ってからJSONを出します。既存の絞り込みで残高ゼロの行全体を
+除く場合はあります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
+は元の仕訳ファイルなので、元帳のどの行からも元の仕訳へたどれます。
+`sum.rows[].keys` は位置対応で、`--by` に渡したキーと同じ順に1つずつ並びます。
+
+### iris search
+
+任意のフィルタの組み合わせ（AND）で仕訳を探します。決定論的・オフライン。
+
+```bash
+iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
+  [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
+```
+
+ステータス列には**実効**ステータスが表示されます。日付が締め済み会計年度に
+入っている仕訳は、ファイルの記載にかかわらず `closed` と表示され、
+`--status closed` はまさにそれらを絞り込みます。
+
+**出力形**（`--json`）:
+
+```text
+[ { path, date, payee, status, amount, lines } ]
+```
+
+`amount` はその仕訳の借方合計（マイナー単位）、`lines` は明細行数です。
+
+### iris references
+
+パスの相互参照。資料に対してはそれを引用する仕訳、仕訳に対しては引用する資料と
+兄弟を表示します。
+
+```bash
+iris references [--json] <path> [path]
+```
+
+**出力形**（`--json`）:
+
+```text
+{ ref, mode,
+  citedBy[{ path, date, payee, status }],
+  cites[{ path, type?, locator?, alsoCitedBy[] }] }
+```
+
+`mode` は `ref` を書類として読んだか仕訳として読んだかを示します。`type` は添付の
+由来（`receipt` / `invoice` / `bank_statement`）で、補助資料には付きません。
+`alsoCitedBy` は同じ書類を引いている**他の**仕訳の一覧で、領収書の二重計上を
+見つける手がかりになります。
+
+### iris export
+
+仕訳・試算表・元帳・資産を CSV（UTF-8 BOM 付き）で書き出します。
+
+```bash
+iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
+iris export assets [--year YYYY] [--out FILE] [path]
+```
+
+### iris hash
+
+単一ファイルの正規コンテンツハッシュを表示します（ローカルのバイト列とサーバーが
+受理した内容を比較するときに便利）。
+
+```bash
+iris hash [--raw] <file>
+```
+
+## 同期と復旧
 
 ### iris sync
 
@@ -855,6 +857,18 @@ Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカ�
 編集 → 同期 → 読み取り のループで2回目の呼び出しが要らないのはこのためです。
 ファイルごとの受理**と**拒否が、この1つのレスポンスに両方入っています。
 
+### iris diff
+
+push される内容 — ローカル変更と最後の同期スナップショットの差 — を表示します。
+ローカルだけの帳簿でもオフラインで使え、一度も同期していない場合はファイルを追加として
+表示します。同期済みの過去の変更は、ファイル履歴で確認してください。
+
+```bash
+iris diff                # 保留中の全変更を一覧
+iris diff <relpath>      # 1ファイルの行単位差分
+iris diff --paths        # 名前と種別のみ
+```
+
 ### iris conflicts
 
 push がコンフリクト（409）すると、サーバー版が正規パスを取り、あなたの版が
@@ -892,80 +906,7 @@ iris sync issues retry --path <relpath> [path]   # 1ファイルのみ
 拒否したことを表し、各 issue の `rule` がそのルールを示します。ルールは
 `iris overlay list` で確認できます。
 
-### iris yearend
-
-翌年度の帳簿を作り、期首残高を繰り越します。今年度はロックされません。
-締めるときは別途 `iris api seal` を実行します。1つの帳簿は1会計年度分
-なので、`iris yearend` は翌年度の帳簿を独立したコピーとして、この帳簿と同じ
-階層の新しいフォルダに作ります（`acme-2025` → `acme-2026`。フォルダは `--to` で
-指定できます）。新しい帳簿には次のものが入ります。
-
-- `config/` — `fiscal_year` を翌年度に進め、独自の帳簿 ID を持つ `book.yaml`、
-  勘定科目表、`rules.yaml`、`config/overlays/`
-- ガイド（`README.md`・`AGENTS.md`・`CLAUDE.md`）と方針のノート
-  （`decisions.md`・`workflow.md`・`todos.md`・`open-questions.md`）
-- 新年度の開始時点でまだ保有している固定資産
-- 期首残高の仕訳。`journals/<YYYY-MM>/0000-opening-balances.md` に、新年度の
-  初日の日付で `opening-balance` タグを付けて作られます。貸借対照表科目は
-  期末残高のまま繰り越され（外貨・暗号資産など数量を管理している保有資産は
-  数量も含めて）、収益・費用はゼロにリセットされ、当期純利益は
-  `config/chart-of-accounts.yaml` で `retained_earnings: true` を付けた資本科目
-  （どの科目にも付いていなければ勘定科目表で唯一の資本科目）へ折り込まれます。
-  資本科目が複数あってどれにも付いていない場合は、いずれか 1 つに付けるよう
-  求めて止まります。
-
-すでに新年度の日付で記録した仕訳は、参照している元資料とともに新しい帳簿へ
-**移動**します。それより前の仕訳、`compiled/`、`filings/`、パースキャッシュ、
-処分済みの資産はこの帳簿に残ります。`--carry notes,raw` を付けると、`notes/` や
-`raw/` もまるごとコピーします。
-
-この帳簿がクラウドにリンクされている場合は、同じ実行で新しい帳簿のクラウド側も
-作ります。この帳簿にアクセスできる人は全員、新しい帳簿にも同じ権限でアクセスできるように
-なり、この帳簿の受信アドレスは新しい帳簿へ移ります。そのうえで両方の帳簿を同期します。
-実行前に確認を求めます。`--yes` で確認を省略でき（端末が接続されていない場合は
-必須です）、`--local` を付けるとローカルの帳簿だけを作ります。
-
-作成後、2つの帳簿の間につながりはありません。前年度への遅れた訂正を反映するには、
-前年度の帳簿で修正し、同じ `--to` を付けてもう一度 `iris yearend` を実行します。
-新しい帳簿の期首残高仕訳が更新され（結果が同一なら何もしません）、前回の実行後に
-前年度の帳簿に加わった新年度の日付の仕訳が移動します。新しい帳簿の設定とノートは
-そのまま残ります。新年度が締め済みになると、期首残高仕訳はその時点の内容で
-凍結されます — 不一致は対処方法とともに報告され、無言で書き換えられることは
-ありません。締める年度の日付の未記帳の下書きは警告されます（繰越に含まれません）。
-
-`<fiscal-year>` は省略できます。既定は帳簿の `fiscal_year` で、それ以外の年度を
-指定すると拒否されます。
-
-```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
-```
-
-`--link-existing BOOK_ID` は Owner 権限のある新年度の初期クラウド帳簿を再利用します。
-移動前にリンク先を確認し、設定と勘定科目表の反映が成功してから仕訳を移動します。
-リンク先の権限と受信アドレスは保持し、プレビューの `copyGrants` と
-`transferInbox` は false です。クラウド帳簿の新規作成は行いません。
-`--local` とは併用できません。同じリンク済み新年度へ再実行する場合はクラウドの
-設定と締めを確認して更新します。新年度の同期が成功してから旧年度を同期します。
-親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
-
-`--dry-run` は開始仕訳、移動、クラウド操作、繰越から除外する未記帳の下書き件数を
-JSON で表示します。ファイルやクラウドには書き込みません。
-
-### iris reopen
-
-締め済み会計年度のロックを解除して修正できるようにします。サーバー上で締めの
-ロックが解除されます。対象は年度内の仕訳と `config/`・`assets/`・`filings/`・
-`compiled/` で、再オープン後の対象ファイルの変更は締め後の編集として恒久的に
-記録されます。`raw/` と `notes/` は締めたままでも変更できます。年度の
-ファイルは作業ツリーから離れていません — 締めは年度をロックするだけで、
-ファイルを取り除きません — ので復元するものはありません。そのまま編集し、
-`iris sync` で編集を push し、`iris api seal` で年度を再度締めてください。
-
-```bash
-iris reopen <fiscal-year> [path]
-```
-
-## 価格（純資産）
+## 資産管理と価格
 
 ### iris networth
 
@@ -984,59 +925,6 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 下書きは除外します。価格がない保有は簿価を使い、`unpriced` に示します。
 帳簿のコピーを二重に数えないよう、重複するフォルダ・帳簿 ID は拒否します。
 出力は JSON です。クラウドの集計対象設定は使いません。
-
-### iris analytics
-
-```bash
-iris analytics export --books-dir ~/IrisBooks --out portfolio.duckdb --currency JPY
-duckdb -readonly portfolio.duckdb
-```
-
-`export` は未同期の編集を含むローカルの記帳済み仕訳と価格記録から、分析用ファイルを
-作ります。DuckDB CLI をインストールするか、`--duckdb /path/to/duckdb` で指定して
-ください。`--books-dir` または帳簿フォルダの一覧を指定します。出力先に既存のファイルは
-使えません。価格の競合がある場合は、解消してから実行してください。
-
-ファイルには出典、仕訳の増減、保有残高の履歴、価格、不足情報と、時点評価用の
-`portfolio_at` マクロが入ります。SQL やピボットで分析できます。
-
-```sql
-SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
-PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
-```
-
-`iris yearend` は完全な期首ロットと取得原価を翌年度の帳簿に引き継ぎます。
-各年度の帳簿は単独で使え、その会計年度の期間だけ集計に含まれます。
-過去の期間を見る場合は過年度の帳簿も選びます。帳簿のない年度は空白です。
-帳簿間の関係は保存せず、リンクも不要です。
-
-取得額は現在保有する分の取得原価です。簿価、累計入金額、実現損益とは別の値です。
-原価配分は FIFO が既定です。対象に一致する帳簿直下の方法指定を優先し、
-指定がなければ期首在庫の方法を引き継ぎます。個別法・移動平均にも対応し、
-個別法の売却ではロットを選ぶ必要があります。取得履歴や期首の取得原価が
-不明なら、不明のまま表示します。`inventory_method` で保有残高ごとの方法を
-確認できます。
-名前付き帳簿では、現在の入力に対して承認済みの既定ビューを使い、
-ビュー名と計算結果の識別子も保持します。未承認・入力変更後の結果では出力しません。
-
-### iris financial
-
-名前付きビューを読み取り専用で計算し、JSON の集計額と識別子を確認してから、その計算結果を保持します。
-
-```sh
-iris financial prepare --view management ./my-book
-iris financial prepare --view management --apply --revision GENERATION_ID ./my-book
-iris financial accept --generation GENERATION_ID ./my-book
-iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
-```
-
-`prepare` のビュー省略時は既定のビューを使います。`calculations/financial/` に元文書、型付きの raw 証憑参照のハッシュ、計算後の仕訳、標準計算エンジンの版と状態を保持します。承認はその識別子に対するもので、元仕訳の記帳とは別です。元文書は変更しません。ファイルの追加・削除、内容、ビュー定義、証憑が変わると、現在の入力に対する承認は無効になります。過去の計算結果は標準計算の再現に使えます。
-
-人による記帳承認が必要な帳簿では、下書きの計算結果を保持・同期し、Web の**帳簿設定 → 会計ビューの承認**で確認します。現在の Owner/Bookkeeper のブラウザーセッションで承認できます。ローカル承認はローカル操作を記録するもので、認証済みの承認者を示しません。ローカル MCP は `preview_financial_ledger`、`retain_financial_ledger`（確認した `revision`）、`accept_financial_ledger`（`generation`）を提供し、親フォルダモードでは `book` も指定します。
-
-承認済みレポートは1つの承認済みビューを選びます。複数ビューの合成はローカルの未承認比較用です。出力にはビュー名、計算結果の識別子、入力の最終日、未記帳の元取引数を残します。純資産・分析は各帳簿の承認済みの既定ビューを使います。年度締めは同一の入力版に対して全ビューが確定していることを確認し、承認済みのクラウド版を固定します。SQLite スキーマ2は各ビューと元の計算結果を別々に保存し、通常の表には既定ビューの金額を入れます。再開後の訂正でも、作成済みアーカイブは変わりません。
-
-対象は標準の在庫原価計算と当年度取得資産の減価償却です。地域別 Overlay レシピや申告要件の適否は評価しません。ビュー別の期首・翌年度繰越、例外取引、期別原価配分、勘定科目表・ルールの差分は未対応です。入力・参照は1,024パス、元文書512 KiB、資産64件、計算後明細8,192行、証憑1件16 MiB・合計128 MiB、計算結果1 MiBまでです。履歴は1,024件・64 MiBまでで、上限超過時は切り詰めずに拒否します。
 
 ### iris price
 
@@ -1079,7 +967,76 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 `--choose server` はその編集を破棄します。別の値に直す場合は local を選んでから
 価格を再記録して同期します。候補が変わった後の古い解決指定は拒否されます。
 
-## MCP サーバー
+### iris analytics
+
+```bash
+iris analytics export --books-dir ~/IrisBooks --out portfolio.duckdb --currency JPY
+duckdb -readonly portfolio.duckdb
+```
+
+`export` は未同期の編集を含むローカルの記帳済み仕訳と価格記録から、分析用ファイルを
+作ります。DuckDB CLI をインストールするか、`--duckdb /path/to/duckdb` で指定して
+ください。`--books-dir` または帳簿フォルダの一覧を指定します。出力先に既存のファイルは
+使えません。価格の競合がある場合は、解消してから実行してください。
+
+ファイルには出典、仕訳の増減、保有残高の履歴、価格、不足情報と、時点評価用の
+`portfolio_at` マクロが入ります。SQL やピボットで分析できます。
+
+```sql
+SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
+PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
+```
+
+`iris yearend` は完全な期首ロットと取得原価を翌年度の帳簿に引き継ぎます。
+各年度の帳簿は単独で使え、その会計年度の期間だけ集計に含まれます。
+過去の期間を見る場合は過年度の帳簿も選びます。帳簿のない年度は空白です。
+帳簿間の関係は保存せず、リンクも不要です。
+
+取得額は現在保有する分の取得原価です。簿価、累計入金額、実現損益とは別の値です。
+原価配分は FIFO が既定です。対象に一致する帳簿直下の方法指定を優先し、
+指定がなければ期首在庫の方法を引き継ぎます。個別法・移動平均にも対応し、
+個別法の売却ではロットを選ぶ必要があります。取得履歴や期首の取得原価が
+不明なら、不明のまま表示します。`inventory_method` で保有残高ごとの方法を
+確認できます。
+名前付き帳簿では、現在の入力に対して承認済みの既定ビューを使い、
+ビュー名と計算結果の識別子も保持します。未承認・入力変更後の結果では出力しません。
+
+## AI アシスタント連携
+
+### iris onboard
+
+このマシンの AI アシスタントを帳簿につなぎます。`iris mcp serve` を MCP クライアント
+に登録し、Claude Code スキルを書き込みます。Claude Code のプロジェクト設定
+（`.mcp.json`）は常に書き込まれます。Claude Desktop・Codex CLI・Cursor・
+Gemini CLI・VS Code は、マシン上で検出された場合（または各フラグで強制した
+場合）に登録されます。
+
+```bash
+iris onboard [--book-path PATH] [--claude-desktop] [--codex] [--cursor] [--gemini] [--vscode] [--install-path] [--no-skill] [--dry-run]
+iris onboard --status [--json]    # 読み取り専用レポート: どこに何が登録されているか
+```
+
+`--status` は各クライアントの登録状態を報告します（登録先のバイナリがまだ存在
+するかも含む — 存在しない場合は `iris onboard` の再実行で直る古い状態です）。
+`--json` で機械可読な出力になります。`iris onboard` の再実行は常に安全です。
+登録はその場で更新され、重複しません。
+
+### iris offboard
+
+`iris onboard` の逆操作: すべてのクライアント設定から `irisbooks` の MCP 登録を
+削除し（アンインストール済みクライアントの残骸も含む）、Claude Code スキルも
+削除します。帳簿のデータやサインイン状態には触れません。冪等なので、クリーン
+再インストール前の実行も安全です。
+
+```bash
+iris offboard [--book-path PATH] [--keep-skill] [--remove-path] [--dry-run]
+```
+
+| フラグ | 意味 |
+| ---- | ------- |
+| `--keep-skill` | Claude Code スキルを残す（他の帳簿がまだ使っている場合） |
+| `--remove-path` | `onboard --install-path` で入れたバイナリも削除し、PATH 追加を戻す |
+| `--dry-run` | 削除される内容の表示のみで、何も削除しない |
 
 ### iris mcp
 
@@ -1099,15 +1056,16 @@ iris mcp serve [--book-path PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 帳簿名にパスは指定できず、外部を指すシンボリックリンクも拒否します。
 税理士の作業では、親フォルダと認証情報の範囲を顧客ごとに限定してください。
 
-`--book-path` は単一帳簿を扱い、各操作の帳簿指定は不要です。未作成または空の指定先は
-自動作成します。2 つのフォルダ指定は併用できません。ホストと AI に見えるパスは
+`--book-path` は既存の単一帳簿を扱い、各操作の帳簿指定は不要です。先に `iris init` で
+作成してください（新しい帳簿には地域の明示が必要なため、未作成または空の指定先は拒否します）。
+2 つのフォルダ指定は併用できません。ホストと AI に見えるパスは
 異なる場合があり、ファイルへのアクセス権とツールへの接続は別に必要です。
 
 #### ローカル帳簿を作る
 
 空の親フォルダでも利用できます。新規作成には
 `create_book(book="freelance-2026", name="Acme", region="JP", fiscal_start_month=1,
-fiscal_year=2026)` を使います。既存の帳簿や空でないフォルダは上書きせず、親自体も
+fiscal_year=2026)` を使います。地域は必須です。推測せず利用者に確認してください。通貨は省略すると地域の通貨になります。既存の帳簿や空でないフォルダは上書きせず、親自体も
 帳簿にしません。既存のクラウド帳簿を使う場合は、先に作成せず、後述の clone を使います。
 
 #### 記録を作成して検証する
@@ -1190,7 +1148,7 @@ cloud を残すとサイドカーを削除します。`list_conflicts` は JSON 
 場合がありますが、旧年度は締めません。`link_existing` は未編集で設定の一致する翌年度帳簿だけに
 接続し、既存の権限と受信先を保持します。詳しくは [年度更新](cli-reference.md#iris-yearend) を参照してください。
 
-#### 資産価値と価格
+#### 純資産と価格
 
 `get_networth` はローカルの記帳済み記録を未同期の編集も含めて集計し、通信や認証は不要です。
 設定ルート内の `books_dir="."` または `books=["business-2026", "personal-2026"]` を指定します。
@@ -1213,19 +1171,13 @@ cloud を残すとサイドカーを削除します。`list_conflicts` は JSON 
 再起動しても同じ値なのでクライアントのヘッダーは一度設定すれば使えます。ファイルを削除すると
 次回起動で新しい値になり、ヘッダーの更新が必要です。
 
-### iris version
+## クラウド管理（`iris api …`）
 
-```bash
-iris version
-```
-
----
-
-# クラウドコマンド（`iris api …`）
-
-**帳簿 ID** に対して動き、認証が必要です。
-
-## アカウント単位
+アカウントとクラウド帳簿を管理するコマンドで、認証（`iris api login` または
+`IRIS_API_TOKEN`）が必要です。アカウント単位の操作（`login`・`whoami`・`logout`・
+`books`・`token`・`config`・`price`）は帳簿の指定が不要です。帳簿単位の操作
+（`grants`・`inbox`・`balance`・`holdings`・`history`・`export`・`networth`）には
+**帳簿 ID** を `--book-id ID`、位置引数、`IRIS_BOOK` のいずれかで渡します。
 
 ### iris api login
 
@@ -1240,31 +1192,21 @@ iris api whoami     # キャッシュ済みトークンを検証
 iris api logout     # このデバイスのセッションを取り消してトークンを削除
 ```
 
-VM 上の AI エージェントには、スマートフォンからの承認が使えます。
-VM にブラウザやパスキー、共有のダウンロードフォルダは必要ありません。
+サーバーや AI アシスタントの VM など、ブラウザのない環境では、自分のスマートフォンで
+承認できます。
 
 ```bash
 iris api login --device
-# 表示された IrisBooks の URL とリクエスト番号をユーザーに伝えます。
-# ユーザー自身のスマートフォンでサインインし、番号を入力してアクセス内容を確認・承認します。
+# 表示された IrisBooks の URL をスマートフォンで開き、サインインしてリクエスト番号を入力し、承認します。
 iris api login --device-complete
 iris api whoami
 ```
 
-登録済みのパスキー、またはパスワードと認証アプリのコードでサインインできます。
-パスワードや認証コードはユーザー自身のブラウザに入力し、エージェントには
-渡さないでください。番号を入力するだけではアクセスは許可されません。
-アカウント・権限・注意書きを確認してから承認してください。デバイス名は
-アクセスを要求した側が指定したもので、本人確認済みの情報ではありません。
-
-`--device-complete` は一度だけ状態を確認します。終了コードが 0 でも、待機の
-メッセージが出た場合は未承認で、新しい資格情報は保存されていません。
-再確認は 5 秒以上空けてください。`Authorized` が表示され、`whoami` が成功してから
-先に進みます。リクエストは開始から 10 分で失効します。やり直すとローカルの
-待機状態が置き換わるため、最新の番号を使ってください。拒否・期限切れ・完了したか
-不明な場合は新しいリクエストを開始します。完了時には開始時の環境を使います。
-秘密の検証値や資格情報は CLI が内部で扱うため、待機ファイルやトークンファイルを
-読んだり共有したりしないでください。`iris api logout` でローカルの待機状態も解除できます。
+パスキー、またはパスワードと認証アプリのコードは、自分のブラウザにだけ入力し、
+アシスタントには渡さないでください。番号を入力するだけではアクセスは許可されません。
+アカウント・権限・注意書きを確認してから承認してください。リクエストは開始から
+10 分で失効します。`--device-complete` が `Authorized` を表示し、`whoami` が成功して
+から先に進みます。
 
 ブラウザのダウンロード先を CLI から読み取れる場合は、認可結果をファイルで
 受け取る方法も使えます。
@@ -1276,30 +1218,22 @@ iris api login --complete /path/to/downloads/iris-login.json
 iris api whoami
 ```
 
-ダウンロードしたファイルのパスだけを CLI に渡してください。CLI がファイルを読み、
-セッションの資格情報を内部で保存します。ファイルに入るのは一度だけ使える認可コードで、
-セッショントークンではありません。コードは CLI が保持する秘密の PKCE 検証値に
-ひも付き、許可から 5 分で失効します。CLI の待機状態は開始から 10 分で失効します。
-やり直すと以前の待機状態が置き換わるため、新しい URL とダウンロードを使ってください。
-完了時には、開始時に選んだ環境を使います。認可画面でキャンセルするとキャンセル結果が
-ダウンロードされ、そのファイルを CLI に渡すと資格情報を保存せずに待機状態を解除します。
-完了後はダウンロードしたファイルを削除してください。その後は通常どおり
-`iris api books …` と `iris sync` を使えます。
+ファイルに入るのは一度だけ使える認可コードで、セッショントークンではありません。
+許可から 5 分で失効します。完了後はダウンロードしたファイルを削除してください。
 
 ### アカウントと環境を分ける
 
 **アカウントと環境の組合せごとに専用の非公開フォルダー**を使い、Bookの外に置きます。
 ログイン前に `IRISBOOKS_TOKEN_FILE` でその中のトークン保存先を指定し、完了操作と後続のCLIでも同じパスを使います。
-接続先の設定、許可待ちの情報、ユーザー単位の価格データも同じフォルダーに保存されます。
-同じフォルダーで `personal.json` と `business.json` に名前を分けるだけでは、これらを分離できません。
+接続先の設定、許可待ちの情報、ユーザー単位の価格データも同じフォルダーに保存されるため、
+同じフォルダーで `personal.json` と `business.json` に名前を分けるだけでは分離できません。
 Bookのフォルダーを変えても、ログインするアカウントは切り替わりません。
 
-POSIXシェルで、個人用の本番プロファイルを選ぶ例です。
+POSIXシェルで、個人用のプロファイルを選ぶ例です。
 
 ```bash
 export IRISBOOKS_TOKEN_FILE="$HOME/.config/irisbooks/profiles/personal-prod/token.json"
-unset IRIS_API_TOKEN IRIS_API_ENDPOINT IRISBOOKS_APP_BASE IRISBOOKS_API_BASE
-IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login --device
+iris api login --device
 # Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
 iris api login --device-complete
 iris api whoami
@@ -1310,9 +1244,6 @@ PowerShellでも、専用フォルダーを指定します。
 
 ```powershell
 $env:IRISBOOKS_TOKEN_FILE = Join-Path $HOME '.config/irisbooks/profiles/personal-prod/token.json'
-'IRIS_API_TOKEN','IRIS_API_ENDPOINT','IRISBOOKS_APP_BASE','IRISBOOKS_API_BASE' | ForEach-Object { Remove-Item "Env:$_" -ErrorAction SilentlyContinue }
-$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'
-$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'
 iris api login --device
 # Approve on your own device, then keep the same IRISBOOKS_TOKEN_FILE:
 iris api login --device-complete
@@ -1320,38 +1251,32 @@ iris api whoami
 iris api books list
 ```
 
-URLはこのサービスでの例です。使うサービスの実際のapp/APIの組合せを指定してください。
-フォルダー名は識別用です。接続先はURLの設定で決まります。
-`Authorized` と `whoami` の成功を確認します。端末承認が許可待ちの場合は、終了コード0でも新しい認証情報は保存されません。
-本人の承認画面でアカウントと権限を確認してください。別のアカウントは `.../profiles/business-prod/token.json` など別のフォルダーを選んで承認します。
-元のアカウントへ戻るときは、元のパスを指定します。意図して別サービスを選ぶ場合を除き、接続先の上書き設定は解除しておきます。
+別のアカウントは `.../profiles/business-prod/token.json` など別のフォルダーを選んで
+そのアカウントでサインインします。元のアカウントへ戻るときは、元のパスを指定します。
 認証情報や認可ファイルを `raw/`、メモ、チャット、同期対象のBookファイルに入れないでください。
-
-クラウドAPIの接続先は、`IRIS_API_ENDPOINT`、`IRISBOOKS_API_BASE`、`IRISBOOKS_APP_BASE` に `/api` を付けたURL、
-選択中のフォルダーの `config.json`、本番の既定値の順に決まります。
-ログイン時のapp/APIは `IRISBOOKS_APP_BASE` と `IRISBOOKS_API_BASE` で選びます。
-`IRIS_API_ENDPOINT` は後続のリクエスト用の別の上書き設定なので、残っていると別の接続先へ送られる場合があります。
-ログインが成功すると、開始時に選んだ接続先が保存されます。`whoami` は実際に使うAPI接続先と認証情報を確認します。
-`IRIS_API_TOKEN` があれば保存済みセッションより優先します。この場合、保存済みの別ユーザー名は表示せず、拒否されても保存済みトークンへ切り替えません。
-環境変数のトークンからローカルでアカウント名は特定できません。認証の成功だけで、すべてのBook操作が許可されたことにはなりません。
 
 認可を開始しただけでは、既存のセッションは置き換わりません。完了時に選択中のローカル認証情報が置き換わります。
 以前のサーバー側セッションは自動で失効しないため、不要ならWebの「設定 → APIトークン」で取り消してください。
 `iris api logout` はサーバー側の失効を試み、選択中のローカルセッションと許可待ちの情報を削除します。
 失効処理が失敗した場合は警告に従い、Webで取り消します。保存済みの接続先設定と価格データは残ります。
 `IRIS_API_TOKEN` は削除されないので、使うのをやめる場合は別途解除してください。
-価格同期は別の接続先・ユーザーに対応付けられた保存先を拒否します。対応付けを消して混在させず、新しいプロファイル用フォルダーを使います。
-
-ローカルMCPはホストのプロセスに指定した認証情報と環境変数を使います。Bookの設定やVM側シェルの変数では切り替わりません。
-ホストのMCP登録で対象プロファイルを指定してサーバーを再起動し、`auth_status` で認証情報の出所、接続先、検証結果を確認します。
-同じプロファイルを使うCLIとMCPはログインを共有します。Book・顧客ごとのアクセス分離と権限確認も必要です。
 
 #### 保存済みの旧本番接続を切り替える
 
 古いプロファイルでは `irisbooks.jp` が選ばれている場合があります。
 ログインは認可前にapp/API、完了後にAPIの接続先を表示します。
 CLIの更新だけでは、サーバー側セッションやBookのクラウド識別子は移行されません。
-新しい専用プロファイルで対象サービスを承認し、`whoami` と `iris api books list` で、実際のアカウントと帳簿を確認します。
+新しい専用プロファイルで、接続先を明示して対象サービスを承認します。
+
+```bash
+export IRISBOOKS_TOKEN_FILE="$HOME/.config/irisbooks/profiles/personal-io/token.json"
+unset IRIS_API_TOKEN IRIS_API_ENDPOINT
+IRISBOOKS_APP_BASE=https://irisbooks.io IRISBOOKS_API_BASE=https://irisbooks.io/api iris api login --device
+```
+
+PowerShellでは、`iris api login --device` の前に `$env:IRISBOOKS_APP_BASE = 'https://irisbooks.io'` と
+`$env:IRISBOOKS_API_BASE = 'https://irisbooks.io/api'` を設定します。ログインが成功すると、
+その接続先がプロファイルに保存されます。`whoami` と `iris api books list` で、実際のアカウントと帳簿を確認します。
 古いトークンを別サービスへコピーしたり、同じメールアドレス・Book IDだからアクセスできると判断したりしないでください。
 古いプロファイルとローカルファイルのバックアップを残します。
 アクセスできる既存のクラウドBookは、未作成・空のフォルダーへcloneして比較する方法を優先します。
@@ -1380,7 +1305,8 @@ iris api books link [--force] <book-id> [path]
 帳簿の中で `new` を実行した場合は拒否します。そこに2つ目のクラウド帳簿を作っても、
 `iris sync` は最初の帳簿に push し続けるため、空のまま残るだけだからです。
 
-帳簿フォルダの外で作成する場合は、少なくとも `--name` と `--fy` を指定します。
+帳簿フォルダの外で作成する場合は、`--name`・`--fy`・`--region` を指定します
+（地域に既定値はありません。通貨は `--currency` を省略すると地域の通貨になります）。
 
 ```bash
 iris api books new --name "Acme Design" --fy 2026 --region JP
@@ -1442,8 +1368,6 @@ iris api config set --set-unit BTC:8,XAU:4
 iris api config set --remove-unit XAG
 ```
 
-## 帳簿単位
-
 ### iris api grants
 
 帳簿のアクセス権を管理します（オーナーのみ）。
@@ -1465,35 +1389,6 @@ iris api inbox show [--json] <book-id>
 iris api inbox allow <pattern> <book-id>       # user@host または *@host
 iris api inbox disallow <pattern> <book-id>
 iris api inbox quarantine [--json] <book-id>
-```
-
-### iris api seal
-
-会計年度を締めます（seal）。サーバーが年度内の仕訳と `config/`・`assets/`・
-`filings/`・`compiled/` を**ロック**します。`raw/` と `notes/` は引き続き変更できます。
-ローカルのファイル自体は編集できますが、ロック対象の変更は同期できません。
-年度のファイルは作業ツリーにそのまま残ります。締め済み年度を修正するには
-`iris reopen <fy>` を実行します — 再オープン中のロック対象の変更は監査証跡（`iris api
-history`）にフラグ付きで記録されます — 修正が終わったらこのコマンドを再実行して
-年度を再度締めます（新しい締めが古い締めを引き継ぎます）。`--dry-run` は、
-締めでロックされるファイルの一覧を表示するだけで、何も締めません。
-年度内に `draft` の下書きが残っている場合、締めは**拒否**されます —
-締めた年度は完全に整理されていなければなりません。年度に属する仕訳なら先に
-記帳し、不要なら削除し、翌期のものなら日付を開いている年度へ変更してください。
-`--dry-run` がブロックしているドラフトを一覧表示します。
-
-同期して締める前に、ローカルで `iris validate` を実行してください。
-Overlay のルール検証と保存済みレシピの再計算は、帳簿内に保持した定義を使って
-ローカルで行います。クラウドはこれらを実行せず、検証済みであるとも保証しません。
-`config/balance-assertions.yaml` がある場合、`--dry-run` は同期済みデータに対する
-共通処理の結果として、帳簿残高・確認残高・差額、対象範囲、証拠ファイルの確認状況を
-表示します。残高や証拠の不一致が残ると締められません。元の記録や残高確認の設定を
-ローカルで修正し、証拠を確認してから同期し、プレビューをやり直してください。
-未同期の変更は対象外です。同期後も元文書の参照データの不足・古さを報告する場合は、
-サーバー側での再構築が必要です。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
-
-```bash
-iris api seal --period YYYY [--type yearly] [--dry-run] <book-id>
 ```
 
 ### iris api balance / holdings / history
@@ -1576,6 +1471,88 @@ Web とリモート MCP のクラウド横断集計は、ユーザーごとに U
 最大1回自動生成する共通スナップショットを使います。日付や帳簿の選択を変えても、
 再生成はしません。同期済みの変更を今すぐ反映するには、Web アプリのダッシュボード
 または純資産で「**集計を実行**」を選びます。集計時点と次回の自動更新時刻が応答に含まれます。
+
+## インストールとリファレンス
+
+### iris docs
+
+使用中の実行ファイルに同梱された、LLM 向けの英語資料を読みます。帳簿・ログイン・
+通信・キャッシュのダウンロードは不要です。各章はその実行ファイルのリリースに
+対応します。人向けの日本語マニュアルはオンラインで参照できます。
+
+```bash
+iris docs                                      # トピック一覧
+iris docs cli-reference                         # 節 ID と語数の一覧
+iris docs cli-reference --full                  # 章の全文を明示的に読む
+iris docs cli-reference --section iris-sync     # 指定した節とその下位の節
+iris docs --json cli-reference --section iris-sync
+```
+
+フラグはトピックの前後に置けます。トピックを指定すると、既定で節の一覧を返します。
+`--list` でも同じ一覧を明示的に指定できます。`--section` は指定した節と下位の節、
+`--full` は章の全文を読みます。これらの指定は併用できません。一覧には語数も含みます。
+JSON には `version`・`source: "bundled"`・`language: "en"`・`words` と、指定に応じて
+`topics`・`sections`・`markdown` が含まれます。存在しない指定は終了コード 2 で
+確認方法を案内し、全マニュアルへ切り替えることはありません。
+実行方法は `iris <command> --help`、クラウドの利用条件や認証手順は現在の
+オンライン情報も確認してください。資料の参照は操作の許可にはなりません。
+ローカル MCP の `read_docs(topic?, section?, outline?, full?)` も同じ内容を返し、
+帳簿の指定は不要です。トピックだけなら節の一覧、`full=true` なら章の全文です。
+オフライン資料の参照先には `iris docs` コマンドを示し、MCP でも同じ topic と section を使えます。
+
+### iris version
+
+```bash
+iris version
+```
+
+### iris update
+
+```bash
+iris update --check [--json]   # 最新の公開版と比較する（変更なし）
+iris update [--json]           # 署名・チェックサム・バージョンを検証して更新する
+```
+
+使用中の実行ファイルを更新します。シンボリックリンクは実体の場所を使うため、
+MCP の登録先は変わりません。JSON には `currentVersion`、`latestVersion`、`status`、
+`updateAvailable`、`executablePath`、`pathExecutable`、`pathMismatch`、`installKind`、
+`downloadURL`、`updateCommand`（コマンドと引数の配列）、`instructions`、`updated`、
+`restartRequired`、失敗時の `error` が含まれます。確認に失敗した場合や開発版・
+リリース候補では、`updateAvailable` は null です。`status` は `update_available`、
+`up_to_date`、`newer_than_latest`、`development`、`check_failed`、`updated` のいずれかです。
+終了コードは正常時が 0、失敗時が 1、引数の誤りが 2 です。更新不要の場合も 0 です。
+
+帳簿の操作中に自動で通信することはありません。`IRIS_DL_BASE` でダウンロード元を
+指定できます（既定は `https://irisbooks.io/dl`）。署名は組み込みの公開鍵で必ず検証し、
+`minisign` のインストールは不要です。検証に失敗した場合、古い実行ファイルは残ります。
+開発版の置き換えや、古いバージョンへの更新は自動では行いません。
+
+`.mcpb` の場合、確認結果に対応するバンドルの URL が表示されます。クライアントの
+拡張設定から入れ直してください。CLI の更新後は帳簿のフォルダーで `iris onboard` を
+再実行し、MCP を再起動します。`check_update` で AI が使うバージョンを確認してください。
+Windows で使用中のファイルを置き換えられない場合は、MCP サーバーを停止して再実行します。
+このコマンドがない古い版は、まずインストーラーで更新します。
+
+### iris uninstall
+
+iris そのものをこのマシンから削除します: iris バイナリ、サインイン情報と
+ローカル設定（`~/.config/irisbooks` — CLI セッションは先にサーバー側で失効
+させます）、Claude Code スキル、マシン全体の MCP 登録（Claude Desktop・
+Codex CLI）、`iris onboard --install-path` が追加した PATH 設定。実行前に、
+このマシンで見つかった削除対象の正確な一覧を必ず表示し、確認を求めます。
+
+帳簿には一切触れません — 帳簿はあなたが所有するただのファイルです。帳簿内の
+エージェント設定（帳簿内の `.mcp.json`）もそのまま残ります。それも消したい
+場合は、先に `iris offboard --book-path PATH` を実行してください。
+
+```bash
+iris uninstall [--yes] [--dry-run]
+```
+
+| フラグ | 意味 |
+| ---- | ------- |
+| `--yes` | 確認プロンプトを省略する |
+| `--dry-run` | 削除計画の表示のみで、何も削除しない |
 
 ## 環境変数
 

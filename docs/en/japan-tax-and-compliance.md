@@ -292,8 +292,8 @@ compliance half, run in the book of the year you're closing:
 iris yearend                                      # start the FY2026 book, with its 期首残高 (opening balances)
 # …決算整理 and the return happen here, in the FY2025 book…
 iris yearend                                      # after late corrections: refresh FY2026's opening balances
-iris api seal --period 2025 --dry-run <book-id>   # see exactly what will be sealed (cloud)
-iris api seal --period 2025 <book-id>             # seal it (cloud)
+iris seal --dry-run 2025                          # see exactly what will be sealed (cloud)
+iris seal 2025                                    # seal it (cloud)
 ```
 
 - **Next year's book (`iris yearend`).** Creates the FY2026 book beside this
@@ -334,7 +334,7 @@ iris reopen 2025      # unlock the seal; the year's files are already in the wor
 # …make corrections…
 iris sync             # push; the server flags these as post-seal edits
 iris yearend          # refresh the FY2026 book's opening balances (while 2026 is still open)
-iris api seal --period 2025 <book-id>   # close the year again (supersedes the old seal)
+iris seal 2025        # close the year again (supersedes the old seal)
 ```
 
 If the *next* year is already sealed too, `iris yearend` leaves its opening

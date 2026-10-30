@@ -131,7 +131,7 @@ then re-seal"）。サーバーは年度内の仕訳と `config/`・`assets/`・
 iris reopen 2025      # 締めのロックを解除（ファイルは作業ツリーにそのまま）
 # …訂正する…
 iris sync
-iris api seal --period 2025 <book-id>   # 年度を再度締める
+iris seal 2025        # 年度を再度締める
 ```
 
 サーバーは訂正を**締め後の編集**として記録します。アクティビティログに表示され、

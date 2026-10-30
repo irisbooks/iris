@@ -17,7 +17,7 @@ fresh one), so vendors keep one address. Show it with:
 iris api inbox show <book-id>
 ```
 
-It looks like `k7f3x9q2m4p8w1r5@in.irisbooks.jp` — random on purpose, so it
+It looks like `k7f3x9q2m4p8w1r5@in.irisbooks.io` — random on purpose, so it
 can't be guessed and spammed. Treat it like a semi-secret: share it with the
 suppliers and services whose mail you want in the book.
 

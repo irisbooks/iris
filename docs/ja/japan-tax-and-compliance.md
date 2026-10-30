@@ -269,8 +269,8 @@ AI が資産ファイルとエンジンの年度数値（`iris export assets --y
 iris yearend                                      # FY2026 の帳簿を期首残高仕訳付きで作成
 # …決算整理と申告は、ここ FY2025 の帳簿で行う…
 iris yearend                                      # 遅れた訂正のあと: FY2026 の期首残高を更新
-iris api seal --period 2025 --dry-run <book-id>   # 何が締められるか確認（クラウド）
-iris api seal --period 2025 <book-id>             # 年度を締める（クラウド）
+iris seal --dry-run 2025                          # 何が締められるか確認（クラウド）
+iris seal 2025                                    # 年度を締める（クラウド）
 ```
 
 - **翌年度の帳簿（`iris yearend`）。** この帳簿と同じ階層に FY2026 の帳簿を
@@ -310,7 +310,7 @@ iris reopen 2025      # 締めのロックを解除（年度のファイルは�
 # …訂正する…
 iris sync             # push。サーバーはこれらを締め後の編集としてフラグ
 iris yearend          # FY2026 の帳簿の期首残高を更新（2026 がまだ開いている場合）
-iris api seal --period 2025 <book-id>   # 年度を再度締める（古い締めを引き継ぐ）
+iris seal 2025        # 年度を再度締める（古い締めを引き継ぐ）
 ```
 
 翌期*も*すでに締め済みの場合、`iris yearend` はその期首残高仕訳を申告済みの

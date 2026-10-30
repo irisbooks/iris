@@ -79,12 +79,13 @@ Every journal carries a `status`:
 | Status | Meaning |
 | --- | --- |
 | `draft` | A draft. Being entered or still uncertain. Not on the books yet. |
-| `posted` | On the books. **Only posted entries appear in reports.** |
+| `posted` | On the books. Included in reports by default. |
 
-This is the single most important rule to remember: **`iris balance`, the
-P&L, and the balance sheet include only `posted` entries.** A `draft` entry
-will not show up in your trial balance until someone promotes it. Promote with
-[`iris post`](cli-reference.md#iris-post) or by editing the field.
+By default, **`iris balance`, the P&L, and the balance sheet include only
+`posted` entries.** To preview local drafts, add `--include-drafts`; this selects
+read-only comparison mode without posting anything. The output identifies the
+draft scope. Promote reviewed entries with [`iris post`](cli-reference.md#iris-post)
+or by editing the field.
 
 (You'll also see a `closed` status — that's any entry whose date falls in a
 sealed fiscal year. It's derived, never stored in the file: the web app,

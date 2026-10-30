@@ -135,7 +135,7 @@ To amend the accounting records, reopen the year first:
 iris reopen 2025      # unlocks the seal; the files are already in the working tree
 # …make the correction…
 iris sync
-iris api seal --period 2025 <book-id>   # close the year again
+iris seal 2025        # close the year again
 ```
 
 The server records the corrections as **post-seal edits** — visible in the

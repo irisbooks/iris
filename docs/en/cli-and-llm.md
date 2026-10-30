@@ -17,7 +17,14 @@ not guaranteed.
 
 ## The mental model
 
-Start with what you want to record or understand:
+Agree with your assistant what result you need to use or hand over before
+choosing setup: an entry, figures to review, or a source-backed summary for
+another person. If records are incomplete, a handoff note can still link the
+sources, distinguish confirmed facts from proposed amounts, and list the open
+questions and next action. Ask the assistant to recommend a useful result if
+you are unsure.
+
+The work then runs in four steps:
 
 1. Share a document, point your AI to an accessible file, or tell it what
    happened. With the tools and access you grant, it can also retrieve a statement.
@@ -30,6 +37,22 @@ Start with what you want to record or understand:
 The AI reasons and explains; `iris` checks and calculates. You do not need to
 organize files manually or learn the file formats. Validation checks encoded
 rules; it does not prove that a source was interpreted correctly.
+
+Your assistant's handoff should connect the current work to the result you asked
+for: how the saved records or figures will be used, and what evidence, review or
+outside work is still needed. It should also make clear what you can use now:
+
+| What is ready | What it gives you now |
+| --- | --- |
+| Source files and notes | Evidence and known facts to review or resume from; no monetary journal is required to retain them. |
+| Draft journals | Proposed entries to review; excluded from ordinary financial reports. |
+| Posted journals | Entries included in ordinary reports for the selected book and period. Preparing or submitting an external filing is a separate step. |
+
+When evidence is missing, keep what is known and save the gaps in notes. Ask
+your assistant for the next action and who can take it; the full checklist can
+stay with the records. `iris validate` checks record structure and selected
+rules. It does not verify calculations in chat or establish that evidence or
+a tax return is complete.
 
 ## Personal tracking can stay relaxed
 
