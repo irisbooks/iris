@@ -4769,6 +4769,9 @@ The account must exist in a strict book's chart. The method may be omitted for
 FIFO; set `method: moving-average` to change it, including in a selected view.
 An omitted `accounts.exact` selector covers commodity asset accounts; add it
 to restrict the scope. The optional `commodity` filter restricts the unit.
+In a book that opens with holdings, comparisons start from its
+[opening inventory](#independent-annual-books-and-acquisition-openings), and an
+omitted method keeps the method recorded there.
 Use `iris report pl --mode comparison` to inspect the calculated ledger.
 Comparison JSON lists `selection.inventoryMethods`; portfolio SQL exposes
 `inventory_method`, and Net Worth shows the method beside each commodity
@@ -5046,7 +5049,8 @@ These three omissions have different results:
 | Proven opening acquisition basis | A standalone opening can carry known units and book value while acquisition cost remains unknown. Market valuation can still work; retain verified opening inventory rather than inferring tax cost from a current quote. |
 
 The checked `iris yearend --local --to ../fund-2027` workflow carries 80,000
-units and the separately proven JPY 80,000 acquisition basis. Prices remain in
+units and the separately proven JPY 80,000 acquisition basis. A FY 2027 sale's
+comparison P&L allocates cost from that carried basis. Prices remain in
 the user store; carrying an old observation into January does not make it a
 new market observation.
 
@@ -6227,6 +6231,13 @@ moving-average openings use a quantity/cost pool without lots. A null acquisitio
 cost means unknown. The opening journal still states the monetary/quantity
 balance and must reconcile with these fields within this book.
 Do not infer acquisition cost from a revalued opening amount.
+
+Local comparisons and retained financial calculations allocate later disposals
+from these lots, or from the moving-average pool, using the method recorded
+here. They refuse, rather than estimate, when an opening holding has no entry,
+a null acquisition cost or a carrying value that differs from its acquisition
+cost, or when a view selects a different method. A different method needs its
+own opening state.
 
 Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics derives
 one from the fiscal year, journal path and original line index within this book’s
