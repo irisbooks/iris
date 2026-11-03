@@ -596,6 +596,9 @@ derived closed status or when the client cannot access files directly.
 
 `iris search` and `iris references` remain available for structured offline views.
 
+To read the same reports and entries on screen, run `iris view` in the book
+folder. See [Your books on this computer](iris-view.md).
+
 ### 5. Promote to `posted`
 
 A `draft` entry stays out of your reports and balances until posted. When
@@ -609,6 +612,10 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 and — if the book is linked to the cloud — syncs it. Use `--dry-run` to check
 without changing anything. You can also just edit the `status:` field by hand;
 `post` is the convenience that also balances-checks and syncs.
+
+You can also post from [`iris view`](iris-view.md): open the draft, read it and
+choose **Post**. That posts on this computer only, like `iris post --local`; a
+linked book carries it to the cloud at your next sync.
 
 ## Going online (cloud)
 

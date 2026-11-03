@@ -1804,6 +1804,10 @@ counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
   `config/chart-of-accounts.yaml`、`config/rules.yaml`、
   `config/balance-assertions.yaml`、`config/overlays/`、`config/overlay-packages/`。
 - **同期されない:** `.iris/`（実行時状態）、`README.md` / `CLAUDE.md`（ローカルの案内）、`compiled/`（再生成可能）。
+- **フォルダの中では同期されない:** AI エージェント向けの指示ファイル（`CLAUDE.md`、
+  `AGENTS.md`、`GEMINI.md` など）。共有されるのはルートの `AGENTS.md` だけなので、
+  共同作業者がメモや証憑を通じて AI アシスタントに指示を紛れ込ませることはできません。
+  この名前の添付ファイルがメールで届いた場合は、末尾に `.txt` を付けて保存します。
 
 関連: [基本コンセプト](concepts.md) ·
 [CLI コマンドリファレンス](cli-reference.md)。

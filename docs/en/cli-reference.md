@@ -225,7 +225,8 @@ actions, plus the count of unposted drafts excluded. It writes nothing.
 ### iris seal
 
 Close a fiscal year of the linked cloud book (a period seal). The server locks
-journals dated in the year and `config/`, `assets/`, `filings/`, `compiled/`.
+journals dated in the year or earlier (an earlier entry still changes the
+year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
 `raw/` and `notes/` remain writable. Local files can still be edited, but locked
 changes cannot sync; the year's files stay in your working tree. To amend a
 sealed year, run `iris reopen <fiscal-year>` — changes to the locked scope while
@@ -688,6 +689,34 @@ carries `delete: true`.
 
 ## Reports and evidence
 
+### iris view
+
+Open books in a window on this computer, to read reports and journals, post
+drafts, edit them, start new entries and correct posted ones. See
+[Your books on this computer](iris-view.md).
+
+```bash
+iris view [book-path | --books-dir PATH] [--tab] [--currency CODE]
+iris view --choose
+iris view [book-path | --books-dir PATH] --stop | --status [--json]
+iris view [book-path | --books-dir PATH] --add-launcher [--tab]
+iris view --remove-launcher
+```
+
+With no folder, it opens the nearest book at or above the current folder;
+outside any book it acts like `--choose`, which opens the last folder used or
+asks. The page opens in a Chrome or Edge window of its own, with extensions off,
+or in your default browser if neither is installed; `--tab` asks for the default
+browser. It is served on `127.0.0.1`, works offline, and the command returns at
+once. `--currency` sets the reporting currency for a folder whose books use
+different currencies, like `reporting_currency` in
+[folder settings](#prices-and-settings-for-a-folder-of-books).
+
+`--add-launcher` adds one IrisBooks launcher for the Dock, Start Menu or app
+menu. It holds no folder: a folder named with it only opens first, and
+`--currency` is refused there. `--status --json` prints `running`, `folder` and
+`books`; neither it nor any other output includes the sign-in link.
+
 ### iris balance
 
 Trial balance as of a date (posted entries by default).
@@ -962,8 +991,8 @@ Record/list unit prices offline, and sync them to the server. User-scoped (not
 stored in the book).
 
 ```bash
-iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--source S]
-iris price list [--unit BTC] [--currency JPY] [--year 2026] [--json]
+iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
+iris price list [--unit BTC] [--currency JPY] [--year 2026] [--books-dir PARENT] [--json]
 iris price sync [--json]
 iris price conflicts [--json]
 iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
@@ -995,6 +1024,41 @@ Inspect `price conflicts --json`, then resolve using the displayed server
 revision and local edit ID. `--choose local` keeps the correction for the next
 sync; `--choose server` discards it. To supply a replacement, keep local and
 record the replacement before syncing. Stale resolution choices fail.
+
+#### Prices and settings for a folder of books
+
+A parent folder can keep its own prices and settings in `<folder>/.irisbooks/`, the
+same layout as `~/.config/irisbooks/`. They travel with the folder and apply when you
+pass `--books-dir` to `iris price`, `iris networth`, `iris analytics export` or
+`iris view`.
+
+```bash
+iris price add --books-dir ~/Clients/acme --unit USD --price 155 --currency JPY
+iris price list --books-dir ~/Clients/acme --json
+```
+
+A folder that prices a unit owns that unit: its history replaces your personal log
+for that unit and currency, even where your log has a newer date. Units it doesn't
+price still use your personal log. With `--books-dir`, `list --json` adds
+`level: folder` or `level: user` to each row. A folder's prices never sync:
+`iris price sync` works only on your personal log.
+
+`settings.yaml` has the same shape at both levels, `<folder>/.irisbooks/settings.yaml`
+and `~/.config/irisbooks/settings.yaml`, and the folder's value wins:
+
+```yaml
+reporting_currency: USD
+color: teal
+```
+
+The reporting currency is `--currency` if you pass it, then the folder's setting, then
+your personal one, then the currency the books share.
+
+`color` is the folder's strip in `iris view`: `malachite` (green), `azurite` (blue),
+`teal`, `tyrian` (plum), `sienna` (rust), `umber` (brown), `ochre` or `charcoal`.
+Choosing a color on the page for a folder of books writes it to the folder's file. In
+your personal file it is the color for folders you haven't colored. Any other value is
+ignored.
 
 ### iris analytics
 
@@ -1121,6 +1185,8 @@ The arithmetic calculators (including `allocation`), `check_update` and `read_do
 need no book selector.
 `read_docs` returns topic/section outlines by default; select a section to read it.
 For reference lookup, use file tools or CLI `iris references`.
+`open_view` opens the served books in [`iris view`](#iris-view) on the computer
+running the server, in both modes, and never returns the sign-in link.
 
 #### Authorize cloud access
 
@@ -1200,7 +1266,9 @@ reads the selected linked cloud book.
 `list_prices` defaults to the local offline log, matching CLI `iris price list`.
 Use `source="cloud"` for the authenticated cloud mirror (`iris api price list`).
 `record_price` records a decimal-string observation (at most six fractional
-digits); `sync_prices` publishes/pulls prices separately from book sync.
+digits); `sync_prices` publishes/pulls prices separately from book sync. Both
+`record_price` and local `list_prices` accept `books_dir` for a
+[folder's own prices](#prices-and-settings-for-a-folder-of-books).
 Prices stay in user config, not tax book files. Cloud lists return one page;
 follow `nextCursor` with the same filters. `list_price_conflicts` shows candidates;
 use `resolve_price_conflict` only with the user's choice and displayed revision
@@ -1426,7 +1494,8 @@ iris api config set --remove-unit XAG
 
 ### iris api grants
 
-Manage book access (owner-only).
+Manage book access (owner-only, except that any member may revoke their own
+access to leave the book).
 
 ```bash
 iris api grants list [--json] <book-id>
@@ -1434,6 +1503,12 @@ iris api grants invite --role BOOKKEEPER --email EMAIL <book-id>
 iris api grants role --role OWNER|BOOKKEEPER|REVIEWER <book-id> <user-id>
 iris api grants revoke <book-id> <user-id>
 ```
+
+`invite` creates an invitation, not access: the person can open the book only
+after accepting it in the web app. `list` shows each row's status (`member` or
+`invited`; `"status": "active"|"pending"` with `--json`), and `revoke` on an
+invited user cancels the invitation. Inviting someone who is already a member
+changes their role instead. No CLI command accepts an invitation.
 
 ### iris api inbox
 
@@ -1600,11 +1675,13 @@ Older binaries without this command use the installer to upgrade first.
 Remove iris itself from this machine: the iris binaries, your sign-in and
 local config (`~/.config/irisbooks` — the CLI session is revoked server-side
 first), the Claude Code skill, machine-level MCP registrations (Claude
-Desktop, Codex CLI), and the PATH entry from `iris onboard --install-path`.
-It always prints the exact list of what it found on this machine and asks
-for confirmation before deleting anything.
+Desktop, Codex CLI), the PATH entry from `iris onboard --install-path`, and
+the IrisBooks launcher from [`iris view --add-launcher`](#iris-view). A running
+`iris view` is stopped first. It always prints the exact list of what it found
+on this machine and asks for confirmation before deleting anything.
 
-Your books are never touched — they are plain files you own. Per-book agent
+Your books are never touched — they are plain files you own — and neither is a
+folder's own `.irisbooks/`. Per-book agent
 wiring (`.mcp.json` inside a book) is also left in place; run
 `iris offboard --book-path PATH` first if you want that removed too.
 

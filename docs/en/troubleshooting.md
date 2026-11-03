@@ -116,9 +116,10 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
   prints it). To reconnect to the cloud, create a new book
   (`iris api books new --no-link` — the folder still points at the deleted id,
   so plain `new` refuses) and link it (`iris api books link --force <id>`).
-- **forbidden** — your access was revoked (your credential is valid but you
-  no longer hold a grant). Ask the book's owner to re-invite you. If access
-  was intentionally revoked, that's expected.
+- **forbidden** — your access was revoked, or you left the book (your
+  credential is valid but you no longer hold a grant). Ask the book's owner
+  to re-invite you, then accept the invitation in the web app. If access was
+  intentionally revoked, that's expected.
 - **auth_expired** — your session is gone. Re-authenticate
   (`iris api login`) and run `iris sync` again.
 
@@ -158,6 +159,30 @@ Almost always a sync gap or a status difference:
   you see locally won't appear until it's posted and synced.
 - Reports in the web app show a "freshness" note for when the server last
   recomputed; give a recent push a moment to project.
+
+## `iris view` doesn't open, or says it has closed
+
+- **"This view has closed. Open IrisBooks again."** The page stops when no
+  window has used it for a few minutes, for example after its windows closed or
+  while the computer slept. Run `iris view` again or open IrisBooks from the
+  launcher.
+- **It opened in a browser tab, not a window of its own.** `iris` found neither
+  Chrome nor Edge. A Chromium installed as a snap on Linux also gets a tab.
+  Everything works the same, but extensions in that browser stay on.
+- **The launcher does nothing.** It runs the `iris` that added it. If you moved
+  `iris`, run `iris view --add-launcher` again. On a Mac the reason appears in
+  an alert.
+- **Your AI ran `iris view`, but no window appeared.** If your assistant works
+  in a VM or container, the window opened there, not on your screen. Open
+  IrisBooks from your launcher, or run `iris view` yourself.
+- **The Dashboard asks for a reporting currency.** The folder's books use
+  different currencies. Set one as described in
+  [Prices and currencies](iris-view.md#prices-and-currencies).
+- **A notice names a book it couldn't read.** Run `iris validate` in that book
+  to see why. If it names two folders as copies of the same book, only the
+  first is shown; keep one copy in the folder.
+- **Posting or saving says a sync is running.** A sync, or a save from another
+  window, is using the book at that moment. Try again.
 
 ## Still stuck?
 

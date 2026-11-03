@@ -1885,6 +1885,11 @@ With cloud sync, `iris sync` mirrors the **syncable** files to the cloud:
   `config/chart-of-accounts.yaml`, `config/rules.yaml`,
   `config/balance-assertions.yaml`, `config/overlays/`, `config/overlay-packages/`.
 - **Not synced:** `.iris/` (runtime state), `README.md` / `CLAUDE.md` (local entry files), and `compiled/` (regeneratable).
+- **Never synced inside a folder:** AI-agent instruction files (`CLAUDE.md`,
+  `AGENTS.md`, `GEMINI.md` and similar). Only the root `AGENTS.md` is shared,
+  so a collaborator can't slip instructions to your AI assistant through a note
+  or a source document. An emailed attachment with such a name is stored with
+  `.txt` added.
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md).

@@ -12,6 +12,7 @@ Page: https://irisbooks.io/docs/en/
 IrisBooks helps you keep books with your own AI assistant.
 
 - Use the **`iris` command-line tool** with your AI to record and check entries.
+- Use **`iris view`** to read, post and edit those books on your computer.
 - Use the **web app** to browse synced books, review entries, and read reports.
 
 Your book is a folder of Markdown and YAML files. The CLI works without an
@@ -146,19 +147,21 @@ these hold product-wide:
    reports, sync, seals.
 3. [Bookkeeping with the CLI and your own LLM](https://irisbooks.io/docs/en/cli-and-llm/) — the
    file-first workflow (fully offline).
-4. [Using the web app](https://irisbooks.io/docs/en/web-app/) — journals, reports, raw documents,
+4. [Your books on this computer (iris view)](https://irisbooks.io/docs/en/iris-view/) — read,
+   post and edit your books on your computer, with no account.
+5. [Using the web app](https://irisbooks.io/docs/en/web-app/) — journals, reports, raw documents,
    activity, settings, collaboration (cloud).
-5. [Receipts by email](https://irisbooks.io/docs/en/email-inbox/) — your book's receiving address,
+6. [Receipts by email](https://irisbooks.io/docs/en/email-inbox/) — your book's receiving address,
    the sender allowlist, and the quarantine.
-6. [Your AI on the go (remote connector)](https://irisbooks.io/docs/en/remote-connector/) — figures,
+7. [Your AI on the go (remote connector)](https://irisbooks.io/docs/en/remote-connector/) — figures,
    journal reads, and optional receipt capture from your phone (cloud).
-7. [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/) — correction
+8. [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/) — correction
    history and search, consumption tax (消費税), fixed assets & depreciation,
    year-end close.
-8. [CLI command reference](https://irisbooks.io/docs/en/cli-reference/) — every command and flag.
-9. [Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/) — the on-disk
-   structure of a book.
-10. [Troubleshooting](https://irisbooks.io/docs/en/troubleshooting/) — validation errors, sync
+9. [CLI command reference](https://irisbooks.io/docs/en/cli-reference/) — every command and flag.
+10. [Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/) — the on-disk
+    structure of a book.
+11. [Troubleshooting](https://irisbooks.io/docs/en/troubleshooting/) — validation errors, sync
     rejections, conflicts.
 
 ## A 60-second picture
@@ -191,6 +194,21 @@ Accountants should use a separate assistant work folder/session for each
 client and clone existing shared books rather than create new identities.
 See [the file workflow](https://irisbooks.io/docs/en/cli-and-llm/) for folder and tool access boundaries.
 
+## Try the sample books
+
+You can look around before you create anything. [The demo](https://irisbooks.io/demo/)
+is the web app with made-up books for a shop and its owner's household, in
+English and Japanese. It needs no account. Nothing you change is saved, and the
+dates move so that this year's books run to today.
+
+To try the same books with your own AI, choose **Try it on your computer** in
+the demo and download the zip. Its README covers installing `iris` and opening
+a book in Claude Code or Codex. With `iris` installed,
+`iris view --books-dir <unzipped folder>` opens them on your computer in the
+demo's screens, with nothing uploaded. On your computer the household's fund
+and coin are valued at cost until you record prices with `iris price add`, so
+the net worth you see there differs from the demo's.
+
 ## Path A — Create a book on your machine (CLI)
 
 ### 1. Check for `iris`
@@ -220,12 +238,13 @@ On Windows (PowerShell):
 irm https://irisbooks.io/install.ps1 | iex
 ```
 
-The installer downloads the binary for your platform, checks its SHA-256
-checksum, and puts it on your `PATH`. When `minisign` is installed, it also
-verifies the signed checksum file; otherwise it prints a notice and uses
-SHA-256 only. A checksum alone checks download integrity, not release
-authenticity. Install `minisign` first if you require signature verification.
-Later, `iris update` verifies signatures with its built-in verifier and needs
+The installer downloads the binary for your platform, checks it against the
+SHA-256 checksums the installer itself carries for the current release, and
+puts it on your `PATH`. Those checksums come from the signed release and are
+served by irisbooks.io, separately from the download host, so a tampered
+download is refused even without `minisign`. To install another version with
+`IRIS_VERSION`, install `minisign` first: the installer then verifies that
+release's signed checksum file, and refuses without it. Later, `iris update` verifies signatures with its built-in verifier and needs
 no external `minisign`. Confirm the installed version with:
 
 ```bash
@@ -310,6 +329,18 @@ can use now and what needs to happen next.
 Saved evidence, draft proposals and posted report figures serve different
 purposes; see [what is ready to use](https://irisbooks.io/docs/en/cli-and-llm/#the-mental-model).
 
+### 6. See your books on screen
+
+```bash
+iris view
+```
+
+This opens the book in a window of its own: reports, journals and documents,
+read from your files. Post the drafts your AI prepared, fix one, or start an
+entry yourself. It needs no account. To open your books without a terminal,
+add the launcher with `iris view --add-launcher`. See
+[Your books on this computer](https://irisbooks.io/docs/en/iris-view/).
+
 ## Path B — Use the web app (cloud)
 
 The web app gives you a graphical interface, cloud sync, multi-device access,
@@ -320,7 +351,8 @@ collaboration, and the durable server history. It needs an IrisBooks account.
 Cloud accounts are invitation-only. Request an invitation through the
 [Discord community](https://discord.gg/wZDsv9gyb9), then sign in to the
 [web app](https://irisbooks.io/app/) with the invited email address.
-If your accountant shared a book, it will already be waiting.
+If your accountant invited you to a book, accept the invitation on your
+Dashboard to open it.
 
 ### 2. Create a book
 
@@ -377,7 +409,8 @@ your account settings. Full walk-through in
 ## Do I need an account?
 
 Not for bookkeeping itself — the local files and CLI are complete on their
-own. An IrisBooks account adds sync, the web app, collaboration, and a
+own, and `iris view` shows them on screen. An IrisBooks account adds sync, the
+web app, collaboration, and a
 durable correction/deletion history kept on the server. See
 [Core concepts → Sync](https://irisbooks.io/docs/en/concepts/#sync-the-three-ways-to-work).
 
@@ -385,6 +418,7 @@ durable correction/deletion history kept on the server. See
 
 - Understand the moving parts → [Core concepts](https://irisbooks.io/docs/en/concepts/)
 - Do the file-first workflow → [Bookkeeping with the CLI and your own LLM](https://irisbooks.io/docs/en/cli-and-llm/)
+- Review and post on screen → [Your books on this computer](https://irisbooks.io/docs/en/iris-view/)
 - Learn the GUI → [Using the web app](https://irisbooks.io/docs/en/web-app/)
 - File taxes in Japan → [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/)
 
@@ -569,7 +603,8 @@ The same book can live in three arrangements. You don't choose a "mode"; you
 just use more or fewer of the features:
 
 - **Offline.** Files only, no server, no account. You validate and report
-  locally. Maximum privacy, zero network.
+  locally, and can read, post and edit on screen with
+  [`iris view`](https://irisbooks.io/docs/en/iris-view/). Maximum privacy, zero network.
 - **Files + Cloud.** Your local files plus a cloud mirror (sign in with
   `iris api login`). You edit locally and run `iris sync` to push and pull.
   The web app, multi-device access, collaboration, and timestamped history
@@ -633,17 +668,18 @@ Local git history is not a substitute: it lives on your own machine and can be
 rewritten, so it is not an independent record. That is why the durable history
 lives on the server.
 
-## The two lenses, side by side
+## The lenses, side by side
 
-| | CLI + your AI | Web app |
-| --- | --- | --- |
-| Main use | Owners and accountants working with AI on files | Viewing, review and cloud administration |
-| Edits | Your AI writes files; you review | Forms in the browser |
-| Works offline | Yes | No (needs the server) |
-| Reports | `iris report …` (text/JSON) | Rendered + CSV export |
+| | CLI + your AI | `iris view` | Web app |
+| --- | --- | --- | --- |
+| Main use | Owners and accountants working with AI on files | Reading, posting and fixing your files on screen | Viewing, review and cloud administration |
+| Edits | Your AI writes files; you review | Drafts on a form or as source, saved to your files | Approving drafts only |
+| Works offline | Yes | Yes | No (needs the server) |
+| Reports | `iris report …` (text/JSON) | Rendered from your files | Rendered + CSV export |
 
-They are not either/or — most owners use both: the CLI + AI to enter
-data fast, the web app to review, report, and collaborate.
+They are not either/or. The CLI and your AI enter data fast, `iris view` lets
+you check and post it on screen, and the web app adds sharing and the server's
+history.
 
 # Bookkeeping with the CLI and your own LLM
 
@@ -1252,6 +1288,9 @@ derived closed status or when the client cannot access files directly.
 
 `iris search` and `iris references` remain available for structured offline views.
 
+To read the same reports and entries on screen, run `iris view` in the book
+folder. See [Your books on this computer](https://irisbooks.io/docs/en/iris-view/).
+
 ### 5. Promote to `posted`
 
 A `draft` entry stays out of your reports and balances until posted. When
@@ -1265,6 +1304,10 @@ iris post journals/2026-05/2026-05-04-example-com-01.md
 and — if the book is linked to the cloud — syncs it. Use `--dry-run` to check
 without changing anything. You can also just edit the `status:` field by hand;
 `post` is the convenience that also balances-checks and syncs.
+
+You can also post from [`iris view`](https://irisbooks.io/docs/en/iris-view/): open the draft, read it and
+choose **Post**. That posts on this computer only, like `iris post --local`; a
+linked book carries it to the cloud at your next sync.
 
 ## Going online (cloud)
 
@@ -1397,6 +1440,210 @@ These rules keep your books trustworthy (your AI follows them too):
 - Don't hand-edit `compiled/` — it's regeneratable output.
 - Don't invent accounts inside a journal — add them to the chart first.
 
+# Your books on this computer (iris view)
+
+Page: https://irisbooks.io/docs/en/iris-view/
+
+`iris view` opens your books in the web app's screens, read straight from the
+book files on your computer. You can read reports and journals, post drafts,
+fix a draft, start a new entry or correct a posted one. It needs no account or
+network and uploads nothing. Changes are ordinary edits to your files, and a
+linked book carries them to the cloud at your next sync.
+
+## Open it
+
+```bash
+iris view                           # the book you're in
+iris view ~/IrisBooks/shop-2026     # one book
+iris view --books-dir ~/IrisBooks   # every book in this folder
+```
+
+Run inside a book folder, `iris view` opens that book. With `--books-dir`, it
+opens every book directly inside the folder and adds **Dashboard** and **Net
+Worth** across them. Outside any book, it opens the last folder you used, or
+asks which one.
+
+The page opens in a window of its own, using Chrome or Edge with no address
+bar and no extensions. Without either browser it opens in your default
+browser; `--tab` asks for that on purpose. On a Mac, the window appears as
+Google Chrome or Microsoft Edge in the Dock and the app switcher.
+
+`iris view` returns at once. The page keeps working until you close it, and
+the top bar says **On this computer**.
+
+## The launcher
+
+To open your books without a terminal or an AI, add the IrisBooks launcher:
+
+```bash
+iris view --add-launcher
+```
+
+| System | Where it appears |
+| --- | --- |
+| macOS | **IrisBooks** in `~/Applications`. Find it with Spotlight, or drag it to the Dock. |
+| Windows | **IrisBooks** in the Start Menu. |
+| Linux | **IrisBooks** in your desktop's app menu. |
+
+The launcher opens the last folder you used, or asks which one. It holds no
+folder of its own, so one launcher reaches every folder. To set the folder it
+opens first, name it when you add the launcher:
+`iris view --books-dir ~/IrisBooks --add-launcher`. Add `--tab` to have the
+launcher use your default browser.
+
+`iris view --remove-launcher` removes it, and so does `iris uninstall`. If you
+move `iris` somewhere else, add the launcher again.
+
+## Choosing a folder
+
+A colored strip above the top bar names the folder you're in. Its menu holds:
+
+- **Recent folders**, to switch to one you've opened before.
+- **Choose a folder**, which opens your system's folder picker. Where there's
+  no picker, type the path into **Folder path** and choose **Open**.
+- **Color**: Green, Blue, Teal, Plum, Rust, Brown, Ochre or Charcoal.
+
+Choose a book's own folder, or a folder that holds several books. iris works
+out which it is. Switching opens the other folder in the same window.
+
+The color is there so you can tell folders apart at a glance, for example one
+client's books from another's. A folder of books keeps its color in its own
+`.irisbooks/settings.yaml`, so it looks the same wherever that folder is opened.
+A single book's color is kept on this computer, because the book's own files
+sync. A folder you haven't colored gets a color from its path, so different
+folders usually look different from the start. To give every folder the same
+starting color, set `color` in `~/.config/irisbooks/settings.yaml`; see
+[prices and settings for a folder of books](https://irisbooks.io/docs/en/cli-reference/#prices-and-settings-for-a-folder-of-books).
+
+Language and appearance are kept per folder. The book's language applies the
+first time; after that, the language switch in the top bar decides.
+
+## What you can see
+
+These screens work as they do in [the web app](https://irisbooks.io/docs/en/web-app/), with figures
+calculated by `iris` from your files:
+
+- **Overview**, **Journals** and each entry's detail.
+- The four reports: **General Ledger**, **Trial Balance**, **Profit & Loss**
+  and **Balance Sheet**.
+- **Chart of Accounts**, **Raw documents** and **Notes**.
+- **Dashboard** and **Net Worth** across books, when the folder holds more than
+  one. They include every book in the folder.
+
+When you or your AI change a file, the page updates within a few seconds. There
+is no **Run aggregation** step. As everywhere, reports count posted entries
+only.
+
+Screens that need the cloud copy aren't here: **Activity**, deleted journals,
+**Year-end**, book settings, an entry's **History**, and adding a book. Use the
+web app for those.
+
+## Posting drafts
+
+Open a draft, read it, and choose **Post**. To post several, select them in
+**Journals**, choose **Review selected journals**, read each one, then choose
+**Approve reviewed sources**. You can review up to 32 at a time.
+
+Posting changes only `status: draft` to `status: posted`, the same as
+`iris post --local`, and never syncs. On a linked book the page says "Posted on
+this computer. It reaches the cloud at your next sync."
+
+A post is refused, and the file left as it was, when:
+
+- the entry changed after you opened it. Read it again, then post.
+- a sync is running. Try again when it finishes.
+- the book is set to post in the web app (**Posting approval** is on).
+- the entry's fiscal year is closed. Reopen it first.
+- the book is an archive.
+
+The posting approval setting and closed years come from the book's last sync.
+
+## Editing drafts
+
+On a draft's page, choose **Edit**. Work on the **Form** or on the **Source**,
+the file itself; you can switch between them. The form changes only what you
+change, and keeps everything it doesn't show, such as comments, quantities and
+fields from the book's overlays. An entry with accounting views opens as source
+only.
+
+- **Complete** fills in the amounts you left blank, using the book's overlays,
+  the same as [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
+  Nothing is saved until you check the amounts and choose **Save**.
+- **Save** writes the entry to `journals/YYYY-MM/`. Changing its date moves it
+  to that month's folder.
+- After each save, **Checks on the saved entry** runs the same checks as
+  `iris validate`. It lists this entry's problems and counts errors elsewhere in
+  the book.
+
+Save refuses an entry that would stop the book's reports: a blank amount, a line
+with no account or with both a debit and a credit, or a date outside the book's
+fiscal year. It also refuses a change of status, because posting is a separate
+step. An entry that doesn't balance, or names an account the chart doesn't have,
+is saved and flagged in the checks. **Post** stays unavailable until the entry
+balances.
+
+If the checks say the book's own overlay layer isn't trusted on this computer,
+review it and run `iris overlay trust`.
+
+A posted entry can't be edited here. Correct it instead.
+
+## New entries and corrections
+
+**New entry** on **Journals** starts a draft dated today. In a book for an
+earlier year, it starts inside that year. The file is named from the date and
+payee.
+
+**Correct this entry**, on a posted entry, starts a new draft whose lines
+reverse it, keeping its attachments. Add the right lines below them and save,
+then post the correction. The posted entry stays exactly as it was.
+
+## Prices and currencies
+
+**Net Worth** values your holdings with the prices recorded on this computer,
+and with the folder's own prices if it has them. **Settings** lists them. To
+record a price or exchange rate, ask your assistant or run
+[`iris price add`](https://irisbooks.io/docs/en/cli-reference/#iris-price); add `--books-dir` to record it
+for the folder.
+
+A folder whose books use different currencies needs a reporting currency for the
+Dashboard and Net Worth. Set `reporting_currency` in the folder's
+`.irisbooks/settings.yaml` or in your `~/.config/irisbooks/settings.yaml`, or
+pass `--currency`, for example
+`iris view --books-dir ~/IrisBooks --currency JPY`. Each book still opens
+without one. As in the web app, the Dashboard's rate boxes change that view
+only and save nothing.
+
+## Several windows
+
+You can open several windows, on different folders or on the same one. Each
+window shows the book in its own address.
+
+If two windows change the same entry, the second save is refused with "This
+entry changed after you opened it" and your text stays in the box. Copy what you
+need, then choose **Reload the entry** to see the other window's change.
+
+## Privacy and stopping
+
+- The page is served by `iris` at `127.0.0.1` on this computer. It reads only
+  the book files, needs no account, and sends nothing anywhere.
+- `iris view` signs your browser in with a one-time link that it never prints.
+- The window uses a browser profile of its own with extensions turned off, so a
+  browser extension can't read your books through it. A tab in your everyday
+  browser doesn't have that protection.
+
+The page stops by itself about five minutes after you close the last window.
+`iris view --stop` stops it now, and `iris view --status` says whether it's
+running. A page left open after that says "This view has closed. Open IrisBooks
+again."
+
+For assistants: `iris view` returns at once and never prints the sign-in link;
+`--status --json` reports `{running, folder, books}`. Open it when the user
+wants to look at the books themselves, for example to review and post the
+drafts you prepared, not on every task. Local MCP offers the same as `open_view`,
+with no arguments, in single-book and parent modes. A browser in your VM or
+container isn't the user's: from there, ask the user to open IrisBooks from
+their launcher or run `iris view` on their own computer.
+
 # Using the web app
 
 Page: https://irisbooks.io/docs/en/web-app/
@@ -1427,11 +1674,14 @@ Accounts start with email + password. From the sign-in screen you can:
 
 These screens have a language switch in the top-right corner (labeled
 "日本語" / "English") in case your browser's language was guessed wrong.
-The `.io` service currently sends verification codes, reset codes and invitations
-using Cognito's default English emails. The app itself supports both languages.
+Verification codes and reset codes arrive in the language you were using.
+An invitation email arrives in the language of the person who invited you.
 
 If your accountant invited you to a book, sign up (or log in) with the exact
-email they invited, and the book is already there.
+email they invited. The invitation waits on your **Dashboard** (and on **Books**):
+choose **Accept** to open the book, or **Decline**. Until you accept, the book
+appears nowhere: not in your book list, your reports, or your AI assistant's
+tools.
 
 There's also a **CLI authorization** page: when you run `iris api login`, the
 browser opens here to authorize the command-line tool. Confirm it's your email
@@ -1470,7 +1720,8 @@ the manual if you prefer to follow the steps yourself.
 If you already have a local book, open its folder with your assistant and ask
 it to connect and sync that book. After sync finishes, choose **Refresh book
 list**; a book found there opens in Overview. If you expected a shared book,
-check that you signed in with the invited email address. The account menu
+accept its invitation on the Dashboard first, and check that you signed in
+with the invited email address. The account menu
 remains available for language changes and logging out. The **Settings** gear
 and language icon beside it are visible directly in the top bar, including on
 phones. You can set up passkeys and an authenticator before syncing a book.
@@ -1572,6 +1823,8 @@ rate stays visible instead of quietly changing the number.
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
+To edit drafts on screen, open your local folder with
+[`iris view`](https://irisbooks.io/docs/en/iris-view/); the edits reach this app at your next sync.
 
 Named-view Books label amounts **View preview**, including shared-root entries.
 The detail page identifies the default preview; CSV exports retain the unapproved
@@ -1733,13 +1986,18 @@ the Books list above) hold what belongs to that book:
   entries and local posting are refused (`APPROVAL_REQUIRED`). Review and approve
   exact draft sources in Web. The current Web supports approval only; correcting
   or demoting posted content while this gate is enabled remains unavailable.
-  Only the owner can change this setting, from this page.
+  A chart-of-accounts change that would move posted lines to another account
+  (a removed account's migration, or an old name kept as an alias) is refused
+  the same way. Only the owner can change this setting, from this page.
 
 - **Inbound email** — the book's receiving address, the allowed-senders
   list, and quarantined mail with an "Allow sender" shortcut. See
   [Receipts by email](https://irisbooks.io/docs/en/email-inbox/).
 - **Grants** (book owners only) — manage who can access the book and at what
-  role; invite new members by email. See below.
+  role; invite new members by email and see invitations not yet accepted.
+  See below.
+- **Leave this book** (members other than owners) — remove your own access.
+  See below.
 - **Danger zone** (book owners only) — delete the book from the cloud. See
   below.
 
@@ -1780,9 +2038,20 @@ A book owner grants others access by **role**:
 | **Bookkeeper** | Create and edit entries. |
 | **Reviewer** | Read-only review. |
 
-Invite someone by email from the Grants section; change or revoke a role
-anytime. (Owners can also manage grants from the CLI — see
-[`iris api grants`](https://irisbooks.io/docs/en/cli-reference/#iris-api-grants).)
+Invite someone by email from the Grants section. An invitation gives no
+access until the person accepts it on their Dashboard. Until then the Grants
+list shows it as *Invited, not yet accepted*, and you can cancel it there.
+Someone who already has an IrisBooks account gets an email saying an
+invitation is waiting; someone new gets an account email with a temporary
+password. Change or revoke a member's role anytime. (Owners can also manage
+grants from the CLI — see [`iris api grants`](https://irisbooks.io/docs/en/cli-reference/#iris-api-grants).)
+
+Only the invited person can accept, and only in the web app. No CLI command,
+token or AI assistant can accept or decline an invitation for you.
+
+Any member can leave a book: book Settings → **Leave this book**. An owner
+removes themselves from the Grants list instead. The last owner can't leave;
+make someone else owner first, or delete the book.
 
 This is how an **owner and an accountant** share a book: the owner invites the
 accountant (or the accountant invites the owner). Each can work with AI on
@@ -1895,8 +2164,9 @@ Cloud permissions are granted per book; a client may have several fiscal-year
 books. Keep that client's files together in their own workspace. The dashboard's
 **Consolidated P&L** includes all books you can access by default, including
 client books; use its book picker to choose the totals you want to see.
-**Net Worth** defaults to owned books only; invited books require opt-in in
-its Settings tab.
+**Net Worth** defaults to books you created and own. Books you were invited
+to, at any role including owner, count only after you include them in its
+Settings tab.
 
 # Receipts by email
 
@@ -2752,7 +3022,8 @@ actions, plus the count of unposted drafts excluded. It writes nothing.
 ### iris seal
 
 Close a fiscal year of the linked cloud book (a period seal). The server locks
-journals dated in the year and `config/`, `assets/`, `filings/`, `compiled/`.
+journals dated in the year or earlier (an earlier entry still changes the
+year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
 `raw/` and `notes/` remain writable. Local files can still be edited, but locked
 changes cannot sync; the year's files stay in your working tree. To amend a
 sealed year, run `iris reopen <fiscal-year>` — changes to the locked scope while
@@ -3222,6 +3493,34 @@ carries `delete: true`.
 
 ## Reports and evidence
 
+### iris view
+
+Open books in a window on this computer, to read reports and journals, post
+drafts, edit them, start new entries and correct posted ones. See
+[Your books on this computer](https://irisbooks.io/docs/en/iris-view/).
+
+```bash
+iris view [book-path | --books-dir PATH] [--tab] [--currency CODE]
+iris view --choose
+iris view [book-path | --books-dir PATH] --stop | --status [--json]
+iris view [book-path | --books-dir PATH] --add-launcher [--tab]
+iris view --remove-launcher
+```
+
+With no folder, it opens the nearest book at or above the current folder;
+outside any book it acts like `--choose`, which opens the last folder used or
+asks. The page opens in a Chrome or Edge window of its own, with extensions off,
+or in your default browser if neither is installed; `--tab` asks for the default
+browser. It is served on `127.0.0.1`, works offline, and the command returns at
+once. `--currency` sets the reporting currency for a folder whose books use
+different currencies, like `reporting_currency` in
+[folder settings](#prices-and-settings-for-a-folder-of-books).
+
+`--add-launcher` adds one IrisBooks launcher for the Dock, Start Menu or app
+menu. It holds no folder: a folder named with it only opens first, and
+`--currency` is refused there. `--status --json` prints `running`, `folder` and
+`books`; neither it nor any other output includes the sign-in link.
+
 ### iris balance
 
 Trial balance as of a date (posted entries by default).
@@ -3496,8 +3795,8 @@ Record/list unit prices offline, and sync them to the server. User-scoped (not
 stored in the book).
 
 ```bash
-iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--source S]
-iris price list [--unit BTC] [--currency JPY] [--year 2026] [--json]
+iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
+iris price list [--unit BTC] [--currency JPY] [--year 2026] [--books-dir PARENT] [--json]
 iris price sync [--json]
 iris price conflicts [--json]
 iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
@@ -3541,6 +3840,41 @@ recorded prices (`basis: price`) and everything else at book value
 lists the others with `year_ended` / `year_not_started`, and after a year ends
 `iris yearend` brings the business back in. Resolve a price conflict only with
 the user's choice.
+
+#### Prices and settings for a folder of books
+
+A parent folder can keep its own prices and settings in `<folder>/.irisbooks/`, the
+same layout as `~/.config/irisbooks/`. They travel with the folder and apply when you
+pass `--books-dir` to `iris price`, `iris networth`, `iris analytics export` or
+`iris view`.
+
+```bash
+iris price add --books-dir ~/Clients/acme --unit USD --price 155 --currency JPY
+iris price list --books-dir ~/Clients/acme --json
+```
+
+A folder that prices a unit owns that unit: its history replaces your personal log
+for that unit and currency, even where your log has a newer date. Units it doesn't
+price still use your personal log. With `--books-dir`, `list --json` adds
+`level: folder` or `level: user` to each row. A folder's prices never sync:
+`iris price sync` works only on your personal log.
+
+`settings.yaml` has the same shape at both levels, `<folder>/.irisbooks/settings.yaml`
+and `~/.config/irisbooks/settings.yaml`, and the folder's value wins:
+
+```yaml
+reporting_currency: USD
+color: teal
+```
+
+The reporting currency is `--currency` if you pass it, then the folder's setting, then
+your personal one, then the currency the books share.
+
+`color` is the folder's strip in `iris view`: `malachite` (green), `azurite` (blue),
+`teal`, `tyrian` (plum), `sienna` (rust), `umber` (brown), `ochre` or `charcoal`.
+Choosing a color on the page for a folder of books writes it to the folder's file. In
+your personal file it is the color for folders you haven't colored. Any other value is
+ignored.
 
 ### iris analytics
 
@@ -3667,6 +4001,8 @@ The arithmetic calculators (including `allocation`), `check_update` and `read_do
 need no book selector.
 `read_docs` returns topic/section outlines by default; select a section to read it.
 For reference lookup, use file tools or CLI `iris references`.
+`open_view` opens the served books in [`iris view`](#iris-view) on the computer
+running the server, in both modes, and never returns the sign-in link.
 
 For assistants: `export_local(kind="journals"|"assets", year?, as_of?,
 out_dir?)` writes CSVs inside the selected book (`as_of` for journals only;
@@ -3764,7 +4100,9 @@ reads the selected linked cloud book.
 `list_prices` defaults to the local offline log, matching CLI `iris price list`.
 Use `source="cloud"` for the authenticated cloud mirror (`iris api price list`).
 `record_price` records a decimal-string observation (at most six fractional
-digits); `sync_prices` publishes/pulls prices separately from book sync.
+digits); `sync_prices` publishes/pulls prices separately from book sync. Both
+`record_price` and local `list_prices` accept `books_dir` for a
+[folder's own prices](#prices-and-settings-for-a-folder-of-books).
 Prices stay in user config, not tax book files. Cloud lists return one page;
 follow `nextCursor` with the same filters. `list_price_conflicts` shows candidates;
 use `resolve_price_conflict` only with the user's choice and displayed revision
@@ -4020,7 +4358,8 @@ iris api config set --remove-unit XAG
 
 ### iris api grants
 
-Manage book access (owner-only).
+Manage book access (owner-only, except that any member may revoke their own
+access to leave the book).
 
 ```bash
 iris api grants list [--json] <book-id>
@@ -4028,6 +4367,12 @@ iris api grants invite --role BOOKKEEPER --email EMAIL <book-id>
 iris api grants role --role OWNER|BOOKKEEPER|REVIEWER <book-id> <user-id>
 iris api grants revoke <book-id> <user-id>
 ```
+
+`invite` creates an invitation, not access: the person can open the book only
+after accepting it in the web app. `list` shows each row's status (`member` or
+`invited`; `"status": "active"|"pending"` with `--json`), and `revoke` on an
+invited user cancels the invitation. Inviting someone who is already a member
+changes their role instead. No CLI command accepts an invitation.
 
 ### iris api inbox
 
@@ -4194,11 +4539,13 @@ Older binaries without this command use the installer to upgrade first.
 Remove iris itself from this machine: the iris binaries, your sign-in and
 local config (`~/.config/irisbooks` — the CLI session is revoked server-side
 first), the Claude Code skill, machine-level MCP registrations (Claude
-Desktop, Codex CLI), and the PATH entry from `iris onboard --install-path`.
-It always prints the exact list of what it found on this machine and asks
-for confirmation before deleting anything.
+Desktop, Codex CLI), the PATH entry from `iris onboard --install-path`, and
+the IrisBooks launcher from [`iris view --add-launcher`](#iris-view). A running
+`iris view` is stopped first. It always prints the exact list of what it found
+on this machine and asks for confirmation before deleting anything.
 
-Your books are never touched — they are plain files you own. Per-book agent
+Your books are never touched — they are plain files you own — and neither is a
+folder's own `.irisbooks/`. Per-book agent
 wiring (`.mcp.json` inside a book) is also left in place; run
 `iris offboard --book-path PATH` first if you want that removed too.
 
@@ -6198,6 +6545,11 @@ With cloud sync, `iris sync` mirrors the **syncable** files to the cloud:
   `config/chart-of-accounts.yaml`, `config/rules.yaml`,
   `config/balance-assertions.yaml`, `config/overlays/`, `config/overlay-packages/`.
 - **Not synced:** `.iris/` (runtime state), `README.md` / `CLAUDE.md` (local entry files), and `compiled/` (regeneratable).
+- **Never synced inside a folder:** AI-agent instruction files (`CLAUDE.md`,
+  `AGENTS.md`, `GEMINI.md` and similar). Only the root `AGENTS.md` is shared,
+  so a collaborator can't slip instructions to your AI assistant through a note
+  or a source document. An emailed attachment with such a name is stored with
+  `.txt` added.
 
 See also: [Core concepts](https://irisbooks.io/docs/en/concepts/) ·
 [CLI command reference](https://irisbooks.io/docs/en/cli-reference/).
@@ -6379,9 +6731,10 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
   prints it). To reconnect to the cloud, create a new book
   (`iris api books new --no-link` — the folder still points at the deleted id,
   so plain `new` refuses) and link it (`iris api books link --force <id>`).
-- **forbidden** — your access was revoked (your credential is valid but you
-  no longer hold a grant). Ask the book's owner to re-invite you. If access
-  was intentionally revoked, that's expected.
+- **forbidden** — your access was revoked, or you left the book (your
+  credential is valid but you no longer hold a grant). Ask the book's owner
+  to re-invite you, then accept the invitation in the web app. If access was
+  intentionally revoked, that's expected.
 - **auth_expired** — your session is gone. Re-authenticate
   (`iris api login`) and run `iris sync` again.
 
@@ -6421,6 +6774,30 @@ Almost always a sync gap or a status difference:
   you see locally won't appear until it's posted and synced.
 - Reports in the web app show a "freshness" note for when the server last
   recomputed; give a recent push a moment to project.
+
+## `iris view` doesn't open, or says it has closed
+
+- **"This view has closed. Open IrisBooks again."** The page stops when no
+  window has used it for a few minutes, for example after its windows closed or
+  while the computer slept. Run `iris view` again or open IrisBooks from the
+  launcher.
+- **It opened in a browser tab, not a window of its own.** `iris` found neither
+  Chrome nor Edge. A Chromium installed as a snap on Linux also gets a tab.
+  Everything works the same, but extensions in that browser stay on.
+- **The launcher does nothing.** It runs the `iris` that added it. If you moved
+  `iris`, run `iris view --add-launcher` again. On a Mac the reason appears in
+  an alert.
+- **Your AI ran `iris view`, but no window appeared.** If your assistant works
+  in a VM or container, the window opened there, not on your screen. Open
+  IrisBooks from your launcher, or run `iris view` yourself.
+- **The Dashboard asks for a reporting currency.** The folder's books use
+  different currencies. Set one as described in
+  [Prices and currencies](https://irisbooks.io/docs/en/iris-view/#prices-and-currencies).
+- **A notice names a book it couldn't read.** Run `iris validate` in that book
+  to see why. If it names two folders as copies of the same book, only the
+  first is shown; keep one copy in the folder.
+- **Posting or saving says a sync is running.** A sync, or a save from another
+  window, is using the book at that moment. Try again.
 
 ## Still stuck?
 

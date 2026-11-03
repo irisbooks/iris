@@ -8,6 +8,21 @@ Accountants should use a separate assistant work folder/session for each
 client and clone existing shared books rather than create new identities.
 See [the file workflow](cli-and-llm.md) for folder and tool access boundaries.
 
+## Try the sample books
+
+You can look around before you create anything. [The demo](https://irisbooks.io/demo/)
+is the web app with made-up books for a shop and its owner's household, in
+English and Japanese. It needs no account. Nothing you change is saved, and the
+dates move so that this year's books run to today.
+
+To try the same books with your own AI, choose **Try it on your computer** in
+the demo and download the zip. Its README covers installing `iris` and opening
+a book in Claude Code or Codex. With `iris` installed,
+`iris view --books-dir <unzipped folder>` opens them on your computer in the
+demo's screens, with nothing uploaded. On your computer the household's fund
+and coin are valued at cost until you record prices with `iris price add`, so
+the net worth you see there differs from the demo's.
+
 ## Path A — Create a book on your machine (CLI)
 
 ### 1. Check for `iris`
@@ -31,12 +46,13 @@ On Windows (PowerShell):
 irm https://irisbooks.io/install.ps1 | iex
 ```
 
-The installer downloads the binary for your platform, checks its SHA-256
-checksum, and puts it on your `PATH`. When `minisign` is installed, it also
-verifies the signed checksum file; otherwise it prints a notice and uses
-SHA-256 only. A checksum alone checks download integrity, not release
-authenticity. Install `minisign` first if you require signature verification.
-Later, `iris update` verifies signatures with its built-in verifier and needs
+The installer downloads the binary for your platform, checks it against the
+SHA-256 checksums the installer itself carries for the current release, and
+puts it on your `PATH`. Those checksums come from the signed release and are
+served by irisbooks.io, separately from the download host, so a tampered
+download is refused even without `minisign`. To install another version with
+`IRIS_VERSION`, install `minisign` first: the installer then verifies that
+release's signed checksum file, and refuses without it. Later, `iris update` verifies signatures with its built-in verifier and needs
 no external `minisign`. Confirm the installed version with:
 
 ```bash
@@ -121,6 +137,18 @@ can use now and what needs to happen next.
 Saved evidence, draft proposals and posted report figures serve different
 purposes; see [what is ready to use](cli-and-llm.md#the-mental-model).
 
+### 6. See your books on screen
+
+```bash
+iris view
+```
+
+This opens the book in a window of its own: reports, journals and documents,
+read from your files. Post the drafts your AI prepared, fix one, or start an
+entry yourself. It needs no account. To open your books without a terminal,
+add the launcher with `iris view --add-launcher`. See
+[Your books on this computer](iris-view.md).
+
 ## Path B — Use the web app (cloud)
 
 The web app gives you a graphical interface, cloud sync, multi-device access,
@@ -131,7 +159,8 @@ collaboration, and the durable server history. It needs an IrisBooks account.
 Cloud accounts are invitation-only. Request an invitation through the
 [Discord community](https://discord.gg/wZDsv9gyb9), then sign in to the
 [web app](https://irisbooks.io/app/) with the invited email address.
-If your accountant shared a book, it will already be waiting.
+If your accountant invited you to a book, accept the invitation on your
+Dashboard to open it.
 
 ### 2. Create a book
 
@@ -188,7 +217,8 @@ your account settings. Full walk-through in
 ## Do I need an account?
 
 Not for bookkeeping itself — the local files and CLI are complete on their
-own. An IrisBooks account adds sync, the web app, collaboration, and a
+own, and `iris view` shows them on screen. An IrisBooks account adds sync, the
+web app, collaboration, and a
 durable correction/deletion history kept on the server. See
 [Core concepts → Sync](concepts.md#sync-the-three-ways-to-work).
 
@@ -196,5 +226,6 @@ durable correction/deletion history kept on the server. See
 
 - Understand the moving parts → [Core concepts](concepts.md)
 - Do the file-first workflow → [Bookkeeping with the CLI and your own LLM](cli-and-llm.md)
+- Review and post on screen → [Your books on this computer](iris-view.md)
 - Learn the GUI → [Using the web app](web-app.md)
 - File taxes in Japan → [Japan tax & compliance](japan-tax-and-compliance.md)

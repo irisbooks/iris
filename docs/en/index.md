@@ -3,6 +3,7 @@
 IrisBooks helps you keep books with your own AI assistant.
 
 - Use the **`iris` command-line tool** with your AI to record and check entries.
+- Use **`iris view`** to read, post and edit those books on your computer.
 - Use the **web app** to browse synced books, review entries, and read reports.
 
 Your book is a folder of Markdown and YAML files. The CLI works without an
@@ -33,19 +34,21 @@ account; optional cloud sync adds web access and collaboration.
    reports, sync, seals.
 3. [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) — the
    file-first workflow (fully offline).
-4. [Using the web app](web-app.md) — journals, reports, raw documents,
+4. [Your books on this computer (iris view)](iris-view.md) — read,
+   post and edit your books on your computer, with no account.
+5. [Using the web app](web-app.md) — journals, reports, raw documents,
    activity, settings, collaboration (cloud).
-5. [Receipts by email](email-inbox.md) — your book's receiving address,
+6. [Receipts by email](email-inbox.md) — your book's receiving address,
    the sender allowlist, and the quarantine.
-6. [Your AI on the go (remote connector)](remote-connector.md) — figures,
+7. [Your AI on the go (remote connector)](remote-connector.md) — figures,
    journal reads, and optional receipt capture from your phone (cloud).
-7. [Japan tax & compliance](japan-tax-and-compliance.md) — correction
+8. [Japan tax & compliance](japan-tax-and-compliance.md) — correction
    history and search, consumption tax (消費税), fixed assets & depreciation,
    year-end close.
-8. [CLI command reference](cli-reference.md) — every command and flag.
-9. [Book file-format reference](book-format-reference.md) — the on-disk
-   structure of a book.
-10. [Troubleshooting](troubleshooting.md) — validation errors, sync
+9. [CLI command reference](cli-reference.md) — every command and flag.
+10. [Book file-format reference](book-format-reference.md) — the on-disk
+    structure of a book.
+11. [Troubleshooting](troubleshooting.md) — validation errors, sync
     rejections, conflicts.
 
 ## A 60-second picture

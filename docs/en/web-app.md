@@ -26,11 +26,14 @@ Accounts start with email + password. From the sign-in screen you can:
 
 These screens have a language switch in the top-right corner (labeled
 "日本語" / "English") in case your browser's language was guessed wrong.
-The `.io` service currently sends verification codes, reset codes and invitations
-using Cognito's default English emails. The app itself supports both languages.
+Verification codes and reset codes arrive in the language you were using.
+An invitation email arrives in the language of the person who invited you.
 
 If your accountant invited you to a book, sign up (or log in) with the exact
-email they invited, and the book is already there.
+email they invited. The invitation waits on your **Dashboard** (and on **Books**):
+choose **Accept** to open the book, or **Decline**. Until you accept, the book
+appears nowhere: not in your book list, your reports, or your AI assistant's
+tools.
 
 There's also a **CLI authorization** page: when you run `iris api login`, the
 browser opens here to authorize the command-line tool. Confirm it's your email
@@ -69,7 +72,8 @@ the manual if you prefer to follow the steps yourself.
 If you already have a local book, open its folder with your assistant and ask
 it to connect and sync that book. After sync finishes, choose **Refresh book
 list**; a book found there opens in Overview. If you expected a shared book,
-check that you signed in with the invited email address. The account menu
+accept its invitation on the Dashboard first, and check that you signed in
+with the invited email address. The account menu
 remains available for language changes and logging out. The **Settings** gear
 and language icon beside it are visible directly in the top bar, including on
 phones. You can set up passkeys and an authenticator before syncing a book.
@@ -171,6 +175,8 @@ rate stays visible instead of quietly changing the number.
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
+To edit drafts on screen, open your local folder with
+[`iris view`](iris-view.md); the edits reach this app at your next sync.
 
 Named-view Books label amounts **View preview**, including shared-root entries.
 The detail page identifies the default preview; CSV exports retain the unapproved
@@ -332,13 +338,18 @@ the Books list above) hold what belongs to that book:
   entries and local posting are refused (`APPROVAL_REQUIRED`). Review and approve
   exact draft sources in Web. The current Web supports approval only; correcting
   or demoting posted content while this gate is enabled remains unavailable.
-  Only the owner can change this setting, from this page.
+  A chart-of-accounts change that would move posted lines to another account
+  (a removed account's migration, or an old name kept as an alias) is refused
+  the same way. Only the owner can change this setting, from this page.
 
 - **Inbound email** — the book's receiving address, the allowed-senders
   list, and quarantined mail with an "Allow sender" shortcut. See
   [Receipts by email](email-inbox.md).
 - **Grants** (book owners only) — manage who can access the book and at what
-  role; invite new members by email. See below.
+  role; invite new members by email and see invitations not yet accepted.
+  See below.
+- **Leave this book** (members other than owners) — remove your own access.
+  See below.
 - **Danger zone** (book owners only) — delete the book from the cloud. See
   below.
 
@@ -376,9 +387,20 @@ A book owner grants others access by **role**:
 | **Bookkeeper** | Create and edit entries. |
 | **Reviewer** | Read-only review. |
 
-Invite someone by email from the Grants section; change or revoke a role
-anytime. (Owners can also manage grants from the CLI — see
-[`iris api grants`](cli-reference.md#iris-api-grants).)
+Invite someone by email from the Grants section. An invitation gives no
+access until the person accepts it on their Dashboard. Until then the Grants
+list shows it as *Invited, not yet accepted*, and you can cancel it there.
+Someone who already has an IrisBooks account gets an email saying an
+invitation is waiting; someone new gets an account email with a temporary
+password. Change or revoke a member's role anytime. (Owners can also manage
+grants from the CLI — see [`iris api grants`](cli-reference.md#iris-api-grants).)
+
+Only the invited person can accept, and only in the web app. No CLI command,
+token or AI assistant can accept or decline an invitation for you.
+
+Any member can leave a book: book Settings → **Leave this book**. An owner
+removes themselves from the Grants list instead. The last owner can't leave;
+make someone else owner first, or delete the book.
 
 This is how an **owner and an accountant** share a book: the owner invites the
 accountant (or the accountant invites the owner). Each can work with AI on
@@ -491,7 +513,8 @@ Cloud permissions are granted per book; a client may have several fiscal-year
 books. Keep that client's files together in their own workspace. The dashboard's
 **Consolidated P&L** includes all books you can access by default, including
 client books; use its book picker to choose the totals you want to see.
-**Net Worth** defaults to owned books only; invited books require opt-in in
-its Settings tab.
+**Net Worth** defaults to books you created and own. Books you were invited
+to, at any role including owner, count only after you include them in its
+Settings tab.
 
 Next: [Japan tax & compliance](japan-tax-and-compliance.md).

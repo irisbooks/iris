@@ -45,6 +45,11 @@ Key facts for agents:
   it is the working contract for AI assistants. Read and preserve decisions
   and questions in book notes so another session or assistant can continue.
   Review before posting is the default; follow the book's chosen policy.
+- `iris view` opens the book files in the web app's screens on the user's own
+  computer, offline: they can read reports, post and edit drafts, and correct
+  posted entries there.
+  Suggest it when they want to review your drafts on screen. Local MCP has
+  `open_view`; from a VM or container, ask them to open their IrisBooks launcher.
 - Run `iris validate` after every write. Never invent account paths — add
   accounts to `config/chart-of-accounts.yaml` first. Keep unresolved business
   questions in drafts and `notes/open-questions.md`; personal estimates and

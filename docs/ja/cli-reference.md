@@ -216,7 +216,8 @@ JSON で表示します。ファイルやクラウドには書き込みません
 
 ### iris seal
 
-連携済み帳簿のクラウド上の会計年度を締めます（seal）。サーバーが年度内の仕訳と
+連携済み帳簿のクラウド上の会計年度を締めます（seal）。サーバーが年度内とそれより前の日付の
+仕訳（前の日付の仕訳も年度の貸借対照表を変えるため）と
 `config/`・`assets/`・`filings/`・`compiled/` を**ロック**します。`raw/` と `notes/` は
 引き続き変更できます。ローカルのファイル自体は編集できますが、ロック対象の変更は
 同期できません。年度のファイルは作業ツリーにそのまま残ります。締め済み年度を
@@ -665,6 +666,35 @@ iris organize [--apply] [--fix month-folders,extensions,empty-raw,config-typos] 
 
 ## レポートと証憑
 
+### iris view
+
+このパソコンのウィンドウで帳簿を開き、レポートや仕訳を見るほか、下書きの記帳と
+編集、新しい仕訳の作成、記帳済の仕訳の訂正ができます。詳しくは
+[このパソコンで帳簿を開く](iris-view.md)を参照してください。
+
+```bash
+iris view [book-path | --books-dir PATH] [--tab] [--currency CODE]
+iris view --choose
+iris view [book-path | --books-dir PATH] --stop | --status [--json]
+iris view [book-path | --books-dir PATH] --add-launcher [--tab]
+iris view --remove-launcher
+```
+
+フォルダを指定しないと、現在のフォルダかその上にある最も近い帳簿を開きます。
+どの帳簿の中でもないときは `--choose` と同じで、前回使ったフォルダを開くか、
+どのフォルダを開くかを尋ねます。画面は Chrome か Edge の専用ウィンドウで、
+拡張機能をオフにして開きます。どちらもなければいつものブラウザで開き、`--tab`
+を付けると最初からいつものブラウザを使います。`127.0.0.1` で表示し、オフラインで
+動き、コマンドはすぐに終わります。`--currency` は、帳簿ごとに通貨が違うフォルダの
+表示通貨を決めます。[フォルダの設定](#帳簿フォルダの価格と設定)の
+`reporting_currency` と同じ役割です。
+
+`--add-launcher` は、Dock・スタートメニュー・アプリメニュー用の IrisBooks
+ランチャーを1つ追加します。ランチャーはフォルダを持ちません。一緒に指定した
+フォルダは最初に開くだけで、`--currency` は指定できません。`--status --json`
+は `running`・`folder`・`books` を出力します。これを含め、どの出力にも
+サインイン用のリンクは含まれません。
+
 ### iris balance
 
 基準日時点の試算表（既定では記帳済みのみ）。
@@ -934,8 +964,8 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 保存されません）。
 
 ```bash
-iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--source S]
-iris price list [--unit BTC] [--currency JPY] [--year 2026] [--json]
+iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
+iris price list [--unit BTC] [--currency JPY] [--year 2026] [--books-dir PARENT] [--json]
 iris price sync [--json]
 iris price conflicts [--json]
 iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
@@ -966,6 +996,39 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 を指定して解決します。`--choose local` は次の同期で送る訂正を残し、
 `--choose server` はその編集を破棄します。別の値に直す場合は local を選んでから
 価格を再記録して同期します。候補が変わった後の古い解決指定は拒否されます。
+
+#### 帳簿フォルダの価格と設定
+
+親フォルダは `<フォルダ>/.irisbooks/` に独自の価格と設定を持てます。構成は
+`~/.config/irisbooks/` と同じです。フォルダと一緒に移動し、`iris price`・`iris networth`・
+`iris analytics export`・`iris view` に `--books-dir` を指定したときに使われます。
+
+```bash
+iris price add --books-dir ~/Clients/acme --unit USD --price 155 --currency JPY
+iris price list --books-dir ~/Clients/acme --json
+```
+
+フォルダに価格がある単位は、その単位と通貨についてフォルダの履歴だけを使います。個人の
+価格に新しい日付があっても使いません。フォルダに価格がない単位は、個人の価格を使います。
+`--books-dir` を付けた `list --json` は、各行に `level: folder` または `level: user` を
+追加します。フォルダの価格は同期しません。`iris price sync` の対象は個人の価格だけです。
+
+`settings.yaml` は `<フォルダ>/.irisbooks/settings.yaml` と
+`~/.config/irisbooks/settings.yaml` で同じ形式で、フォルダの値が優先されます。
+
+```yaml
+reporting_currency: USD
+color: teal
+```
+
+レポート通貨は、指定した `--currency`、フォルダの設定、個人の設定、帳簿に共通の通貨の順に
+決まります。
+
+`color` は `iris view` でフォルダを示す帯の色です：`malachite`（緑）、`azurite`（青）、
+`teal`（青緑）、`tyrian`（紫）、`sienna`（赤茶）、`umber`（茶）、`ochre`（黄土）、
+`charcoal`（墨）。複数の帳簿が入ったフォルダで画面から色を選ぶと、そのフォルダの
+ファイルに書き込まれます。個人のファイルでは、色を決めていないフォルダの色になります。
+これ以外の値は無視されます。
 
 ### iris analytics
 
@@ -1087,6 +1150,8 @@ complete_journal はプレビュー後、版を確認して下書きへ適用し
 `read_docs` には帳簿の指定が不要です。費用の按分計算 `allocation` も帳簿を指定せずに使えます。`read_docs` は既定でトピックや節の一覧を返し、
 節を指定すると本文を読みます。不明な引数や型の誤りは実行前にエラーとなり、文字列の `"true"` は真偽値として扱いません。参照関係の確認には
 ファイルツールまたは CLI の `iris references` を使います。
+`open_view` は、サーバーを動かしているパソコンで、対象の帳簿を [`iris view`](#iris-view)
+で開きます。両モードで使え、サインイン用のリンクは返しません。
 
 #### クラウドの利用を承認する
 
@@ -1159,7 +1224,8 @@ cloud を残すとサイドカーを削除します。`list_conflicts` は JSON 
 `list_prices` は CLI の `iris price list` と同じく、既定でローカルのオフライン価格を読みます。
 認証済みのクラウドの価格は `source="cloud"` で読みます（CLI の `iris api price list` に相当）。
 `record_price` は小数点以下 6 桁以内の文字列で価格を記録し、`sync_prices` は帳簿とは別に
-価格を送受信します。価格は税務用帳簿ではなくユーザー設定に保存します。クラウド一覧は
+価格を送受信します。`record_price` とローカルの `list_prices` は `books_dir` を指定すると
+[フォルダの価格](#帳簿フォルダの価格と設定)を使います。価格は税務用帳簿ではなくユーザー設定に保存します。クラウド一覧は
 1 ページを返すので、同じ条件で `nextCursor` を渡して続きを読みます。`list_price_conflicts` で候補を
 確認し、ユーザーが選んだ場合にだけ、表示された版と編集 ID で `resolve_price_conflict` を実行して
 同期します。価格と出典が同じ編集は自動で合流します。`get_holdings` 以外にはローカルの帳簿指定は不要です。
@@ -1370,7 +1436,8 @@ iris api config set --remove-unit XAG
 
 ### iris api grants
 
-帳簿のアクセス権を管理します（オーナーのみ）。
+帳簿のアクセス権を管理します（オーナーのみ。ただし、メンバーは自分のアクセス権を
+取り消して帳簿から抜けられます）。
 
 ```bash
 iris api grants list [--json] <book-id>
@@ -1378,6 +1445,12 @@ iris api grants invite --role BOOKKEEPER --email EMAIL <book-id>
 iris api grants role --role OWNER|BOOKKEEPER|REVIEWER <book-id> <user-id>
 iris api grants revoke <book-id> <user-id>
 ```
+
+`invite` が作るのは招待で、アクセス権ではありません。招待された人は、Web アプリで
+承認したあとに帳簿を開けます。`list` は各行の状態（`member` または `invited`。
+`--json` では `"status": "active"|"pending"`）を表示し、招待中のユーザーに
+`revoke` を実行すると招待を取り消します。すでにメンバーの人を招待すると、役割の
+変更になります。招待を承認する CLI コマンドはありません。
 
 ### iris api inbox
 
@@ -1538,10 +1611,13 @@ Windows で使用中のファイルを置き換えられない場合は、MCP �
 iris そのものをこのマシンから削除します: iris バイナリ、サインイン情報と
 ローカル設定（`~/.config/irisbooks` — CLI セッションは先にサーバー側で失効
 させます）、Claude Code スキル、マシン全体の MCP 登録（Claude Desktop・
-Codex CLI）、`iris onboard --install-path` が追加した PATH 設定。実行前に、
-このマシンで見つかった削除対象の正確な一覧を必ず表示し、確認を求めます。
+Codex CLI）、`iris onboard --install-path` が追加した PATH 設定、
+[`iris view --add-launcher`](#iris-view) が追加した IrisBooks ランチャー。
+動いている `iris view` は先に終了します。実行前に、このマシンで見つかった削除対象の
+正確な一覧を必ず表示し、確認を求めます。
 
-帳簿には一切触れません — 帳簿はあなたが所有するただのファイルです。帳簿内の
+帳簿には一切触れません — 帳簿はあなたが所有するただのファイルです。フォルダ独自の
+`.irisbooks/` も残ります。帳簿内の
 エージェント設定（帳簿内の `.mcp.json`）もそのまま残ります。それも消したい
 場合は、先に `iris offboard --book-path PATH` を実行してください。
 

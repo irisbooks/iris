@@ -177,7 +177,8 @@ The same book can live in three arrangements. You don't choose a "mode"; you
 just use more or fewer of the features:
 
 - **Offline.** Files only, no server, no account. You validate and report
-  locally. Maximum privacy, zero network.
+  locally, and can read, post and edit on screen with
+  [`iris view`](iris-view.md). Maximum privacy, zero network.
 - **Files + Cloud.** Your local files plus a cloud mirror (sign in with
   `iris api login`). You edit locally and run `iris sync` to push and pull.
   The web app, multi-device access, collaboration, and timestamped history
@@ -241,17 +242,19 @@ Local git history is not a substitute: it lives on your own machine and can be
 rewritten, so it is not an independent record. That is why the durable history
 lives on the server.
 
-## The two lenses, side by side
+## The lenses, side by side
 
-| | CLI + your AI | Web app |
-| --- | --- | --- |
-| Main use | Owners and accountants working with AI on files | Viewing, review and cloud administration |
-| Edits | Your AI writes files; you review | Forms in the browser |
-| Works offline | Yes | No (needs the server) |
-| Reports | `iris report …` (text/JSON) | Rendered + CSV export |
+| | CLI + your AI | `iris view` | Web app |
+| --- | --- | --- | --- |
+| Main use | Owners and accountants working with AI on files | Reading, posting and fixing your files on screen | Viewing, review and cloud administration |
+| Edits | Your AI writes files; you review | Drafts on a form or as source, saved to your files | Approving drafts only |
+| Works offline | Yes | Yes | No (needs the server) |
+| Reports | `iris report …` (text/JSON) | Rendered from your files | Rendered + CSV export |
 
-They are not either/or — most owners use both: the CLI + AI to enter
-data fast, the web app to review, report, and collaborate.
+They are not either/or. The CLI and your AI enter data fast, `iris view` lets
+you check and post it on screen, and the web app adds sharing and the server's
+history.
 
-Next: [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) or
+Next: [Bookkeeping with the CLI and your own LLM](cli-and-llm.md),
+[Your books on this computer](iris-view.md) or
 [Using the web app](web-app.md).
