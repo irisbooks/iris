@@ -30,7 +30,8 @@ Verification codes and reset codes arrive in the language you were using.
 An invitation email arrives in the language of the person who invited you.
 
 If your accountant invited you to a book, sign up (or log in) with the exact
-email they invited. The invitation waits on your **Dashboard** (and on **Books**):
+email they invited. The invitation waits on the first page you see when you
+have no books yet, and otherwise on your **Dashboard** (and on **Books**):
 choose **Accept** to open the book, or **Decline**. Until you accept, the book
 appears nowhere: not in your book list, your reports, or your AI assistant's
 tools.
@@ -72,8 +73,8 @@ the manual if you prefer to follow the steps yourself.
 If you already have a local book, open its folder with your assistant and ask
 it to connect and sync that book. After sync finishes, choose **Refresh book
 list**; a book found there opens in Overview. If you expected a shared book,
-accept its invitation on the Dashboard first, and check that you signed in
-with the invited email address. The account menu
+its invitation is at the top of this page; if it isn't, check that you signed
+in with the invited email address. The account menu
 remains available for language changes and logging out. The **Settings** gear
 and language icon beside it are visible directly in the top bar, including on
 phones. You can set up passkeys and an authenticator before syncing a book.
@@ -159,7 +160,10 @@ rate stays visible instead of quietly changing the number.
 
 ## Journals
 
-**Journals** is your transaction list. From here you:
+**Journals** is your transaction list. Each row shows the date, a
+**description** (the first line of the entry's narrative body), the
+counterparty, the amount and the status. On a phone, each entry is a card
+and the filters fold behind a **Filters** button. From here you:
 
 - **Filter and search** — by date range, counterparty/payee, free text,
   status (posted / draft / closed / …), and amount
@@ -168,9 +172,10 @@ rate stays visible instead of quietly changing the number.
 - **Open an entry** to see its full detail: date, counterparty, status, tags,
   attached source documents (click through to the document), the line-item
   table with debits/credits and totals, and the narrative body.
-- **Approve a draft** — read the original source on its detail page, then use
-  **Approve reviewed source**. Bulk approval first displays each selected source.
-  Approval binds those exact versions; changed sources must be reviewed again.
+- **Approve a draft** — read the **Source for review** on its detail page, then
+  choose **Post**. Bulk approval first displays each selected source; then choose
+  **Approve reviewed sources**. Approval binds those exact versions; changed
+  sources must be reviewed again.
 
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
@@ -206,7 +211,8 @@ Four reports, each with date/as-of filters, a "hide zero-balance rows" toggle,
 and CSV export:
 
 - **General Ledger** — pick an account and see its full ledger for the period,
-  with an optional opening balance.
+  with an optional opening balance. A row's description is the line's memo,
+  or the first line of the entry's body when the line has none.
 - **Trial Balance** — balances as of a date; warns if debits ≠ credits.
 - **P&L** — revenue and expenses with subtotals and net income for a period.
 - **Balance Sheet** — assets, liabilities, and equity as of a date.
@@ -289,6 +295,8 @@ Closing never removes anything: the year's files stay in the book.
 A book covers one fiscal year. The next year starts as a book of its own —
 created from the CLI with [`iris yearend`](cli-reference.md#iris-yearend) —
 and appears in **My Books** beside this one, with the same people's access.
+Once a book with the same name for the following year is in My Books, the
+screen links to it instead of showing the command.
 
 The same flow works from the CLI (`iris seal`, `iris reopen`) — see
 [Japan tax & compliance](japan-tax-and-compliance.md). Members who aren't
@@ -388,7 +396,7 @@ A book owner grants others access by **role**:
 | **Reviewer** | Read-only review. |
 
 Invite someone by email from the Grants section. An invitation gives no
-access until the person accepts it on their Dashboard. Until then the Grants
+access until the person accepts it in the web app. Until then the Grants
 list shows it as *Invited, not yet accepted*, and you can cancel it there.
 Someone who already has an IrisBooks account gets an email saying an
 invitation is waiting; someone new gets an account email with a temporary
@@ -400,7 +408,8 @@ token or AI assistant can accept or decline an invitation for you.
 
 Any member can leave a book: book Settings → **Leave this book**. An owner
 removes themselves from the Grants list instead. The last owner can't leave;
-make someone else owner first, or delete the book.
+make someone else owner first, or delete the book. The Grants list marks the
+book's only owner and offers no role change or revoke for them.
 
 This is how an **owner and an accountant** share a book: the owner invites the
 accountant (or the accountant invites the owner). Each can work with AI on
