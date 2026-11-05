@@ -55,15 +55,10 @@ your-book/
 schema_version: 1
 book_id: lb_...                 # init 時はローカル ID。クラウド連携時に置き換わる
 name: "Acme Design"
-region: JP                      # ISO 3166-1。税・ロケールのルールを選択
+region: JP                      # ISO 3166-1。ロケールと地域の互換性
 overlays:
   - journal-balance@2026.10.1
   - inventory-disposal@2026.10.1
-  - jp-tax-classification@2026.10.1
-  - jp-tax-amount@2026.10.1
-  - jp-tax-filing@2026.10.1
-  - jp-small-asset-deduction@2026.10.1
-  - jp-declining-balance@2026.10.1
 language: ja                    # ISO 639-1。勘定科目の言語はこれに従う
 currency: JPY                   # ISO 4217
 scale: 0                        # 補助単位の指数 — 不変（JPY 0, USD 2, BHD 3）
@@ -79,11 +74,8 @@ units:                          # 非通貨単位（外貨・暗号資産・貴�
     scale: 8
     name: "Bitcoin"
 
-consumption_tax:                # JP のみ — 日本の税務ページ参照
-  status: taxable
-  accounting: tax_included
-  method: general
-  business_class: 5
+# オーバーレイが定義する設定ブロックも最上位に書きます。
+# 項目は `iris overlay list --json` で確認できます。
 ```
 
 `units` は任意で、新しい帳簿では空です。既知の通貨の数量には内蔵の小数桁数を
@@ -101,8 +93,8 @@ consumption_tax:                # JP のみ — 日本の税務ページ参照
 上のBTCは記述例で、自動登録される単位ではありません。
 
 `scale` は通貨が使う小数桁数で、**不変**です。JPY は `0`（円単位、小数なし）、
-USD/EUR は `2`、湾岸ディナールは `3`。`consumption_tax` のような地域固有ブロックは
-不透明に同伴します。普遍エンジンは無視し、JP オーバーレイが読み取ります。
+USD/EUR は `2`、湾岸ディナールは `3`。オーバーレイが定義する設定ブロックは
+そのまま保持されます。共通のエンジンは無視し、選択したパッケージが読み取ります。
 
 `fiscal_year` はこの帳簿が扱う会計年度で、年度が始まる年で表します。`iris init` は
 今日を含む年度を設定し（`--fiscal-year` で別の年度を選べます）、
@@ -132,7 +124,7 @@ USD/EUR は `2`、湾岸ディナールは `3`。`consumption_tax` のような�
 
 Bindings v4 では、仕訳のワークフロー状態と承認・締めの情報を Overlay の入力から
 除きます。入れ子の記録も対象です。`journal.status` を読む定義や、これらの情報を
-書き換える定義は、互換性エラーになります。`consumption_tax.status` などの業務上の
+書き換える定義は、互換性エラーになります。オーバーレイ独自の設定などの業務上の
 事実は引き続き使えます。下書きだけを補完する制約、記帳権限、締め、集計対象の
 状態は、アプリケーション側で管理します。
 
@@ -204,14 +196,12 @@ Bindings v5 では、仕訳の補完前に追加フィールドを計算でき�
 ## 複数の公開オーバーレイを固定する
 
 `overlays` には、使いたいオーバーレイの**固定バージョンを複数指定**できます。
-`overlay` と同時には書けません。地域共通のパッケージと専門分野のパッケージを
-組み合わせる場合は、次のように書きます。
+`overlay` と同時には書けません。たとえば次のように書きます。
 
 ```yaml
-# 設定例です。jp-rsu は、公開されてから指定できます。
 overlays:
-  - jp-tax-classification@2026.10.1
-  - jp-rsu@2026.10.1
+  - journal-balance@2026.10.1
+  - inventory-disposal@2026.10.1
 ```
 
 すべての固定バージョンに、検証済みの帳簿内コピーが必要です。
@@ -222,37 +212,29 @@ overlays:
 衝突もエラーです。列挙する順序で優先順位は変わりません。各パッケージの CEL 関数は
 その内部で使い、レシピの出典には、そのレシピを持つパッケージのバージョンを記録します。
 
-パッケージの `overlay.yaml` には `region: JP` や、対応する依存バージョン
-`requires_overlays: {jp-tax-classification: ['2026.10.1']}` を宣言できます。新しい科目選択や
+パッケージの `overlay.yaml` には `region` や、対応する依存バージョン
+`requires_overlays: {example-base: ['2026.10.1']}` を宣言できます。新しい科目選択や
 パラメーターの仕組みを使う場合は `requires_bindings: 2` を指定します。
 `iris overlay upgrade --dry-run` で、更新後の組み合わせ、テスト、帳簿独自の層、
-設定値を確認できます。`--to jp-rsu@<version>` ならそのパッケージだけを更新し、
+設定値を確認できます。`--to <id>@<version>` ならそのパッケージだけを更新し、
 `--to` を省略すると、固定している各パッケージの最新版をまとめて確認します。
 
-初期カタログは、個別に選べる七つの機能で構成します。いずれも `2026.10.1` の
-公開候補で、bindings 5 が必要です。
-
-| カタログの分類 | 個別に選べる Overlay ID |
-| --- | --- |
-| 共通補完 | `journal-balance`、`inventory-disposal` |
-| 日本の消費税 | `jp-tax-classification`、`jp-tax-amount`、`jp-tax-filing` |
-| 日本の固定資産 | `jp-small-asset-deduction`、`jp-declining-balance` |
-
+機能のカタログには、共通補完の `journal-balance` と `inventory-disposal`、そして
+地域ごとの機能があります。地域の機能とその版・依存関係は
+[オーバーレイのドキュメント](https://irisbooks.io/docs/ja/overlays/)に一覧があります。
 分類は発見・配布のためのまとまりで、切り替え単位ではありません。
-新規の日本向け事業用帳簿には七つをコピーして選択します。個人用と日本以外の事業用は
-共通補完の二つを選択します。既存帳簿の固定バージョン、無効設定、保持済みの過去の
+事業用の設定では共通の機能とその地域で使えるパッケージを、個人用の設定では共通の
+機能を選択します。既存帳簿の固定バージョン、無効設定、保持済みの過去の
 定義は変更しません。署名付きの公開は未実施です。
 
-`jp-tax-amount` と `jp-tax-filing` は、それぞれ
-`jp-tax-classification@2026.10.1` の明示的な選択を必要とし、互いには依存しません。
-税設定の定義と参照用タスクは区分検証が所有します。税区分の検証を残して税額補完や
-申告計算だけを止められます。貸借補完と売却原価計算、少額資産特例の検証と定率法計算も
-個別に選べます。依存関係が不足した選択は拒否し、自動取得・自動解除は行いません。
+パッケージが別のパッケージの固定バージョンを必要とする場合があります。依存先も
+すべて明示的に選択してください。不足した選択は拒否し、自動取得・自動解除は
+行いません。貸借補完と売却原価計算は個別に選べます。
 
 各機能には必要な検証、項目、タスク、ガイド、実行可能な例をまとめます。
 Iris 本体の構造・貸借検証は常に動作し、レシピは明示的に呼び出します。
-課税状況、届出、適用要件は確認して記録します。一括償却資産と期中取得の定率法計算は
-対応範囲外です。従来の統合版 `default`・`jp` と大分類単位の旧候補は廃止しました。
+課税状況、届出、適用要件は確認して記録します。対応範囲外の処理は各パッケージの
+ドキュメントに記載しています。従来の統合版と大分類単位の旧候補は廃止しました。
 
 バイナリにはオフライン導入用のカタログを同梱し、その他の版は署名付き GitHub
 リリースから取得して明示的に導入します。実行と過去の再現は帳簿内の正確なコピーを
@@ -323,7 +305,7 @@ rules:
 ```yaml
 # 以下の項目を持つパッケージを使う場合の設定例です。
 overlay_settings:
-  jp-sales-demo:
+  example-sales:
     rules:
       sales.memo-required:
         params:
@@ -369,16 +351,16 @@ schema_version: 1
 date: 2026-05-04
 payee: EXAMPLE.COM
 status: draft                 # draft | posted
-tags: [sales, withholding]
+tags: [sales, platform-fee]
 attachments:
   - path: raw/2026-05-example-com-invoice.pdf
     type: invoice               # invoice | receipt | bank_statement（因果的な出所）
     locator: "page=1"           # 任意の断片ポインタ（"L47", "p3"）
 lines:
   - account: 資産:売掛金
-    debit: 89790
-  - account: 資産:事業主貸
-    debit: 10210
+    debit: 97000
+  - account: 費用:支払手数料
+    debit: 3000
   - account: 収益:売上
     credit: 100000
 ---
@@ -396,7 +378,7 @@ lines:
 | `lines` | はい | 2〜999行。各行に `account` + `debit`/`credit` のどちらか一方 |
 | `lines[].memo` | いいえ | 行ごとのメモ |
 | `lines[].quantity` + `unit` | いいえ | `book.yaml` の `units` の単位の数量（常に正。向きは借方/貸方から） |
-| `lines[].tax` | いいえ | 日本の消費税 — 下記参照 |
+| `lines[].<項目>` | いいえ | 選択したオーバーレイが明細に定義する項目 — 下記参照 |
 | 本文 | いいえ | 閉じ `---` の後の自由 Markdown |
 
 **明細行数**。1つの仕訳は最大 **999行**です。200行から警告が出ます。給与や
@@ -412,18 +394,10 @@ lines:
 ファイル名と一致、ステータスが正当、YAML が解析できる。レポートに載るのは
 **記帳済**の仕訳だけ。
 
-**行ごとの `tax`（日本の課税事業者のみ）:**
-
-```yaml
-tax:
-  category: taxable_purchase   # taxable_sale | taxable_purchase | exempt_sale |
-                               # exempt_purchase | export_sale | out_of_scope | securities_sale
-  rate: "10"                   # 10 | 8r | 8o | 5 | 3 | 0
-  invoice: true                # 適格請求書を保有（仕入側）
-  business_class: 5            # 簡易課税 事業区分 1..6（帳簿既定を上書き）
-```
-
-[日本の税務・コンプライアンス](japan-tax-and-compliance.md) を参照。
+**明細のオーバーレイ項目。** 選択したオーバーレイは、税区分のブロックなど、仕訳の
+明細に項目を定義できます。iris はそれをファイルに保持し、パッケージのルールが
+検証します。各項目と受け付ける値は `iris overlay list --json` で確認でき、
+[オーバーレイ](https://irisbooks.io/docs/ja/overlays/)のパッケージのページで説明しています。
 
 ## 省略できる項目と自動で決まる値
 
@@ -784,16 +758,11 @@ iris report pl --mode comparison --from 2026-01-01 --to 2026-08-31
 SQLの実行例では、8月の価格を1.6円に直しても、旧レポート1,046,000円はそのまま残ることを
 確認しています。新しく生成すると1,054,000円になり、口数と取得原価は変わりません。
 
-**税制の参照先（2026-10-24確認）：** 運用会社の
-[基準価額の説明](https://direct.smd-am.co.jp/learn/guide/price/)で、10,000口当たりの
-表示例を確認できます。[国税庁No.1464](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1464.htm)
-（法令等の基準日2026-04-01）は取得費と複数回購入した場合の計算方法を説明しています。
-汎用のFIFO・移動平均という名前だけで、日本の税務処理が決まるわけではありません。
-実際にNISA口座を使う場合は、証券会社が示す口座区分、
-[金融庁の制度説明](https://www.fsa.go.jp/policy/nisa2/know/index.html)、
-[最新の対象商品情報](https://www.fsa.go.jp/policy/nisa2/products/)を確認してください。
-単位名やNISAと書いたメモ、検証の成功だけでは適用資格は分かりません。
-申告書への転記と商品・税制の自動判定は、この管理用の例の対象外です。
+**税務上の扱い。** 投資信託の口数をどう課税するか（複数回購入したときの取得費の
+計算方法、非課税口座など）は地域によって異なります。汎用のFIFO・移動平均という
+名前だけで税務処理が決まるわけではなく、単位名やメモ、検証の成功だけでは口座の
+税務上の区分は分かりません。地域ごとの扱いは[オーバーレイ](https://irisbooks.io/docs/ja/overlays/)の地域ガイドを
+参照してください。申告書への転記と商品・税制の自動判定は、この管理用の例の対象外です。
 
 ## 残高照合
 
@@ -864,9 +833,9 @@ assertions:
 
 `iris allocation` は、費用の全額を、明示した事業割合で分けて計算します。
 ファイルの変更や記帳は行いません。先に按分の根拠と会計上の扱いを確認してください。
-勘定科目名から事業割合は判断できません。
-[国税庁の必要経費の説明](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)では、
-家事関連費の事業分を取引記録などで区分する必要があります。
+勘定科目名から事業割合は判断できません。税法によっては、家事関連費の事業分を
+記録で区分する必要があります。どこで必要かは[オーバーレイ](https://irisbooks.io/docs/ja/overlays/)の地域ガイドを
+参照してください。
 以下の1/4は所有者が確認したと仮定する架空の例で、推奨する割合ではありません。
 
 次の入力を `raw/allocation-jan.json` に保存します。
@@ -1287,8 +1256,7 @@ iris report pl --from 2026-01-01 --to 2026-04-30 /path/to/personal
 計算コマンドは、4月の基準を1月に使う入力、失効した1月の基準を4月に使う入力を拒否します。
 3月15日〜4月15日をまたぐ請求全体も、どちらの基準でも拒否します。最新の割合の自動選択や日割り計算は行いません。
 期間ごとの請求額を資料で確認してから計算してください。この例は必要経費の割合、法的な費用負担、申告書への対応を判断するものではありません。
-所得税上の資料要件は[国税庁 No.2210](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)を参照してください
-（令和8年4月1日現在の法令等。2026年10月24日確認）。取消時は元の丸め済み金額を使います。過去資料の訂正は、元の識別情報を残して別途確認します。
+地域ごとの資料要件は[オーバーレイ](https://irisbooks.io/docs/ja/overlays/)の地域ガイドを参照してください。取消時は元の丸め済み金額を使います。過去資料の訂正は、元の識別情報を残して別途確認します。
 
 実行確認用の例には、1月の元ファイル、4月の資料、各Bookの残高確認8件を含めています。
 元ファイルが変わっていないこと、新しい基準の資料、計算結果、全額の預金移動、各Bookの費用合計を確認します。
@@ -1499,8 +1467,8 @@ accounts:
   - path: 収益:売上
     type: income
     aliases: [sales]
-  - path: 資産:事業主貸
-    type: asset
+  - path: 資本:引出金
+    type: equity
     owner: true               # 事業主個人の資金 — 純資産画面の集計に含めない
   - path: 資本:元入金
     type: equity
@@ -1510,11 +1478,10 @@ accounts:
 科目の通常残高側は `type` から導かれます。`aliases` により、別名や別言語で科目を
 参照できます。仕訳で参照する前に、ここへ科目を追加してください。
 
-`owner: true` は、事業主個人の引き出しと持ち込みの科目を表します。個人事業主なら
-事業主貸と事業主借です。科目の種類はそのままなので、貸借対照表は青色申告決算書の
-並びのまま出ます。ただしこれらは事業が持つもの・負うものではなく、事業主自身の
-お金の出入りなので、[純資産](web-app.md#純資産)の集計には含めません。日本向けの
-初期の勘定科目表にはこの指定が入っています。
+`owner: true` は、事業主個人の引き出しと持ち込みの科目を表します。科目の種類は
+そのままなので、貸借対照表は通常どおりの並びで出ます。ただしこれらは事業が持つもの・
+負うものではなく、事業主自身のお金の出入りなので、[純資産](web-app.md#純資産)の
+集計には含めません。こうした科目を含む初期の勘定科目表には、この指定が入っています。
 
 `retained_earnings: true` は、[`iris yearend`](cli-reference.md#iris-yearend) が
 その年度の純利益を折り込む資本科目を表します。個人事業主なら資本:元入金、法人なら
@@ -1546,11 +1513,11 @@ schedule:                          # 任意。記録済みの償却表（下記�
   - period: 2028-03
     amount: 187500
 schedule_source:                   # オーバーレイのレシピが表を書いたときに付く根拠（下記参照）
-  overlay: jp-declining-balance@2026.10.1
-  recipe: jp-declining-balance.teiritsu
+  overlay: example-declining@2026.10.1   # 説明用のパッケージ
+  recipe: example-declining.schedule
   bindings: 5
   primitives: {declining_table: 2, flat_table: 2}
-  params: {full_year_confirmed: true, cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
+  params: {cost: 480000, life: 4, rate: 0.500, start: 2027-03}
 disposal:                          # 任意。処分まで無し
   date: 2029-05-10
   proceeds: 50000
@@ -1575,8 +1542,8 @@ iris が直接計算します。`straight_line` と `declining_balance` には�
 
 定額法では `schedule` を省略でき、`useful_life_months` から iris が償却額を
 計算します。即時費用化では `schedule` を省略する必要があり、耐用月数を使わずに
-取得月に全額を償却します。それ以外 — 改定償却率に切り替わる日本の定率法、
-定額法へ移行する米国 MACRS など — は償却表をファイルに記録し（`method:
+取得月に全額を償却します。それ以外 — 途中で償却率や方法が切り替わる
+定率法など — は償却表をファイルに記録し（`method:
 declining_balance` には必須です）、iris はその値をそのまま使います。
 
 各行は `period`（`YYYY-MM`）と `amount` の 2 つです。年 1 回計上する帳簿なら
@@ -1598,8 +1565,8 @@ MCPの表計算ツールには最小単位の整数額を渡します。大き�
 12,345、`scale: 2` なら、YAMLは `amount: 123.45` となり、読み戻しても12,345単位です。
 結果には使用した `scale` も含みます。
 
-表は AI アシスタントが組み立てます。帳簿の地域オーバーレイにその方式の
-**レシピ**があれば — 日本の定率法は `jp-declining-balance.teiritsu` — 公表されている率を入力として
+表は AI アシスタントが組み立てます。選択したオーバーレイにその方式の
+**レシピ**があれば（`list_recipes` に表示されます）、公表されている率を入力として
 それを実行し、レシピが表を組み立ててファイルに根拠付きで書き込みます
 （`iris overlay recipe`、または対応する MCP ツール）。レシピのない方式は、
 計算ツールを組み合わせて表を作ります（[CLI と AI](cli-and-llm.md) 参照）。
@@ -1616,7 +1583,7 @@ iris は表の形を検査します。行が昇順で重複がないこと、マ
 ### `schedule_source:` — 表の出どころを記録し、再計算で照合する
 
 レシピが表を書いたときは、その根拠も一緒に記録されます。オーバーレイのバージョン
-（`jp-declining-balance@2026.10.1`。帳簿独自の `config/overlays/` のレシピなら `book:<ハッシュ>`）、
+（`<id>@<version>`。帳簿独自の `config/overlays/` のレシピなら `book:<ハッシュ>`）、
 レシピ、実行時のエンジンのバージョン、そして渡した入力 — 公表表の率、耐用年数、
 最初の行の月です。`iris validate` はその入力でレシピを**再計算**し、記録された行と
 違えばファイルを受け付けません。合計さえ合えば通ってしまう「1 年遅れの切替」は
@@ -1638,41 +1605,32 @@ iris は表の形を検査します。行が昇順で重複がないこと、マ
 
 計算で求める定額法の償却表は、除却月で自動的に止まります。記録した償却表は
 iris が書き換えることはありません。除却月より後の行を削除し、除却した年度の行は
-保有していた期間分の償却額（日本では月割）に書き換えてください。こうすると表の
+保有していた期間分の償却額に書き換えてください。こうすると表の
 合計は `acquisition_cost` − `salvage_value` を下回ってかまいませんが、上回っては
 いけません。レシピが書いた表なら、`iris validate` は除却月より前の行を引き続き
 再計算で照合します。除却した年度の行はあなたが決める行です。
 
-日本の一括償却資産（`toku_rei: ikkatsu_3yr`）とその除却には未対応です。
-現在の `jp-small-asset-deduction` パッケージは、この区分を
-`asset.ikkatsu-unsupported` エラーで拒否します。通常の36か月の定額償却では、
-一括償却資産の年間償却額を表せません。証憑を残し、未解決の処理を
-`notes/open-questions.md` に記録して確認を受けてください。`disposal:` の省略で
-対応できるようにはなりません。
-
 ## 申告記録 — `filings/<recipe>.md`
 
-申告に使った集計値を、記録済みのファイルとして持ちます。地域オーバーレイの集計
-レシピ（日本では消費税申告の `jp-tax-filing.shouhizei-general` と `jp-tax-filing.shouhizei-simplified`）
-が記帳済の仕訳を集計し、申告書に必要な形に組み合わせます。`iris overlay recipe
-… --apply --out filings/jp-tax-filing.shouhizei-general.md` で、償却表と同じ根拠付きで記録
-されます。
+申告に使った集計値を、記録済みのファイルとして持ちます。選択したオーバーレイの
+集計レシピが記帳済の仕訳を集計し、申告書に必要な形に組み合わせます。
+`iris overlay recipe <レシピID> … --apply --out filings/<名前>.md` で、償却表と同じ
+根拠付きで記録されます。説明用の例です。
 
 ```yaml
 ---
 schema_version: 1
-filing: jp-tax-filing.shouhizei-general
+filing: example-sales-tax.summary
 period: {from: 2026-01-01, to: 2026-12-31}
 source:
-  overlay: jp-tax-filing@2026.10.1
-  recipe: jp-tax-filing.shouhizei-general
+  overlay: example-sales-tax@2026.10.1   # 説明用のパッケージ
+  recipe: example-sales-tax.summary
   bindings: 5
-  params: {from: 2026-01-01, to: 2026-12-31, scope_confirmed: true}
+  params: {from: 2026-01-01, to: 2026-12-31}
 figures:
-  sales_10: 11000000
-  sales_tax_10: 1000000
-  deductible_tax: 620000
-  net_tax: 380000
+  taxable_sales: 11000000
+  output_tax: 1000000
+  input_tax: 620000
   payable: 380000
   # …
 ---
@@ -1700,7 +1658,7 @@ figures:
 
 ```text
 config/overlays/
-├── overlay.yaml        # id: book / extends: jp-tax-classification@2026.10.1
+├── overlay.yaml        # id: book / extends: journal-balance@2026.10.1
 ├── fields.yaml         # 任意のフィールド型・候補値
 ├── functions.yaml      # 任意: 共有する式
 ├── rules/*.yaml        # 追加のチェック（公開ルールと同じ id なら上書き）

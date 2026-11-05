@@ -38,9 +38,11 @@ Key facts for agents:
   local `iris` workflow is offline; the AI service may need a connection.
   An IrisBooks account adds sync, the web
   app, collaboration, period seals, and the server-side correction/deletion
-  history (訂正・削除の履歴). IrisBooks holds no certification (no JIIMA 認証)
-  and makes no 優良電子帳簿 claim: describe the features, and leave whether a
-  book qualifies to the user and their 税理士.
+  history. IrisBooks holds no third-party certification and makes no claim
+  that a book meets any jurisdiction's electronic-bookkeeping standard:
+  describe the features, and leave whether a book qualifies to the user and
+  their accountant. Regional rules are documented by the overlays
+  (`/docs/en/overlays/`), not the manual.
 - Working inside a book folder? Read `AGENTS.md` at the book root first —
   it is the working contract for AI assistants. Read and preserve decisions
   and questions in book notes so another session or assistant can continue.

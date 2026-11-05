@@ -21,7 +21,7 @@ account; optional cloud sync adds web access and collaboration.
   who keep their own books. Start with the CLI +
   your own AI ([Bookkeeping with the CLI and your own LLM](cli-and-llm.md)),
   add the web app if you use the cloud.
-- **Accountants / 税理士** — firms managing many client books. The
+- **Accountants** — firms managing many client books. The
   [file workflow with your own AI](cli-and-llm.md) is for you too. Use a
   separate assistant work folder/session for each client; the
   [web app](web-app.md) supports viewing and review.
@@ -42,9 +42,9 @@ account; optional cloud sync adds web access and collaboration.
    the sender allowlist, and the quarantine.
 7. [Your AI on the go (remote connector)](remote-connector.md) — figures,
    journal reads, and optional receipt capture from your phone (cloud).
-8. [Japan tax & compliance](japan-tax-and-compliance.md) — correction
-   history and search, consumption tax (消費税), fixed assets & depreciation,
-   year-end close.
+8. [Records, history and year-end](records-and-year-end.md) — correction
+   history and search, returns and regional rules, year-end close.
+   Regional rules themselves are documented by the [overlays](https://irisbooks.io/docs/en/overlays/).
 9. [CLI command reference](cli-reference.md) — every command and flag.
 10. [Book file-format reference](book-format-reference.md) — the on-disk
     structure of a book.

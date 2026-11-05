@@ -228,4 +228,5 @@ durable correction/deletion history kept on the server. See
 - Do the file-first workflow → [Bookkeeping with the CLI and your own LLM](cli-and-llm.md)
 - Review and post on screen → [Your books on this computer](iris-view.md)
 - Learn the GUI → [Using the web app](web-app.md)
-- File taxes in Japan → [Japan tax & compliance](japan-tax-and-compliance.md)
+- Close the year and prepare returns → [Records, history and year-end](records-and-year-end.md)
+- Your region's tax rules → [Overlays](https://irisbooks.io/docs/en/overlays/)

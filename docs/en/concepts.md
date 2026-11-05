@@ -45,14 +45,14 @@ payee: EXAMPLE.COM
 status: draft
 lines:
   - account: 資産:売掛金
-    debit: 89790
-  - account: 資産:事業主貸
-    debit: 10210
+    debit: 97000
+  - account: 費用:支払手数料
+    debit: 3000
   - account: 収益:売上
     credit: 100000
 ---
 
-May invoice for the EXAMPLE.COM redesign engagement.
+May invoice for the EXAMPLE.COM redesign engagement, net of the platform's 3% fee.
 ```
 
 The text below the `---` is free-form: write *why* the transaction happened.
@@ -117,43 +117,37 @@ Anything under `raw/` — bank CSVs, receipt photos, PDF invoices — is the
 - From a document, see which journals cite it (`iris references <path>`, or the
   "Cited by" panel in the web app's Raw documents browser).
 
-With it, you, your 税理士 or an auditor can go from any entry to its evidence
-and back. For the book's other record-keeping features (correction history,
-search), see [Japan tax & compliance](japan-tax-and-compliance.md).
+With it, you, your accountant or an auditor can go from any entry to its
+evidence and back. For the book's other record-keeping features (correction
+history, search), see [Records, history and year-end](records-and-year-end.md).
 
 ## Region rules — the overlay
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
 law. Reusable accounting functions live in **Overlays**: versioned rules and
 computations (**recipes**) written in YAML and CEL. Each function is selected
-independently. Japanese tax classification, tax amount proposals, filing aids,
-small-asset deduction checks and declining-balance calculations are separate
-Overlays. The public repository holds their sources, guides and examples.
+independently: common functions such as journal balancing, and each region's
+tax and depreciation functions. The public repository holds their sources,
+guides and examples, and the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe each region's
+packages and what they leave to you.
 
-Your book pins published versions in `config/book.yaml` — a Japanese book, for
-example:
+Your book pins published versions in `config/book.yaml`, for example:
 
 ```yaml
-region: JP
 overlays:
   - journal-balance@2026.10.1
   - inventory-disposal@2026.10.1
-  - jp-tax-classification@2026.10.1
-  - jp-tax-amount@2026.10.1
-  - jp-tax-filing@2026.10.1
-  - jp-small-asset-deduction@2026.10.1
-  - jp-declining-balance@2026.10.1
 ```
 
-This is the new Japanese business preset's candidate selection; signed publication
-is pending. Each selected function needs an exact verified copy inside the Book.
+A region's packages are added to the same list. Each selected function needs
+an exact verified copy inside the Book.
 You and your AI can change the selection, create Book-specific rules and
 contribute improvements to the community.
 
 - **Rules** check your entries through local `iris validate`. The cloud stores
   definitions and results without executing Overlay policy.
-- **Recipes** compute region figures — a 定率法 schedule, the 消費税 return —
-  and record the result together with its source (the overlay version and the
+- **Recipes** compute region figures — a depreciation schedule, the figures a
+  tax return needs — and record the result together with its source (the overlay version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
   recipe, so a figure that no longer follows from its inputs is caught.
 - **The pin never moves on its own.** A new version can change what is checked
@@ -200,7 +194,7 @@ A book covers one fiscal year, recorded as `fiscal_year` in
 [`iris yearend`](cli-reference.md#iris-yearend) starts the next year's book
 as a **copy**: a new folder beside this one with your settings, chart of
 accounts, rules, guides and notes, the fixed assets you still hold, and an
-opening-balances entry (期首残高) computed from this year's closing
+opening-balances entry computed from this year's closing
 balances. Entries you already recorded in the new year move across. If the
 book is in the cloud, the new book gets its cloud copy in the same step,
 with the same people's access and your inbound email address.
@@ -226,13 +220,12 @@ Changes in the locked scope made after reopening are permanently flagged as
 **post-seal edits** in the server's audit trail. Changes to `raw/` and `notes/`
 have ordinary history, without that flag. When you're done, re-seal; the new
 seal supersedes the old one in the audit chain. Sealing never removes files.
-See [Year-end close](japan-tax-and-compliance.md#year-end-close).
+See [Year-end close](records-and-year-end.md#year-end-close).
 
 ## The durable history (correction/deletion record)
 
 With cloud sync, the server keeps an append-only log of every change to every
-file — who changed it, when, and what it was before. In Japanese this is the
-**訂正・削除の履歴** ("record of corrections and deletions"). View it with
+file — who changed it, when, and what it was before. View it with
 `iris api history` or in the web app's **Activity** timeline and per-journal
 **History** panel, and export the
 book's — its fiscal year's — record as a file with

@@ -76,11 +76,11 @@ iris init [flags] <path>
 | Flag | Meaning |
 | --- | --- |
 | `--name` | Book display name |
-| `--region` | Region code: JP or US. Required; there is no default |
+| `--region` | Region code (ISO 3166-1 alpha-2); `iris init --help` lists the supported ones. Required; there is no default |
 | `--preset` | Setup intent: `personal` (household chart) or `business` (default). Legal entity and tax status remain independent |
 | `--language` | Language (ISO 639-1) |
-| `--chart` | Starter-chart variant, where the region offers several — JP: general / it / food (default general). A region without a chart of its own gets a neutral starter chart |
-| `--currency` | Currency (ISO 4217); defaults to the region's (JP: JPY, US: USD) |
+| `--chart` | Starter-chart variant, where the region offers several (`iris init --help` lists them). A region without a chart of its own gets a neutral starter chart |
+| `--currency` | Currency (ISO 4217); defaults to the region's |
 | `--fiscal-start-month` | Fiscal-year start month 1–12 (default 1, January — pass `4` for a year that starts in April) |
 | `--fiscal-year` | The fiscal year the book covers (YYYY; default: the one holding today) — e.g. last year's, when you're catching up on its filing |
 | `--sample` | Seed ~40 demo journals for the business chart; unavailable with personal setup |
@@ -99,7 +99,7 @@ links from the shared context resolver. Older sources without task metadata
 show that discovery limit; the output never invents a task from a newer release.
 
 For a fresh cloud book, `iris api books new --preset personal --name "Household"
---fy 2026 --region JP` uses the same choice. `--chart general|it|food` and `--language en|ja`
+--fy 2026 --region JP` uses the same choice. `--chart` and `--language`
 are available for fresh creation. When connecting an existing local book, its
 actual config/chart/policy are retained and preset overrides are refused.
 Cloud retries retain their original server-owned seed bytes and hashes;
@@ -174,7 +174,7 @@ standalone copy, in a new folder beside this one (`acme-2025` →
 - the guides (`README.md`, `AGENTS.md`, `CLAUDE.md`) and the policy notes
   (`decisions.md`, `workflow.md`, `todos.md`, `open-questions.md`);
 - the fixed assets still held when the new year starts;
-- an opening-balances journal (期首残高) at
+- an opening-balances journal at
   `journals/<YYYY-MM>/0000-opening-balances.md`, dated the new year's first
   day and tagged `opening-balance`. Balance-sheet accounts carry forward at
   their closing balance (with quantities for currency, crypto and other
@@ -275,16 +275,16 @@ iris reopen <fiscal-year> [path]
 ### iris validate
 
 Validate a book's structure and entries: YAML, double-entry balance, account
-existence, date consistency, status values, and (JP taxable books) tax
-classification.
+existence, date consistency, status values, and the rules of the overlays the
+book selected.
 
 ```bash
 iris validate [--v] [--json] [--apply] [path]
 ```
 
-`--apply` records the values the region overlay derives for you — reported as
-hints, such as the consumption tax inside a line on a 税抜経理 book — into the
-files, then validates again.
+`--apply` records the values the selected overlays derive for you — reported as
+hints, such as a tax amount a package computes for a line — into the files,
+then validates again.
 
 Overlay checks share input, execution and output limits across the entire Book.
 If a limit is reached, `overlay.checks-incomplete` is an error and `--apply`
@@ -484,8 +484,8 @@ by your Book. Read a compact task index, then request only the relevant task:
 
 ```bash
 iris context [path]
-iris context --task jp-small-asset-deduction.equipment --record assets/2026/laptop.md [path]
-iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
+iris context --task journal-balance.journal --record journals/2026-10/purchase.md [path]
+iris context --task inventory-disposal.inventory --record journals/2026-10/sale.md [path]
 ```
 
 Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
@@ -756,9 +756,9 @@ web app is the formatted view for humans. A `--json` flag is still accepted
 as a no-op for compatibility.
 
 `report sum` groups posted journal lines by the keys you choose — `account`,
-`unit`, `payee`, `month`, or a dotted field like `tax.category` — and returns
-debit/credit/net totals plus a line count per group (e.g.
-`--by tax.category,tax.rate --year 2026` for consumption-tax figures). Lines
+`unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one an
+overlay or your book's layer defines) — and returns debit/credit/net totals plus
+a line count per group (e.g. `--by sales.channel,month --year 2026`). Lines
 missing a key form an explicit empty-keys group, so unclassified lines are
 visible rather than dropped. `--year` uses the fiscal year (begins-in
 convention); `--from/--to` take arbitrary inclusive dates.
@@ -766,7 +766,7 @@ convention); `--from/--to` take arbitrary inclusive dates.
 **Default dates.** A date you leave out comes from the book's fiscal year
 (`fiscal_year` — a book is one year). Balances (`balance`, `tb`, `bs`,
 `ledger`) are as of today, where today is the date where the book is kept
-(Japan time for a JP book), or as of the year's last day once that year is
+(the time zone of the book's region), or as of the year's last day once that year is
 over; `pl` and `sum` run from the year's first day to the same date. So last
 year's book, opened in February to file its return, shows last year in full.
 Give only `--to` and the range starts on
@@ -856,6 +856,11 @@ Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
 iris export assets [--year YYYY] [--out FILE] [path]
 ```
+
+The assets CSV adds one column per extra field your asset files carry, such as a
+field an overlay defines, named by its dotted path (for example `location.room`)
+and sorted after the standard columns. Assets without that field leave the cell
+empty.
 
 ### iris hash
 
@@ -1176,7 +1181,7 @@ pending changes across the whole book.
 
 Discover the selected overlay with `describe_overlay`. Both modes expose
 `list_recipes` and `run_recipe`. Listing returns canonical CLI recipe IDs and
-parameter schemas. Run `run_recipe(recipe="jp-declining-balance.teiritsu",
+parameter schemas. Run `run_recipe(recipe=ID_FROM_LIST,
 params={...})` to preview. Add `apply=true, out="assets/2026/equipment.md"` to
 record a reviewed schedule, or a path under `filings/` for filing figures.
 Supplying `out` alone still previews. Keep write controls outside `params`.
@@ -1556,7 +1561,7 @@ rename rather than a delete plus a create.
 - `--all` — every event. A book is one fiscal year, so this is the year's
   whole record, corrections made after it was closed included.
 - `--from` / `--to` — changes made between two dates, in the book's time
-  zone (Japan time for a JP book).
+  zone (the time zone of the book's region).
 
 With `--from`, `--to` or `--all` it returns every matching event;
 `--limit` still caps it when you give one. To hand the record over as a file,
@@ -1621,12 +1626,22 @@ iris docs cli-reference --section iris-sync     # one section + its subsections
 iris docs --json cli-reference --section iris-sync
 ```
 
+The manual is region-agnostic. Regional rules are documented by the overlay
+catalog this executable embeds, listed after the chapters as a separate group:
+`region/<cc>` is a region guide (which of the region's packages to select and
+what they leave to you), and `overlay/<id>` is a package's README and
+English guides. Each such topic starts by saying it is an overlay topic and names
+the exact package version. A Book runs the versions it pins, which may differ;
+read those with `iris overlay guide`.
+
 Flags may precede or follow the topic. A topic returns its section outline by
 default; `--list` explicitly requests the same outline. `--section` reads one
 section and its children; `--full` explicitly reads the chapter. These modes
 cannot be combined. Topic/section lists include word counts. JSON includes
 `version`, `source: "bundled"`, `language: "en"`, `words`, and `topics`,
-`sections` or `markdown` according to the request. Unknown selectors
+`sections` or `markdown` according to the request. Each topic has `kind`
+(`manual` or `overlay`); overlay topics add `region` and, for a package, its
+`pin`. Unknown selectors
 exit 2 with discovery guidance; they never fall back to the full manual.
 Use `iris <command> --help` for invocation details and current online docs for
 changing cloud access/authorization. Docs are reference, not permission to act.

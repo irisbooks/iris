@@ -61,11 +61,6 @@ region: JP                      # ISO 3166-1; locale and region compatibility
 overlays:
   - journal-balance@2026.10.1
   - inventory-disposal@2026.10.1
-  - jp-tax-classification@2026.10.1
-  - jp-tax-amount@2026.10.1
-  - jp-tax-filing@2026.10.1
-  - jp-small-asset-deduction@2026.10.1
-  - jp-declining-balance@2026.10.1
 language: ja                    # ISO 639-1; chart language follows this
 currency: JPY                   # ISO 4217
 scale: 0                        # minor-unit exponent — IMMUTABLE (JPY 0, USD 2, BHD 3)
@@ -81,11 +76,8 @@ units:                          # non-currency units (forex, crypto, metals, sha
     scale: 8
     name: "Bitcoin"
 
-consumption_tax:                # JP only — see Japan tax page
-  status: taxable
-  accounting: tax_included
-  method: general
-  business_class: 5
+# Settings blocks an overlay defines sit at the top level too;
+# `iris overlay list --json` shows their fields.
 ```
 
 `units` is optional and starts empty in new books. Known currencies use
@@ -107,8 +99,8 @@ The BTC entry above is an example, not a preinstalled default.
 
 `scale` is the number of fractional digits the currency uses, and it is
 **immutable** — JPY is `0` (whole yen, no decimals), USD/EUR are `2`, the Gulf
-dinars are `3`. Region-specific blocks like `consumption_tax` ride along
-opaquely: the universal engine ignores them, and the JP overlay reads them.
+dinars are `3`. Settings blocks an overlay defines ride along opaquely: the
+universal engine ignores them, and the selected packages read them.
 
 `fiscal_year` is the fiscal year the book covers, named by the year it starts
 in. `iris init` sets it to the year holding today (`--fiscal-year` picks
@@ -140,8 +132,8 @@ missing definition or enables a package by itself.
 
 Bindings v4 excludes journal workflow status and approval/closure metadata,
 including nested record data. Definitions that read `journal.status` or target
-lifecycle fields fail with an explicit compatibility error. Domain facts such
-as `consumption_tax.status` remain available. The host enforces draft-only
+lifecycle fields fail with an explicit compatibility error. Domain facts, such
+as an overlay's own settings, remain available. The host enforces draft-only
 completion, posting permissions, seals and status-aware report inclusion.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
@@ -216,14 +208,12 @@ multiply accounting rows.
 ## Pin several published overlays
 
 `overlays` selects an **unordered set of exact versions**. Use it instead of
-`overlay`; the two forms cannot appear together. For example, a published
-specialist package could accompany tax classification:
+`overlay`; the two forms cannot appear together. For example:
 
 ```yaml
-# Illustrative: jp-rsu must be published before this configuration can load.
 overlays:
-  - jp-tax-classification@2026.10.1
-  - jp-rsu@2026.10.1
+  - journal-balance@2026.10.1
+  - inventory-disposal@2026.10.1
 ```
 
 Every member must have an exact verified Book copy, installed explicitly with
@@ -233,41 +223,32 @@ and conflicting published rule IDs or field definitions are errors. Pin order
 does not determine precedence. Each package keeps its own CEL helpers; a recipe
 records the exact version of the package that owns it.
 
-A package can declare `region: JP` and exact supported dependency versions in
-`overlay.yaml`, for example `requires_overlays: {jp-tax-classification: ['2026.10.1']}`. Packages
+A package can declare a `region` and exact supported dependency versions in
+`overlay.yaml`, for example `requires_overlays: {example-base: ['2026.10.1']}`. Packages
 using the new selectors or parameter contract declare `requires_bindings: 2`.
 `iris overlay upgrade --dry-run` checks the candidate set, golden tests,
 book-layer compatibility and settings before showing the proposed pins.
-`--to jp-rsu@<version>` changes that member; without `--to`, upgrade checks
+`--to <id>@<version>` changes that member; without `--to`, upgrade checks
 the latest release of every pinned member together.
 
-The initial function catalog contains seven independently selectable candidates,
-all version `2026.10.1` and requiring bindings 5:
-
-| Catalog category | Individual Overlay IDs |
-| --- | --- |
-| Common completion | `journal-balance`, `inventory-disposal` |
-| Japanese consumption tax | `jp-tax-classification`, `jp-tax-amount`, `jp-tax-filing` |
-| Japanese fixed assets | `jp-small-asset-deduction`, `jp-declining-balance` |
-
+The function catalog holds the common completion functions, `journal-balance`
+and `inventory-disposal`, and each region's functions, which the
+[overlay docs](https://irisbooks.io/docs/en/overlays/) list with their versions and dependencies.
 Categories organize discovery/distribution; they are not activation switches.
-New Japanese business presets copy/select all seven functions. Personal and
-non-JP business setup select the two common functions. Existing Books keep their
+Business setup selects the common functions and the region's available
+packages; personal setup selects the common functions. Existing Books keep their
 actual function pins, including off. Retired combined packages are removed
 without a production migration. Signed publication remains pending.
 
-`jp-tax-amount` and `jp-tax-filing` each require an explicitly selected
-`jp-tax-classification@2026.10.1`; neither requires the other. Classification owns
-the tax-setting schemas and task context. Keep classification enabled while
-removing amount proposals or filing calculations independently. Balancing and
-inventory disposal are independent, as are deduction checks and declining balance.
-A missing dependency refuses selection without an implicit fetch or cascade.
+A package may require other packages at exact versions. Select every
+dependency explicitly: a missing one refuses selection without an implicit
+fetch or cascade. Balancing and inventory disposal are independent.
 
 Each function carries its necessary checks, fields, task, guide and executable
 examples. Native structural/double-entry checks stay active. Recipe invocation
-is explicit. Tax status, elections and eligibility remain confirmed facts;
-pooled depreciation and partial-year declining balance remain unsupported.
-The combined `default`/`jp` and superseded aggregate candidates are retired.
+is explicit. Tax status, elections and eligibility remain confirmed facts; each
+package's docs state what it does not support. Earlier combined aggregate
+candidates are retired.
 
 The binary carries a curated offline installation catalog. Other versions use
 signed GitHub downloads followed by explicit installation. Runtime and historical
@@ -343,7 +324,7 @@ package ID, then `rules`, `derivations` or `recipes`, then the item ID:
 ```yaml
 # Illustrative settings for a package defining these items.
 overlay_settings:
-  jp-sales-demo:
+  example-sales:
     rules:
       sales.memo-required:
         params:
@@ -389,16 +370,16 @@ schema_version: 1
 date: 2026-05-04
 payee: EXAMPLE.COM
 status: draft                 # draft | posted
-tags: [sales, withholding]
+tags: [sales, platform-fee]
 attachments:
   - path: raw/2026-05-example-com-invoice.pdf
     type: invoice               # invoice | receipt | bank_statement (a causal source)
     locator: "page=1"           # optional fragment pointer ("L47", "p3")
 lines:
   - account: 資産:売掛金
-    debit: 89790
-  - account: 資産:事業主貸
-    debit: 10210
+    debit: 97000
+  - account: 費用:支払手数料
+    debit: 3000
   - account: 収益:売上
     credit: 100000
 ---
@@ -416,7 +397,7 @@ Why this transaction happened (not a restatement of the lines).
 | `lines` | yes | 2–999; each has `account` + exactly one of `debit`/`credit` |
 | `lines[].memo` | no | Per-line note |
 | `lines[].quantity` + `unit` | no | Physical quantity for a unit from `book.yaml` `units` (always positive; direction comes from debit/credit) |
-| `lines[].tax` | no | JP consumption tax — see below |
+| `lines[].<field>` | no | Fields a selected overlay defines on a line — see below |
 | body | no | Free Markdown after the closing `---` |
 
 **Line count.** A journal takes at most **999 lines**, and you get a warning
@@ -434,18 +415,10 @@ $12.00, not $0.12). Internally everything is integer minor units.
 matches an alias); the date matches the filename; status is valid; YAML parses.
 Reports include **only `posted`** entries.
 
-**Per-line `tax` (JP 課税事業者 only):**
-
-```yaml
-tax:
-  category: taxable_purchase   # taxable_sale | taxable_purchase | exempt_sale |
-                               # exempt_purchase | export_sale | out_of_scope | securities_sale
-  rate: "10"                   # 10 | 8r | 8o | 5 | 3 | 0
-  invoice: true                # holds a qualifying invoice (purchase side)
-  business_class: 5            # 簡易課税 事業区分 1..6 (overrides book default)
-```
-
-See [Japan tax & compliance](japan-tax-and-compliance.md#consumption-tax-消費税).
+**Overlay fields on a line.** A selected overlay can define fields on journal
+lines, such as a tax classification block. iris keeps them on the file, and the
+package's rules check them. `iris overlay list --json` lists each field with its
+accepted values; the package's page under [Overlays](https://irisbooks.io/docs/en/overlays/) explains them.
 
 ## Defaults and inferred values
 
@@ -809,17 +782,12 @@ The SQL fixture checks that correcting the August price to JPY 1.6 leaves the
 old JPY 1,046,000 report intact until a new generation is built. The refreshed
 value is JPY 1,054,000, with the same quantities and acquisition costs.
 
-**Tax/regime references, checked 2026-10-24:** the fund manager's
-[NAV explanation](https://direct.smd-am.co.jp/learn/guide/price/) demonstrates a
-per-10,000 quotation. [NTA No.1464](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1464.htm)
-(law reference date 2026-04-01) describes acquisition costs and the method for
-repeated purchases; a generic FIFO or moving-average label is not a Japanese
-tax determination. For an actual NISA account, confirm the broker's account
-classification, the [FSA NISA rules](https://www.fsa.go.jp/policy/nisa2/know/index.html)
-and [current eligible-product references](https://www.fsa.go.jp/policy/nisa2/products/).
-A unit symbol, a note saying NISA or a successful validation does not establish
-eligibility. Tax-return mapping and automatic product/regime classification
-remain outside this management example.
+**Tax treatment.** How a region taxes fund units — the acquisition-cost method
+for repeated purchases, tax-advantaged accounts — is regional; a generic FIFO
+or moving-average label is not a tax determination, and a unit symbol, a note
+or a successful validation does not establish an account's tax status. See
+your region's guide under [Overlays](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
+automatic product/regime classification remain outside this management example.
 
 ## Balance assertions
 
@@ -896,8 +864,9 @@ include raw evidence. Cloud close checks every accepted native view separately. 
 Use `iris allocation` to split a documented gross expense charge by an explicit
 business fraction. It returns exact amounts without changing files or posting
 entries. Confirm the basis and treatment first; an account name cannot establish
-a business percentage. The [NTA's necessary-expense guidance](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
-requires records distinguishing the business portion of household-related costs.
+a business percentage. Tax law may require records that distinguish the
+business portion of household-related costs; your region's guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/) says where.
 The 1/4 fraction below is a synthetic owner-reviewed example, not a recommended rate.
 
 Save this request as `raw/allocation-jan.json`:
@@ -1335,9 +1304,8 @@ for April, and a whole charge spanning March 15–April 15 under either basis.
 It does not select a latest ratio or invent proration. Obtain separately
 evidenced charge amounts for each period before calculating; the example does
 not establish a deductible percentage, legal expense allocation or tax-return
-mapping. For Japanese income-tax evidence requirements, see
-[NTA No. 2210](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
-(law as of April 1, 2026; checked October 24, 2026). Reversals must retain the original rounded shares. Correcting an old
+mapping. For your region's evidence requirements, see its guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. Correcting an old
 source is a separate reviewed correction with its original identity retained.
 
 The checked complete example retains all original January files plus April
@@ -1557,8 +1525,8 @@ accounts:
   - path: 収益:売上
     type: income
     aliases: [sales]
-  - path: 資産:事業主貸
-    type: asset
+  - path: 資本:引出金
+    type: equity
     owner: true               # the owner's own money — left out of Net Worth
   - path: 資本:元入金
     type: equity
@@ -1569,12 +1537,11 @@ The account's normal side is derived from its `type`. `aliases` let journals
 reference an account by another name or language. Add accounts here before
 referencing them in a journal.
 
-`owner: true` marks the owner's personal draw and contribution accounts — for
-a Japanese sole proprietor, 事業主貸 and 事業主借. They keep their type (so the
-balance sheet lays out the way the 青色申告決算書 expects), but they hold the
+`owner: true` marks the owner's personal draw and contribution accounts. They
+keep their type, so the balance sheet lays out as usual, but they hold the
 owner's own money moving in and out of the business, not something the
 business owns or owes, so [Net Worth](web-app.md#net-worth) leaves them out.
-The Japanese starter charts set it.
+Starter charts that include such accounts set it.
 
 `retained_earnings: true` marks the equity account
 [`iris yearend`](cli-reference.md#iris-yearend) folds the year's net income
@@ -1607,11 +1574,11 @@ schedule:                          # optional recorded table — see below
   - period: 2028-03
     amount: 187500
 schedule_source:                   # present when an overlay recipe wrote the table — see below
-  overlay: jp-declining-balance@2026.10.1
-  recipe: jp-declining-balance.teiritsu
+  overlay: example-declining@2026.10.1   # illustrative package
+  recipe: example-declining.schedule
   bindings: 5
   primitives: {declining_table: 2, flat_table: 2}
-  params: {full_year_confirmed: true, cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
+  params: {cost: 480000, life: 4, rate: 0.500, start: 2027-03}
 disposal:                          # optional, until disposed
   date: 2029-05-10
   proceeds: 50000
@@ -1638,9 +1605,9 @@ positive `useful_life_months`.
 For straight-line assets you can leave `schedule` out: iris computes the charges
 from `useful_life_months`. An expensed asset must omit `schedule` and has one
 charge for the whole cost in its acquisition month, with no useful life.
-For anything else — Japan's
-定率法 with its switch to 改定償却率, US MACRS with its straight-line
-crossover — the table is recorded on the file (`method: declining_balance`
+For anything else — a
+declining-balance method that switches rate or method partway, for
+example — the table is recorded on the file (`method: declining_balance`
 requires one), and iris uses it verbatim.
 
 Each row is a `period` (`YYYY-MM`) and an `amount`. Annual books write one row
@@ -1665,9 +1632,9 @@ tool's `scale` to the destination Book's scale; its default is 0. For example,
 12,345 minor units with `scale: 2` becomes YAML `amount: 123.45`, which parses
 back to the same 12,345 units. The result reports the scale used.
 
-Your AI assistant builds the table for you. When the book's region overlay
-has a **recipe** for the method — Japan's 定率法 is `jp-declining-balance.teiritsu` — it runs
-that with the published rates as inputs and the recipe composes the table and
+Your AI assistant builds the table for you. When a selected overlay has a
+**recipe** for the method (`list_recipes` shows it), it runs that with the
+published rates as inputs and the recipe composes the table and
 writes it, with its provenance, onto the file (`iris overlay recipe`, or the
 matching MCP tool). For a method no recipe covers it composes the arithmetic
 from the calculator tools (see [CLI and your AI](cli-and-llm.md)). Once
@@ -1679,19 +1646,19 @@ rows add up to `acquisition_cost` − `salvage_value` (on a disposed asset, no
 more than that — see [Disposing of an asset](#disposing-of-an-asset)). From the rows alone it
 cannot check that a switch landed in the right year — that is what
 `schedule_source` is for (next section). On a hand-composed table, keep the
-rates you used on the file (any extra keys ride along untouched) so your 税理士
-can check them against the published table.
+rates you used on the file (any extra keys ride along untouched) so your
+accountant can check them against the published table.
 
 ### `schedule_source:` — where the table came from, replayed
 
 When a recipe wrote the table, it also recorded its provenance: the overlay
-version (`jp-declining-balance@2026.10.1`, or `book:<hash>` for a recipe from your own
+version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
 `config/overlays/`), the recipe, the engine versions it ran under, and the
 inputs you gave — the rates from the published table, the useful life, the
 first row's month. `iris validate` **replays** the recipe with those inputs and
 refuses the file if the recorded rows differ, so a switch a year late no
 longer passes just because the total is right. The inputs stay on the file for
-your 税理士 to check against the published table. A table without
+your accountant to check against the published table. A table without
 `schedule_source` is checked for shape only. Replay uses the exact recorded
 version retained inside the Book, even when it differs from the current
 selection. Embedded bodies and the download cache never substitute for a missing
@@ -1713,42 +1680,33 @@ gain or a loss.
 A computed straight-line schedule stops at the disposal month by itself. A
 recorded table is never rewritten for you: delete the rows after the disposal
 month, and set the disposal-period row to the charge for the part of that year
-the asset was held (in Japan, 月割). The table may then add up to less than
+the asset was held. The table may then add up to less than
 `acquisition_cost` − `salvage_value`, never more. If a recipe wrote the table,
 `iris validate` still replays the rows before the disposal month; the
 disposal-period row is yours.
 
-Japan's three-year pooled depreciation (`toku_rei: ikkatsu_3yr`) and pool
-disposal are unsupported. The current `jp-small-asset-deduction` package rejects
-that regime with `asset.ikkatsu-unsupported`. An ordinary 36-month straight-line
-schedule does not represent the pooled annual deduction. Keep the evidence and
-record the unresolved treatment in `notes/open-questions.md` for review; omitting
-`disposal:` does not make it a supported workflow.
-
 ## Filings — `filings/<recipe>.md`
 
 The figures a return is filed from, as a recorded file. A figures recipe of
-the region overlay (for Japan, `jp-tax-filing.shouhizei-general` and
-`jp-tax-filing.shouhizei-simplified` for the 消費税 return) sums the posted journals and
-combines them the way the return needs; `iris overlay recipe … --apply --out
-filings/jp-tax-filing.shouhizei-general.md` records the result with the same
-provenance as a schedule:
+a selected overlay sums the posted journals and combines them the way the
+return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
+records the result with the same provenance as a schedule. An illustrative
+filing:
 
 ```yaml
 ---
 schema_version: 1
-filing: jp-tax-filing.shouhizei-general
+filing: example-sales-tax.summary
 period: {from: 2026-01-01, to: 2026-12-31}
 source:
-  overlay: jp-tax-filing@2026.10.1
-  recipe: jp-tax-filing.shouhizei-general
+  overlay: example-sales-tax@2026.10.1   # illustrative package
+  recipe: example-sales-tax.summary
   bindings: 5
-  params: {from: 2026-01-01, to: 2026-12-31, scope_confirmed: true}
+  params: {from: 2026-01-01, to: 2026-12-31}
 figures:
-  sales_10: 11000000
-  sales_tax_10: 1000000
-  deductible_tax: 620000
-  net_tax: 380000
+  taxable_sales: 11000000
+  output_tax: 1000000
+  input_tax: 620000
   payable: 380000
   # …
 ---
@@ -1778,7 +1736,7 @@ A book may add its own layer on top:
 
 ```text
 config/overlays/
-├── overlay.yaml        # id: book / extends: jp-tax-classification@2026.10.1
+├── overlay.yaml        # id: book / extends: journal-balance@2026.10.1
 ├── fields.yaml         # optional field types and choices
 ├── functions.yaml      # optional shared expressions
 ├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)

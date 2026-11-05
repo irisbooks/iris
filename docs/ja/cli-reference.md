@@ -74,11 +74,11 @@ iris init [flags] <path>
 | フラグ | 意味 |
 | --- | --- |
 | `--name` | 帳簿の表示名 |
-| `--region` | 地域コード（JP または US）。必須で、既定値はありません |
+| `--region` | 地域コード（ISO 3166-1 alpha-2）。対応する地域は `iris init --help` に表示されます。必須で、既定値はありません |
 | `--preset` | 用途: `personal`（家計の勘定科目）/ `business`（事業用。既定）。法人・個人事業の区分や税務上の取扱いは別に設定 |
 | `--language` | 言語（ISO 639-1） |
-| `--chart` | 勘定科目テンプレートの種類（地域に複数ある場合）— 日本: general / it / food（既定 general）。専用の勘定科目表が無い地域では、特定の国に依存しない最小構成の勘定科目表になります |
-| `--currency` | 通貨（ISO 4217）。省略時は地域の通貨（JP: JPY、US: USD） |
+| `--chart` | 勘定科目テンプレートの種類（地域に複数ある場合。`iris init --help` に表示されます）。専用の勘定科目表が無い地域では、特定の国に依存しない最小構成の勘定科目表になります |
+| `--currency` | 通貨（ISO 4217）。省略時は地域の通貨 |
 | `--fiscal-start-month` | 会計年度開始月 1〜12（既定は 1 月。4 月に始まる年度なら `4`） |
 | `--fiscal-year` | この帳簿が扱う会計年度（YYYY。既定は今日を含む年度）— 前年度の申告をこれから済ませる場合は前年度など |
 | `--sample` | 事業用の勘定科目に対応するデモ仕訳を約40件追加。personal では利用不可 |
@@ -96,7 +96,7 @@ iris init [flags] <path>
 新版のタスクを旧版のものとして表示しません。
 
 新しいクラウド帳簿にも、`iris api books new --preset personal --name "家計" --fy 2026 --region JP`
-で同じ設定を使えます。新規作成時は `--chart general|it|food` と `--language en|ja`
+で同じ設定を使えます。新規作成時は `--chart` と `--language`
 も指定できます。既存のローカル帳簿を接続する場合は、実際の設定・勘定科目・記帳方針を
 保持し、プリセットによる上書きを拒否します。クラウドで作成を再試行しても、最初に
 保存した初期ファイルとハッシュを使います。ローカル帳簿の接続では、サーバーが保持する
@@ -266,15 +266,15 @@ iris reopen <fiscal-year> [path]
 ### iris validate
 
 帳簿の構造とエントリを検証します。YAML、貸借一致、科目の存在、日付の整合、
-ステータスの値、（日本の課税事業者は）税区分。
+ステータスの値、帳簿で選択したオーバーレイのルール。
 
 ```bash
 iris validate [--v] [--json] [--apply] [path]
 ```
 
 `--v` は走査した全ファイルを表示、`--json` は問題と件数を出力しエラー時に 1 で終了。
-`--apply` は地域オーバーレイが導いた値（ヒントとして報告されるもの。たとえば税抜経理の
-帳簿で明細に含まれる消費税額）をファイルに記録してから、もう一度検証します。
+`--apply` は選択したオーバーレイが導いた値（ヒントとして報告されるもの。たとえば
+パッケージが明細ごとに計算する税額）をファイルに記録してから、もう一度検証します。
 
 Overlay の入力・計算量・出力の上限は帳簿全体で共有します。上限に達すると
 `overlay.checks-incomplete` エラーになり、`--apply` は先に得た提案も書き込みません。
@@ -470,8 +470,8 @@ iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
 
 ```bash
 iris context [path]
-iris context --task jp-small-asset-deduction.equipment --record assets/2026/laptop.md [path]
-iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
+iris context --task journal-balance.journal --record journals/2026-10/purchase.md [path]
+iris context --task inventory-disposal.inventory --record journals/2026-10/sale.md [path]
 ```
 
 出力は常にJSONです。`--json` も受け付けますが、出力は変わりません。繰り返し指定
@@ -733,16 +733,16 @@ AI はもともと JSON を読み、人間向けの整形表示は Web アプリ
 互換性のため `--json` フラグは受け付けます（no-op）。
 
 `report sum` は記帳済の仕訳明細を指定キー — `account`、`unit`、`payee`、
-`month`、または `tax.category` のようなドット記法のフィールド — でグループ化し、
-グループごとの借方・貸方・純額と明細数を返します（例: 消費税の集計は
-`--by tax.category,tax.rate --year 2026`）。キーを持たない明細は空キーの
+`month`、または `sales.channel` のようなドット記法の明細項目（オーバーレイや帳簿独自の
+レイヤーが定義するもの） — でグループ化し、グループごとの借方・貸方・純額と明細数を
+返します（例: `--by sales.channel,month --year 2026`）。キーを持たない明細は空キーの
 グループとして明示されるため、未分類の明細が黙って消えることはありません。
 `--year` は会計年度（開始年ベース）、`--from/--to` は任意の日付範囲（両端含む）です。
 
 **日付の既定値**。省略した日付は、帳簿の会計年度（`fiscal_year`。帳簿は1年に
 1冊）から補います。残高（`balance`・`tb`・`bs`・`ledger`）は今日時点、その年度が
-終わっていれば年度末時点で出します。「今日」は帳簿の地域での日付で、日本の帳簿
-なら日本時間です。`pl` と `sum` は、年度の初日から同じ日までを集計します。
+終わっていれば年度末時点で出します。「今日」は帳簿の地域のタイムゾーンでの
+日付です。`pl` と `sum` は、年度の初日から同じ日までを集計します。
 前年度の帳簿を年が明けてから申告のために開くと、前年度を通年で表示します。
 `--to` だけを指定すると、その日が属する会計年度の
 初日から集計します。`--from` だけなら今日までです。今日より後の日付の仕訳は、
@@ -827,6 +827,11 @@ iris references [--json] <path> [path]
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
 iris export assets [--year YYYY] [--out FILE] [path]
 ```
+
+資産の CSV には、資産ファイルにある追加の項目（オーバーレイが定義する項目など）が
+1 項目につき 1 列ずつ加わります。列名はドット区切りのパス
+（例: `location.room`）で、標準の列の後に名前順で並びます。その項目が
+ない資産のセルは空欄です。
 
 ### iris hash
 
@@ -1143,7 +1148,7 @@ complete_journal はプレビュー後、版を確認して下書きへ適用し
 
 選択中のオーバーレイは `describe_overlay` で確認します。両モードで `list_recipes` と
 `run_recipe` を使います。一覧は CLI と同じレシピ ID と入力形式を返します。
-`run_recipe(recipe="jp-declining-balance.teiritsu", params={...})` で結果を確認し、
+`run_recipe(recipe=一覧のID, params={...})` で結果を確認し、
 保存時は `apply=true, out="assets/2026/equipment.md"` を追加します。申告用の計算補助資料は
 `filings/` 内を指定します。`out` だけでは保存せず、これらの保存指定は `params` の外に置きます。
 親モードでは両ツールに `book` も指定します。償却の計算ツール、`check_update`、
@@ -1497,7 +1502,7 @@ history   [ { id, path, op, sha?, versionId?, sizeBytes,
 - `--all` — すべてのイベント。帳簿は1会計年度なので、これがその年度の記録の
   すべてで、締め後に行った訂正も含みます。
 - `--from` / `--to` — 2 つの日付の間に行われた変更。日付は帳簿のタイムゾーン
-  （日本の帳簿なら日本時間）で解釈します。
+  （帳簿の地域のタイムゾーン）で解釈します。
 
 `--from`、`--to`、`--all` のいずれかを付けると、該当するすべての
 イベントを返します（`--limit` を指定すればその件数で止まります）。税務署から
@@ -1561,11 +1566,21 @@ iris docs cli-reference --section iris-sync     # 指定した節とその下位
 iris docs --json cli-reference --section iris-sync
 ```
 
+マニュアルは地域に依存しない内容です。地域ごとのルールは、この実行ファイルに
+同梱されたオーバーレイのカタログが説明し、章の後に別のグループとして並びます。
+`region/<cc>` は地域ガイド（その地域のどのパッケージを選ぶか、パッケージに
+含まれない作業は何か）、`overlay/<id>` はパッケージの README と英語のガイドです。
+これらのトピックは冒頭でオーバーレイのトピックであることを示し、パッケージの
+正確な版を記載します。帳簿で使われるのはその帳簿が固定した版で、異なる場合が
+あります。その版は `iris overlay guide` で読めます。
+
 フラグはトピックの前後に置けます。トピックを指定すると、既定で節の一覧を返します。
 `--list` でも同じ一覧を明示的に指定できます。`--section` は指定した節と下位の節、
 `--full` は章の全文を読みます。これらの指定は併用できません。一覧には語数も含みます。
 JSON には `version`・`source: "bundled"`・`language: "en"`・`words` と、指定に応じて
-`topics`・`sections`・`markdown` が含まれます。存在しない指定は終了コード 2 で
+`topics`・`sections`・`markdown` が含まれます。各トピックには `kind`（`manual` または
+`overlay`）があり、オーバーレイのトピックには `region`、パッケージにはさらに `pin` が
+付きます。存在しない指定は終了コード 2 で
 確認方法を案内し、全マニュアルへ切り替えることはありません。
 実行方法は `iris <command> --help`、クラウドの利用条件や認証手順は現在の
 オンライン情報も確認してください。資料の参照は操作の許可にはなりません。

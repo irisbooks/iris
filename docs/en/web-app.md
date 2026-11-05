@@ -299,7 +299,7 @@ Once a book with the same name for the following year is in My Books, the
 screen links to it instead of showing the command.
 
 The same flow works from the CLI (`iris seal`, `iris reopen`) — see
-[Japan tax & compliance](japan-tax-and-compliance.md). Members who aren't
+[Year-end close](records-and-year-end.md#year-end-close). Members who aren't
 the owner see the same year list read-only.
 
 ## Settings — your settings and book settings
@@ -516,7 +516,7 @@ Use the web app to organize your review across clients:
   individual clients' AI sessions.
 - At year-end, close each client's fiscal year from **Year-end** (or the
   CLI) — see
-  [Japan tax & compliance](japan-tax-and-compliance.md).
+  [Year-end close](records-and-year-end.md#year-end-close).
 
 Cloud permissions are granted per book; a client may have several fiscal-year
 books. Keep that client's files together in their own workspace. The dashboard's
@@ -526,4 +526,4 @@ client books; use its book picker to choose the totals you want to see.
 to, at any role including owner, count only after you include them in its
 Settings tab.
 
-Next: [Japan tax & compliance](japan-tax-and-compliance.md).
+Next: [Records, history and year-end](records-and-year-end.md).

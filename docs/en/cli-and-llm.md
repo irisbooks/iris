@@ -86,10 +86,9 @@ optional packages. Define bank/cash as assets, opening equity as equity and the
 shown expense paths in each Book's chart. The examples below show their final
 posted form; create/review drafts and post only within that Book's policy and
 your authority. Tax and reimbursement evidence requirements still apply where
-relevant. [NTA No.2080](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2080.htm)
-also describes daily aggregation for white-return bookkeeping; per-receipt detail
-here is a working policy, not a universal legal requirement (law as of April 1,
-2026; checked October 24, 2026).
+relevant; per-receipt detail here is a working policy, not a universal legal
+requirement. What your region's law asks for is in its guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/).
 
 ### Keep the receipt and bank row attached to one business payment
 
@@ -566,8 +565,8 @@ iris validate
 ```
 
 This checks every file: YAML parses, debits equal credits, accounts exist in
-your chart, dates are consistent, statuses are valid, and (for Japanese
-taxable businesses) tax classifications are coherent. Fix any errors — usually
+your chart, dates are consistent, statuses are valid, and the rules of the
+overlays your book selected pass. Fix any errors — usually
 a missing account in the chart, or an unbalanced entry — and re-run. Your AI
 can do this loop for you.
 
@@ -666,13 +665,15 @@ iris asset depreciate --month 2026-05     # or that month's entries, if you clos
 ```
 
 `iris asset depreciate` writes proposed entries (`status: draft`) you review
-and post like any other. Details and the Japan-specific rules are in
-[Japan tax & compliance](japan-tax-and-compliance.md#fixed-assets-and-depreciation).
+and post like any other. The file format is in the
+[Book file-format reference](book-format-reference.md); a region's methods and
+rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
 
 ### Depreciation your AI can't get wrong
 
-Straight-line iris computes itself. Methods with a country-specific twist —
-Japan's 定率法, US MACRS — work differently: your AI looks up the rates and
+Straight-line iris computes itself. Methods whose rules a country sets — a
+declining-balance method that switches rate partway, for example — work
+differently: your AI looks up the rates and
 decides where the method switches, then hands the arithmetic to iris and records
 the finished table on the asset file under `schedule:`.
 
@@ -694,8 +695,8 @@ also requires `book`.
 The point is that your AI never multiplies a balance forward by hand — that's
 where arithmetic slips happen, and a slip that still adds up to the right total
 is one iris cannot detect. It composes exact tables instead. Better still, when
-the book's region overlay has a **recipe** for the method — Japan's 定率法 is
-`jp-declining-balance.teiritsu` — it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
+a selected overlay has a **recipe** for the method (`list_recipes` shows it),
+it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
 order and records where the rows came from, so `iris validate` can replay them
 and catch a switch that landed a year late. Composing by hand is the fallback
 for a method no recipe covers. See

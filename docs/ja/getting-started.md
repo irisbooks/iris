@@ -220,4 +220,5 @@ AI アシスタントの VM では `iris api login --device` を使い、自分�
 - ファイルファーストの作業 → [CLI と自分の LLM で記帳する](cli-and-llm.md)
 - 画面で確認して記帳する → [このパソコンで帳簿を開く](iris-view.md)
 - GUI を学ぶ → [Web アプリを使う](web-app.md)
-- 日本で申告する → [日本の税務・コンプライアンス](japan-tax-and-compliance.md)
+- 年度を締めて申告に備える → [記録の履歴と年度締め](records-and-year-end.md)
+- 地域ごとの税のルール → [オーバーレイ](https://irisbooks.io/docs/ja/overlays/)

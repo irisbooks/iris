@@ -98,10 +98,10 @@ install, update, post or change the user's setup.
   a user asks something history- or audit-shaped ("who changed this", "prove
   this wasn't edited"), the answer is the server history. Don't offer local
   git as a substitute: it can be rewritten, so it is not an independent record.
-- **No 優良電子帳簿 claim.** IrisBooks holds no certification (no JIIMA 認証)
-  and does not claim that a book kept in it meets the 優良電子帳簿
-  requirements. Describe the record-keeping features plainly; never say or
-  imply a book qualifies.
+- **No certification claim.** IrisBooks holds no third-party certification
+  and does not claim that a book kept in it meets any jurisdiction's
+  electronic-bookkeeping standard. Describe the record-keeping features
+  plainly; never say or imply a book qualifies.
 - **Overlays are community open-source rule and calculation packs.** Discover
   the selected book's actual recipes and run them rather than inventing rules
   or doing their calculations yourself. A book with no selected overlay gets
@@ -134,7 +134,7 @@ these hold product-wide:
   who keep their own books. Start with the CLI +
   your own AI ([Bookkeeping with the CLI and your own LLM](https://irisbooks.io/docs/en/cli-and-llm/)),
   add the web app if you use the cloud.
-- **Accountants / 税理士** — firms managing many client books. The
+- **Accountants** — firms managing many client books. The
   [file workflow with your own AI](https://irisbooks.io/docs/en/cli-and-llm/) is for you too. Use a
   separate assistant work folder/session for each client; the
   [web app](https://irisbooks.io/docs/en/web-app/) supports viewing and review.
@@ -155,9 +155,9 @@ these hold product-wide:
    the sender allowlist, and the quarantine.
 7. [Your AI on the go (remote connector)](https://irisbooks.io/docs/en/remote-connector/) — figures,
    journal reads, and optional receipt capture from your phone (cloud).
-8. [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/) — correction
-   history and search, consumption tax (消費税), fixed assets & depreciation,
-   year-end close.
+8. [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/) — correction
+   history and search, returns and regional rules, year-end close.
+   Regional rules themselves are documented by the [overlays](https://irisbooks.io/docs/en/overlays/).
 9. [CLI command reference](https://irisbooks.io/docs/en/cli-reference/) — every command and flag.
 10. [Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/) — the on-disk
     structure of a book.
@@ -420,7 +420,8 @@ durable correction/deletion history kept on the server. See
 - Do the file-first workflow → [Bookkeeping with the CLI and your own LLM](https://irisbooks.io/docs/en/cli-and-llm/)
 - Review and post on screen → [Your books on this computer](https://irisbooks.io/docs/en/iris-view/)
 - Learn the GUI → [Using the web app](https://irisbooks.io/docs/en/web-app/)
-- File taxes in Japan → [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/)
+- Close the year and prepare returns → [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/)
+- Your region's tax rules → [Overlays](https://irisbooks.io/docs/en/overlays/)
 
 # Core concepts
 
@@ -471,14 +472,14 @@ payee: EXAMPLE.COM
 status: draft
 lines:
   - account: 資産:売掛金
-    debit: 89790
-  - account: 資産:事業主貸
-    debit: 10210
+    debit: 97000
+  - account: 費用:支払手数料
+    debit: 3000
   - account: 収益:売上
     credit: 100000
 ---
 
-May invoice for the EXAMPLE.COM redesign engagement.
+May invoice for the EXAMPLE.COM redesign engagement, net of the platform's 3% fee.
 ```
 
 The text below the `---` is free-form: write *why* the transaction happened.
@@ -543,43 +544,37 @@ Anything under `raw/` — bank CSVs, receipt photos, PDF invoices — is the
 - From a document, see which journals cite it (`iris references <path>`, or the
   "Cited by" panel in the web app's Raw documents browser).
 
-With it, you, your 税理士 or an auditor can go from any entry to its evidence
-and back. For the book's other record-keeping features (correction history,
-search), see [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/).
+With it, you, your accountant or an auditor can go from any entry to its
+evidence and back. For the book's other record-keeping features (correction
+history, search), see [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/).
 
 ## Region rules — the overlay
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
 law. Reusable accounting functions live in **Overlays**: versioned rules and
 computations (**recipes**) written in YAML and CEL. Each function is selected
-independently. Japanese tax classification, tax amount proposals, filing aids,
-small-asset deduction checks and declining-balance calculations are separate
-Overlays. The public repository holds their sources, guides and examples.
+independently: common functions such as journal balancing, and each region's
+tax and depreciation functions. The public repository holds their sources,
+guides and examples, and the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe each region's
+packages and what they leave to you.
 
-Your book pins published versions in `config/book.yaml` — a Japanese book, for
-example:
+Your book pins published versions in `config/book.yaml`, for example:
 
 ```yaml
-region: JP
 overlays:
   - journal-balance@2026.10.1
   - inventory-disposal@2026.10.1
-  - jp-tax-classification@2026.10.1
-  - jp-tax-amount@2026.10.1
-  - jp-tax-filing@2026.10.1
-  - jp-small-asset-deduction@2026.10.1
-  - jp-declining-balance@2026.10.1
 ```
 
-This is the new Japanese business preset's candidate selection; signed publication
-is pending. Each selected function needs an exact verified copy inside the Book.
+A region's packages are added to the same list. Each selected function needs
+an exact verified copy inside the Book.
 You and your AI can change the selection, create Book-specific rules and
 contribute improvements to the community.
 
 - **Rules** check your entries through local `iris validate`. The cloud stores
   definitions and results without executing Overlay policy.
-- **Recipes** compute region figures — a 定率法 schedule, the 消費税 return —
-  and record the result together with its source (the overlay version and the
+- **Recipes** compute region figures — a depreciation schedule, the figures a
+  tax return needs — and record the result together with its source (the overlay version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
   recipe, so a figure that no longer follows from its inputs is caught.
 - **The pin never moves on its own.** A new version can change what is checked
@@ -626,7 +621,7 @@ A book covers one fiscal year, recorded as `fiscal_year` in
 [`iris yearend`](https://irisbooks.io/docs/en/cli-reference/#iris-yearend) starts the next year's book
 as a **copy**: a new folder beside this one with your settings, chart of
 accounts, rules, guides and notes, the fixed assets you still hold, and an
-opening-balances entry (期首残高) computed from this year's closing
+opening-balances entry computed from this year's closing
 balances. Entries you already recorded in the new year move across. If the
 book is in the cloud, the new book gets its cloud copy in the same step,
 with the same people's access and your inbound email address.
@@ -652,13 +647,12 @@ Changes in the locked scope made after reopening are permanently flagged as
 **post-seal edits** in the server's audit trail. Changes to `raw/` and `notes/`
 have ordinary history, without that flag. When you're done, re-seal; the new
 seal supersedes the old one in the audit chain. Sealing never removes files.
-See [Year-end close](https://irisbooks.io/docs/en/japan-tax-and-compliance/#year-end-close).
+See [Year-end close](https://irisbooks.io/docs/en/records-and-year-end/#year-end-close).
 
 ## The durable history (correction/deletion record)
 
 With cloud sync, the server keeps an append-only log of every change to every
-file — who changed it, when, and what it was before. In Japanese this is the
-**訂正・削除の履歴** ("record of corrections and deletions"). View it with
+file — who changed it, when, and what it was before. View it with
 `iris api history` or in the web app's **Activity** timeline and per-journal
 **History** panel, and export the
 book's — its fiscal year's — record as a file with
@@ -771,10 +765,9 @@ optional packages. Define bank/cash as assets, opening equity as equity and the
 shown expense paths in each Book's chart. The examples below show their final
 posted form; create/review drafts and post only within that Book's policy and
 your authority. Tax and reimbursement evidence requirements still apply where
-relevant. [NTA No.2080](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2080.htm)
-also describes daily aggregation for white-return bookkeeping; per-receipt detail
-here is a working policy, not a universal legal requirement (law as of April 1,
-2026; checked October 24, 2026).
+relevant; per-receipt detail here is a working policy, not a universal legal
+requirement. What your region's law asks for is in its guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/).
 
 ### Keep the receipt and bank row attached to one business payment
 
@@ -1258,8 +1251,8 @@ iris validate
 ```
 
 This checks every file: YAML parses, debits equal credits, accounts exist in
-your chart, dates are consistent, statuses are valid, and (for Japanese
-taxable businesses) tax classifications are coherent. Fix any errors — usually
+your chart, dates are consistent, statuses are valid, and the rules of the
+overlays your book selected pass. Fix any errors — usually
 a missing account in the chart, or an unbalanced entry — and re-run. Your AI
 can do this loop for you.
 
@@ -1358,13 +1351,15 @@ iris asset depreciate --month 2026-05     # or that month's entries, if you clos
 ```
 
 `iris asset depreciate` writes proposed entries (`status: draft`) you review
-and post like any other. Details and the Japan-specific rules are in
-[Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/#fixed-assets-and-depreciation).
+and post like any other. The file format is in the
+[Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/); a region's methods and
+rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
 
 ### Depreciation your AI can't get wrong
 
-Straight-line iris computes itself. Methods with a country-specific twist —
-Japan's 定率法, US MACRS — work differently: your AI looks up the rates and
+Straight-line iris computes itself. Methods whose rules a country sets — a
+declining-balance method that switches rate partway, for example — work
+differently: your AI looks up the rates and
 decides where the method switches, then hands the arithmetic to iris and records
 the finished table on the asset file under `schedule:`.
 
@@ -1386,8 +1381,8 @@ also requires `book`.
 The point is that your AI never multiplies a balance forward by hand — that's
 where arithmetic slips happen, and a slip that still adds up to the right total
 is one iris cannot detect. It composes exact tables instead. Better still, when
-the book's region overlay has a **recipe** for the method — Japan's 定率法 is
-`jp-declining-balance.teiritsu` — it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
+a selected overlay has a **recipe** for the method (`list_recipes` shows it),
+it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
 order and records where the rows came from, so `iris validate` can replay them
 and catch a switch that landed a year late. Composing by hand is the fallback
 for a method no recipe covers. See
@@ -1947,7 +1942,7 @@ Once a book with the same name for the following year is in My Books, the
 screen links to it instead of showing the command.
 
 The same flow works from the CLI (`iris seal`, `iris reopen`) — see
-[Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/). Members who aren't
+[Year-end close](https://irisbooks.io/docs/en/records-and-year-end/#year-end-close). Members who aren't
 the owner see the same year list read-only.
 
 ## Settings — your settings and book settings
@@ -2167,7 +2162,7 @@ Use the web app to organize your review across clients:
   individual clients' AI sessions.
 - At year-end, close each client's fiscal year from **Year-end** (or the
   CLI) — see
-  [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/).
+  [Year-end close](https://irisbooks.io/docs/en/records-and-year-end/#year-end-close).
 
 Cloud permissions are granted per book; a client may have several fiscal-year
 books. Keep that client's files together in their own workspace. The dashboard's
@@ -2393,29 +2388,22 @@ Remove the connector in your AI app, or use IrisBooks Settings → Connected app
 admitted request may finish. Your underlying collaborator role is managed
 separately in the book's Settings → Grants.
 
-# Japan tax & compliance
+# Records, history and year-end
 
-Page: https://irisbooks.io/docs/en/japan-tax-and-compliance/
+Page: https://irisbooks.io/docs/en/records-and-year-end/
 
-This page covers bookkeeping for Japanese tax purposes: record-keeping
-features (correction history, search, traceability), classifying consumption
-tax (消費税), depreciating fixed assets, and closing the year.
-
-> **How IrisBooks splits the work.** The engine handles the universal,
-> stable parts — double-entry math, per-line classification, totals, data
-> exports. The year's *forms* — which change yearly and vary by municipality —
-> are filled by your AI against the data IrisBooks produces, then reconciled
-> back. So you'll see "IrisBooks gives you the numbers; your AI fills the
-> form, IrisBooks checks it reconciles." That's deliberate.
+This page covers how a book's records stay checkable after the fact —
+correction history, search and traceability — how returns are prepared from
+the book, and how a year is closed and handed over.
 
 ## History, search and traceability
 
 Four features keep a book's records checkable after the fact — by you, your
-税理士, or an auditor:
+accountant, or an auditor:
 
 | Feature | What it does | Where |
 | --- | --- | --- |
-| **Correction/deletion history** (訂正・削除の履歴) | The server records every change to every file, deletions included — who changed it, when, and what it was before | `iris api history`; the web app **Activity** timeline and per-journal **History** panel (cloud) |
+| **Correction/deletion history** | The server records every change to every file, deletions included — who changed it, when, and what it was before | `iris api history`; the web app **Activity** timeline and per-journal **History** panel (cloud) |
 | **Search** | Find journals by date, amount, and counterparty, in any combination — and by status, account, or tag | `iris search`; the filters on the web app **Journals** page |
 | **Ledger ↔ journal** | Every ledger row names the journal file it came from | `iris report ledger`; the web app **Accounts** ledger |
 | **Journal ↔ source document** | Every journal cites its receipts, invoices, and statements, and you can walk that link both ways | `iris references <path>`; the **Cited by** panel in the web app's Raw documents browser |
@@ -2433,10 +2421,9 @@ rewritten, so it is not an independent record.
 
 Deleting a book ends its server record too: after a 30-day window, all of the
 book's server data — including the correction history — is permanently
-destroyed. As with paper books, the duty to preserve your books for the
-statutory retention period (7 years, up to 10 in some corporate cases) is
-yours. Before deleting a book, keep your own copy of the book folder and of
-its record from `iris api history --all --json`
+destroyed. As with paper books, keeping your books for the retention period
+your tax law sets is your duty. Before deleting a book, keep your own copy of
+the book folder and of its record from `iris api history --all --json`
 (see [Audit handoff](#audit-handoff)).
 
 > **Seals** (closing a year) lock the period — writes into a sealed year are
@@ -2444,271 +2431,25 @@ its record from `iris api history --all --json`
 > to that scope made while reopened are flagged
 > in that history. See [Year-end close](#year-end-close).
 
-> **Not certified.** IrisBooks holds no certification (for example, no
-> JIIMA 認証) and does not claim that a book kept in it meets the
-> 優良電子帳簿 requirements. Whether your books qualify, and any advance
-> notification (届出) to your tax office, is for you and your 税理士 to
-> determine.
+> **Not certified.** IrisBooks holds no third-party certification and does not
+> claim that a book kept in it meets any jurisdiction's electronic-bookkeeping
+> standard. Whether your books qualify, and any notice to your tax authority,
+> is for you and your accountant to determine.
 
-## Consumption tax (消費税)
+## Returns and regional rules
 
-Whether you manage consumption tax at all depends on your status, declared
-once in `config/book.yaml`:
+The engine handles the universal, stable parts: double-entry math, the fields
+recorded on each line, totals and data exports. Regional rules — tax
+classifications, depreciation methods, the figures a return needs — come only
+from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Each region has a guide there:
+which packages to select, and what they leave to you.
 
-```yaml
-consumption_tax:
-  status: taxable          # taxable (課税事業者) | exempt (免税事業者)
-  accounting: tax_included # tax_included (税込) | tax_excluded (税抜)
-  method: general          # general (本則) | simplified (簡易課税)
-  business_class: 5        # 1..6, only for simplified
-```
-
-- A **免税事業者** (no `consumption_tax` block, or `status: exempt`) records
-  tax-inclusive amounts as ordinary 売上 / 経費 with no tax detail and files no
-  consumption-tax return. You can skip the rest of this section.
-- A **課税事業者** classifies each relevant journal **line** with a `tax`
-  block, all year long. At year-end the totals by category and rate drive the
-  消費税申告書 — which your AI fills against the figures IrisBooks sums.
-
-### Classifying a line
-
-Add a `tax` block to the lines that carry consumption tax:
-
-```yaml
-lines:
-  - account: 収益:売上
-    credit: 100000
-    tax:
-      category: taxable_sale   # 課税売上
-      rate: "10"               # standard 10%
-  - account: 費用:消耗品費
-    debit: 5000
-    tax:
-      category: taxable_purchase
-      rate: "10"
-      invoice: true            # you hold a qualifying invoice (適格請求書)
-```
-
-**Categories** (`category`):
-
-| Token | 税区分 | Carries a rate? |
-| --- | --- | --- |
-| `taxable_sale` | 課税売上 | yes (positive) |
-| `taxable_purchase` | 課税仕入 | yes (positive) |
-| `exempt_sale` | 非課税売上 | no |
-| `exempt_purchase` | 非課税仕入 | no |
-| `export_sale` | 免税売上(輸出) | `0` (or omit) |
-| `out_of_scope` | 不課税 / 対象外 | no |
-| `securities_sale` | 有価証券譲渡 | no |
-
-**Rate tokens** (`rate`): `"10"` (standard), `"8r"` (軽減税率 8%), `"8o"`
-(旧/経過措置 8%, distinct from `8r`), `"5"`, `"3"` (legacy), `"0"` (export).
-
-**Invoice flag** (`invoice`): on a purchase line, whether you hold a qualifying
-invoice under the 適格請求書等保存方式 (invoice system, Oct 2023 onward).
-
-**Simplified method** (`method: simplified`): each 課税売上 line needs a
-事業区分 (`business_class`, 第1〜6種). It defaults to the book-level
-`business_class` but can be overridden per line.
-
-`iris validate` checks these for coherence — that a category is known, that a
-rate matches its category (e.g. `taxable_sale` needs a positive rate, an
-`export_sale` is 0%), and that a simplified-method sale has a valid business
-class. The detailed classification rules (区分判定, 簡易課税 事業区分, invoice
-経過措置) are tax law, not product behavior — your AI checks the NTA's current
-pages for the relevant classification and period. Discover the selected
-overlay's fields and guides for product inputs; use current primary guidance
-for legal treatment rather than fetching the complete AI manual by default. IrisBooks doesn't ship a
-frozen copy of rules that change; iris validates, it doesn't legislate.
-
-### The year-end figures
-
-The sums the return needs come from the engine, not from anyone re-adding
-lines by hand:
-
-```bash
-iris report sum --by tax.category,tax.rate --from 2026-01-01 --to 2026-12-31
-```
-
-groups every posted line by its classification and totals it exactly (add
-`tax.invoice` for the invoice-method split, `tax.business_class` under 簡易課税).
-Note the 課税期間 is the calendar year for individuals, your fiscal year for a
-法人 (`--year`).
-
-The independently selected `jp-tax-filing` function provides two **recipes** that combine the
-sums the way the 申告書 needs them: `jp-tax-filing.shouhizei-general` (本則課税 — sales and
-purchases by rate, the invoice / non-invoice split using the package's dated
-transition definitions, the 課税売上割合, net tax and the payable amount rounded down to
-¥100) and `jp-tax-filing.shouhizei-simplified` (簡易課税 — sales tax by 事業区分 and the
-deemed purchase tax at the みなし仕入率 you pass). `iris overlay recipe
-jp-tax-filing.shouhizei-general --set from=2026-01-01 --set to=2026-12-31 --set scope_confirmed=true --apply --out filings/jp-tax-filing.shouhizei-general.md` records the
-figures under `filings/` with provenance, and `iris validate` re-runs the
-recipe against the journals from then on — a posted correction after filing
-shows up as an error until the recipe is re-run. Your AI fills the form from
-the recorded figures. The division of labor stays: **IrisBooks sums, your AI
-files.**
-
-Select `jp-tax-classification` and `jp-tax-filing` together. Review the filing
-guide's coverage before passing `scope_confirmed=true`; these figures are a
-calculation aid rather than a completed return.
-
-On a **税抜経理** book (`accounting: tax_excluded`), `iris validate` also
-proposes, as a hint, the consumption tax inside each classified line that has
-no `tax.amount` yet; `iris validate --apply` records it, and your AI books that
-amount on 仮払消費税 / 仮受消費税 — the arithmetic is iris's, the entry is the
-AI's.
-
-For assistants: `jp-tax-filing.shouhizei-simplified` takes `deemed_pct`, the
-みなし仕入率 per 事業区分 as a map such as `{"1": 90, "2": 80, "3": 70, "4": 60,
-"5": 50, "6": 40}` (verify on the NTA site; on the CLI, `--set
-deemed_pct='{"1": 90}'`). The general recipe assumes full deduction of purchase
-tax: check `taxable_sales_ratio_bp` (≥ 9500) and the ¥500M sales ceiling before
-relying on `deductible_tax`; otherwise 個別対応 / 一括比例配分 applies and you
-compute it. The 国税 / 地方税 split and the 千円未満 floor of the 課税標準額 are
-yours to apply from the recorded figures.
-
-## Fixed assets and depreciation
-
-Describe each depreciable asset as a file under `assets/YYYY/<name>.md`:
-
-```yaml
----
-name: "MacBook Pro 16"
-acquisition_date: 2026-04-15
-acquisition_cost: 480000
-salvage_value: 1
-useful_life_months: 48        # 耐用年数 4 years × 12
-method: straight_line         # straight_line | declining_balance | expensed
-asset_account: "資産:工具器具備品"
-depreciation_expense_account: "費用:減価償却費"
-accumulated_depreciation_account: "資産:減価償却累計額"
----
-```
-
-- **`useful_life_months`** for `straight_line` and `declining_balance` comes
-  from the 耐用年数省令 tables — your AI looks
-  up the right life on the NTA's current pages (耐用年数省令 別表第一・第二;
-  for 定率法, the 償却率 in 別表第十) and records the resolved number on the
-  file, so the book carries its own justification and its git history answers
-  "which table revision was this?".
-- **Methods**: `straight_line` (定額法), `declining_balance` (定率法), or
-  `expensed` (immediate write-off). 定額法 and 即時償却 iris computes for you.
-  For 定率法 your AI records the table on the file (see below), because the
-  switch to 改定償却率 is a Japanese rule and iris deliberately ships no
-  jurisdiction's rules.
-- **Immediate write-offs** (`expensed` — the 少額減価償却資産 special,
-  `toku_rei: shoutoku_300k`): book the purchase to the asset account like
-  any other asset; `iris asset depreciate` writes the whole cost off in the
-  acquisition month. Omit `useful_life_months` or set it to `0`, and omit
-  `schedule`; a positive useful life or a recorded table is rejected.
-  That is what puts the item into the year's depreciation
-  figures (`period_dep`), where the 青色申告決算書's depreciation table and
-  別表16(7) list it.
-
-### 定率法 — recording the table
-
-Japanese 定率法 depreciates at the 償却率 until the annual charge would fall
-below the 償却保証額 (取得価額 × 保証率), then switches to a fixed
-改定取得価額 × 改定償却率 for the rest of the useful life. The switch, the
-rounding and the order of the two halves are built into the Japan overlay's
-`jp-declining-balance.teiritsu` recipe; your AI supplies the inputs and iris does the rest:
-
-This function supports full twelve-month service years. Pass
-`full_year_confirmed=true` after checking that scope; partial first years are
-unsupported.
-
-1. Look up 償却率 / 保証率 / 改定償却率 for the asset's useful life in 別表第十
-   on the NTA site (the 200% table for acquisitions from 2012-04, the 250%
-   table for 2007-04〜2012-03 — an asset keeps the table it was acquired under).
-2. Run the recipe with those rates, the cost, the life in years and the first
-   fiscal year-end month — `iris overlay recipe jp-declining-balance.teiritsu --set full_year_confirmed=true --set cost=1000000
-   --set life=8 --set rate=0.250 --set guarantee=0.07909 --set revised=0.334
-   --set start=2027-03 --apply --out assets/2026/lathe.md`, or MCP `run_recipe(recipe="jp-declining-balance.teiritsu", params={...},
-   apply=true, out="assets/2026/lathe.md")` (parent mode also requires `book`). It writes the table under `schedule:` and its provenance under
-   `schedule_source:`.
-
-The result looks like this on an 8-year ¥1,000,000 asset (償却率 0.250,
-保証率 0.07909, 改定償却率 0.334), with a March fiscal year end:
-
-```yaml
-method: declining_balance
-useful_life_months: 96
-schedule:
-  - period: 2027-03
-    amount: 250000     # 償却率 years
-  - period: 2028-03
-    amount: 187500
-  - period: 2029-03
-    amount: 140625
-  - period: 2030-03
-    amount: 105468
-  - period: 2031-03
-    amount: 79101      # still above the 償却保証額 79,090
-  - period: 2032-03
-    amount: 79260      # switched: 改定取得価額 237,306 × 0.334
-  - period: 2033-03
-    amount: 79260
-  - period: 2034-03
-    amount: 78785      # ends on the 備忘価額 1 円
-schedule_source:       # written by the recipe: the inputs, for replay and for your 税理士
-  overlay: jp-declining-balance@2026.10.1
-  recipe: jp-declining-balance.teiritsu
-  bindings: 5
-  primitives: {declining_table: 2, flat_table: 2}
-  params: {full_year_confirmed: true, cost: 1000000, life: 8, rate: 0.250, guarantee: 0.07909, revised: 0.334, start: 2027-03, salvage: 1}
-```
-
-iris checks the rows add up to 取得価額 − 備忘価額 and are otherwise
-well-formed, and — because the inputs are on the file — **replays the recipe**
-on every `iris validate` and refuses the file if the rows differ. A switch that
-landed in the wrong year is caught, not just a wrong total. The rates stay
-visible for your 税理士 to check against 別表第十.
-
-Then run depreciation:
-
-```bash
-iris asset schedule --year 2026        # each asset's depreciation plan
-iris asset depreciate --year 2026      # annual: one FY-total entry per asset at year end
-iris asset depreciate --month 2026-05  # monthly: that month's entries
-iris export assets --year 2026         # per-asset schedule as CSV
-```
-
-Most sole proprietors and small companies book depreciation once a year as a
-決算整理 entry — that's `--year`, which writes one FY-total proposal per asset
-dated the fiscal year's last day (mid-year acquisitions are prorated by month,
-月割, automatically). Use `--month` instead if you close your books monthly.
-Pick one cadence per fiscal year — the command refuses to mix the two, since
-that would double-count. Either way, `iris asset depreciate` writes proposed
-entries you review and post like any other journal.
-
-For the filings themselves — 固定資産台帳, the fixed-asset tax return
-(償却資産税, per municipality), 別表16 — your AI works from the asset files
-plus the engine's fiscal-year figures (`iris export assets --year` /
-`iris asset schedule --year`) and this year's official form spec (the NTA's
-or your municipality's published layout), and writes the result under
-`compiled/jp/<form>/` in the book. Forms change yearly, so the AI
-fetches the current spec rather than following a frozen instruction sheet.
-
-For assistants: useful lives come from 耐用年数省令 別表第一 (general) and
-別表第二 (machinery) at
-`https://www.nta.go.jp/law/joho-zeikaishaku/hojin/sintaiyo/menu.htm`; 定率法
-rates from 別表第十. If `yotaikai_class` is missing, ask the user what the asset
-is, classify it and write both fields. For 即時償却, book the purchase to
-`asset_account`, not to 消耗品費 / 減価償却費 — booking it as an expense too
-counts it twice. Whether a small item gets an asset file at all is the user's
-call; don't assume a threshold.
-
-You produce the filings (固定資産台帳, 償却資産税 申告書, 別表16) from the
-asset files, the engine's figures (`iris export assets --year`, `iris asset
-schedule --year`) and the current year's official layout fetched from the NTA
-or the municipality. Write them under `compiled/jp/<form>/`. Take
-`opening_nbv`, `period_dep`, `closing_nbv`, `accumulated` and `disposal_nbv`
-from the CSV (a zero amount is a blank cell), never recompute them, and check
-your totals against the CSV. For 償却資産税, the 評価額 comes from the
-acquisition cost and the 減価残存率 table, not the CSV's `closing_nbv`; items
-with `toku_rei: shoutoku_300k` are still declarable; the return is
-calendar-year (assessment date January 1, due January 31) for every fiscal
-year.
+A figures recipe records its result under `filings/` with its provenance, and
+`iris validate` re-runs it, so a correction posted after you filed shows up as
+an error until the recipe is re-run. The forms themselves change yearly and
+vary by place, so your AI prepares them from the engine's figures, the
+recorded filings and the current official form, and keeps them in the book
+under `compiled/<region>/<form>/`. IrisBooks sums; your AI files.
 
 ## Year-end close
 
@@ -2716,8 +2457,8 @@ A book covers one fiscal year. Closing it has an accounting half and a
 compliance half, run in the book of the year you're closing:
 
 ```bash
-iris yearend                                      # start the FY2026 book, with its 期首残高 (opening balances)
-# …決算整理 and the return happen here, in the FY2025 book…
+iris yearend                                      # start the FY2026 book, with its opening balances
+# …closing adjustments and the return happen here, in the FY2025 book…
 iris yearend                                      # after late corrections: refresh FY2026's opening balances
 iris seal --dry-run 2025                          # see exactly what will be sealed (cloud)
 iris seal 2025                                    # seal it (cloud)
@@ -2725,14 +2466,14 @@ iris seal 2025                                    # seal it (cloud)
 
 - **Next year's book (`iris yearend`).** Creates the FY2026 book beside this
   one as a copy — your settings, chart of accounts, guides and notes, and the
-  fixed assets you still hold — with a 期首残高 (opening balance) entry
-  computed from this year's closing balances, so the new year starts
-  reconciled and self-contained. Entries you already recorded in 2026 move
-  across. For a cloud book, the new book's cloud copy is created in the same
-  step (the same people keep access, and your inbound email address moves to
-  it) and both books are synced. You can run it as soon as the new year
-  starts: 決算整理 and the return still happen in the old book, and each
-  re-run refreshes the new book's opening balances. See
+  fixed assets you still hold — with an opening-balance entry computed from
+  this year's closing balances, so the new year starts reconciled and
+  self-contained. Entries you already recorded in 2026 move across. For a
+  cloud book, the new book's cloud copy is created in the same step (the same
+  people keep access, and your inbound email address moves to it) and both
+  books are synced. You can run it as soon as the new year starts: closing
+  adjustments and the return still happen in the old book, and each re-run
+  refreshes the new book's opening balances. See
   [iris yearend](https://irisbooks.io/docs/en/cli-reference/#iris-yearend).
 - **Seal.** Marks the fiscal year as closed — by whom and when — and **locks**
   its dated journals and `config/`, `assets/`, `filings/`, `compiled/`. The
@@ -2766,8 +2507,8 @@ iris seal 2025        # close the year again (supersedes the old seal)
 
 If the *next* year is already sealed too, `iris yearend` leaves its opening
 entry frozen as filed and tells you so — book the difference as a
-current-period correction (前期損益修正) in the new book, or reopen that year
-as well.
+current-period correction (a prior-period adjustment) in the new book, or
+reopen that year as well.
 
 The seal / reopen half also lives in the web app: the
 book's **Year-end** screen lists the book's fiscal year with its close state
@@ -2777,7 +2518,8 @@ and runs the same preview → close → reopen flow — see
 
 ### Audit handoff
 
-What an auditor, a 税理士 or a tax office asks for is already in the book:
+What an auditor, an accountant or a tax authority asks for is already in the
+book:
 
 - **The books.** The book folder itself (plain markdown and YAML), or a
   fiscal year as CSVs with `iris export --year 2025` (from the cloud copy:
@@ -2793,7 +2535,7 @@ What an auditor, a 税理士 or a tax office asks for is already in the book:
   the year was closed
   (marked `post_seal_period`). See
   [iris api history](https://irisbooks.io/docs/en/cli-reference/#iris-api-balance-holdings-history).
-- **Access.** Or invite your 税理士 into the book, where the history is
+- **Access.** Or invite your accountant into the book, where the history is
   visible entry by entry — see
   [Collaboration and roles](https://irisbooks.io/docs/en/web-app/#collaboration-and-roles).
 
@@ -2882,11 +2624,11 @@ iris init [flags] <path>
 | Flag | Meaning |
 | --- | --- |
 | `--name` | Book display name |
-| `--region` | Region code: JP or US. Required; there is no default |
+| `--region` | Region code (ISO 3166-1 alpha-2); `iris init --help` lists the supported ones. Required; there is no default |
 | `--preset` | Setup intent: `personal` (household chart) or `business` (default). Legal entity and tax status remain independent |
 | `--language` | Language (ISO 639-1) |
-| `--chart` | Starter-chart variant, where the region offers several — JP: general / it / food (default general). A region without a chart of its own gets a neutral starter chart |
-| `--currency` | Currency (ISO 4217); defaults to the region's (JP: JPY, US: USD) |
+| `--chart` | Starter-chart variant, where the region offers several (`iris init --help` lists them). A region without a chart of its own gets a neutral starter chart |
+| `--currency` | Currency (ISO 4217); defaults to the region's |
 | `--fiscal-start-month` | Fiscal-year start month 1–12 (default 1, January — pass `4` for a year that starts in April) |
 | `--fiscal-year` | The fiscal year the book covers (YYYY; default: the one holding today) — e.g. last year's, when you're catching up on its filing |
 | `--sample` | Seed ~40 demo journals for the business chart; unavailable with personal setup |
@@ -2905,7 +2647,7 @@ links from the shared context resolver. Older sources without task metadata
 show that discovery limit; the output never invents a task from a newer release.
 
 For a fresh cloud book, `iris api books new --preset personal --name "Household"
---fy 2026 --region JP` uses the same choice. `--chart general|it|food` and `--language en|ja`
+--fy 2026 --region JP` uses the same choice. `--chart` and `--language`
 are available for fresh creation. When connecting an existing local book, its
 actual config/chart/policy are retained and preset overrides are refused.
 Cloud retries retain their original server-owned seed bytes and hashes;
@@ -2980,7 +2722,7 @@ standalone copy, in a new folder beside this one (`acme-2025` →
 - the guides (`README.md`, `AGENTS.md`, `CLAUDE.md`) and the policy notes
   (`decisions.md`, `workflow.md`, `todos.md`, `open-questions.md`);
 - the fixed assets still held when the new year starts;
-- an opening-balances journal (期首残高) at
+- an opening-balances journal at
   `journals/<YYYY-MM>/0000-opening-balances.md`, dated the new year's first
   day and tagged `opening-balance`. Balance-sheet accounts carry forward at
   their closing balance (with quantities for currency, crypto and other
@@ -3081,16 +2823,16 @@ iris reopen <fiscal-year> [path]
 ### iris validate
 
 Validate a book's structure and entries: YAML, double-entry balance, account
-existence, date consistency, status values, and (JP taxable books) tax
-classification.
+existence, date consistency, status values, and the rules of the overlays the
+book selected.
 
 ```bash
 iris validate [--v] [--json] [--apply] [path]
 ```
 
-`--apply` records the values the region overlay derives for you — reported as
-hints, such as the consumption tax inside a line on a 税抜経理 book — into the
-files, then validates again.
+`--apply` records the values the selected overlays derive for you — reported as
+hints, such as a tax amount a package computes for a line — into the files,
+then validates again.
 
 Overlay checks share input, execution and output limits across the entire Book.
 If a limit is reached, `overlay.checks-incomplete` is an error and `--apply`
@@ -3297,8 +3039,8 @@ by your Book. Read a compact task index, then request only the relevant task:
 
 ```bash
 iris context [path]
-iris context --task jp-small-asset-deduction.equipment --record assets/2026/laptop.md [path]
-iris context --task jp-tax-classification.classify --record journals/2026-10/purchase.md [path]
+iris context --task journal-balance.journal --record journals/2026-10/purchase.md [path]
+iris context --task inventory-disposal.inventory --record journals/2026-10/sale.md [path]
 ```
 
 Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
@@ -3569,9 +3311,9 @@ web app is the formatted view for humans. A `--json` flag is still accepted
 as a no-op for compatibility.
 
 `report sum` groups posted journal lines by the keys you choose — `account`,
-`unit`, `payee`, `month`, or a dotted field like `tax.category` — and returns
-debit/credit/net totals plus a line count per group (e.g.
-`--by tax.category,tax.rate --year 2026` for consumption-tax figures). Lines
+`unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one an
+overlay or your book's layer defines) — and returns debit/credit/net totals plus
+a line count per group (e.g. `--by sales.channel,month --year 2026`). Lines
 missing a key form an explicit empty-keys group, so unclassified lines are
 visible rather than dropped. `--year` uses the fiscal year (begins-in
 convention); `--from/--to` take arbitrary inclusive dates.
@@ -3579,7 +3321,7 @@ convention); `--from/--to` take arbitrary inclusive dates.
 **Default dates.** A date you leave out comes from the book's fiscal year
 (`fiscal_year` — a book is one year). Balances (`balance`, `tb`, `bs`,
 `ledger`) are as of today, where today is the date where the book is kept
-(Japan time for a JP book), or as of the year's last day once that year is
+(the time zone of the book's region), or as of the year's last day once that year is
 over; `pl` and `sum` run from the year's first day to the same date. So last
 year's book, opened in February to file its return, shows last year in full.
 Give only `--to` and the range starts on
@@ -3669,6 +3411,11 @@ Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
 iris export assets [--year YYYY] [--out FILE] [path]
 ```
+
+The assets CSV adds one column per extra field your asset files carry, such as a
+field an overlay defines, named by its dotted path (for example `location.room`)
+and sorted after the standard columns. Assets without that field leave the cell
+empty.
 
 ### iris hash
 
@@ -4001,7 +3748,7 @@ pending changes across the whole book.
 
 Discover the selected overlay with `describe_overlay`. Both modes expose
 `list_recipes` and `run_recipe`. Listing returns canonical CLI recipe IDs and
-parameter schemas. Run `run_recipe(recipe="jp-declining-balance.teiritsu",
+parameter schemas. Run `run_recipe(recipe=ID_FROM_LIST,
 params={...})` to preview. Add `apply=true, out="assets/2026/equipment.md"` to
 record a reviewed schedule, or a path under `filings/` for filing figures.
 Supplying `out` alone still previews. Keep write controls outside `params`.
@@ -4429,7 +4176,7 @@ rename rather than a delete plus a create.
 - `--all` — every event. A book is one fiscal year, so this is the year's
   whole record, corrections made after it was closed included.
 - `--from` / `--to` — changes made between two dates, in the book's time
-  zone (Japan time for a JP book).
+  zone (the time zone of the book's region).
 
 With `--from`, `--to` or `--all` it returns every matching event;
 `--limit` still caps it when you give one. To hand the record over as a file,
@@ -4494,12 +4241,22 @@ iris docs cli-reference --section iris-sync     # one section + its subsections
 iris docs --json cli-reference --section iris-sync
 ```
 
+The manual is region-agnostic. Regional rules are documented by the overlay
+catalog this executable embeds, listed after the chapters as a separate group:
+`region/<cc>` is a region guide (which of the region's packages to select and
+what they leave to you), and `overlay/<id>` is a package's README and
+English guides. Each such topic starts by saying it is an overlay topic and names
+the exact package version. A Book runs the versions it pins, which may differ;
+read those with `iris overlay guide`.
+
 Flags may precede or follow the topic. A topic returns its section outline by
 default; `--list` explicitly requests the same outline. `--section` reads one
 section and its children; `--full` explicitly reads the chapter. These modes
 cannot be combined. Topic/section lists include word counts. JSON includes
 `version`, `source: "bundled"`, `language: "en"`, `words`, and `topics`,
-`sections` or `markdown` according to the request. Unknown selectors
+`sections` or `markdown` according to the request. Each topic has `kind`
+(`manual` or `overlay`); overlay topics add `region` and, for a package, its
+`pin`. Unknown selectors
 exit 2 with discovery guidance; they never fall back to the full manual.
 Use `iris <command> --help` for invocation details and current online docs for
 changing cloud access/authorization. Docs are reference, not permission to act.
@@ -4656,11 +4413,6 @@ region: JP                      # ISO 3166-1; locale and region compatibility
 overlays:
   - journal-balance@2026.10.1
   - inventory-disposal@2026.10.1
-  - jp-tax-classification@2026.10.1
-  - jp-tax-amount@2026.10.1
-  - jp-tax-filing@2026.10.1
-  - jp-small-asset-deduction@2026.10.1
-  - jp-declining-balance@2026.10.1
 language: ja                    # ISO 639-1; chart language follows this
 currency: JPY                   # ISO 4217
 scale: 0                        # minor-unit exponent — IMMUTABLE (JPY 0, USD 2, BHD 3)
@@ -4676,11 +4428,8 @@ units:                          # non-currency units (forex, crypto, metals, sha
     scale: 8
     name: "Bitcoin"
 
-consumption_tax:                # JP only — see Japan tax page
-  status: taxable
-  accounting: tax_included
-  method: general
-  business_class: 5
+# Settings blocks an overlay defines sit at the top level too;
+# `iris overlay list --json` shows their fields.
 ```
 
 `units` is optional and starts empty in new books. Known currencies use
@@ -4702,8 +4451,8 @@ The BTC entry above is an example, not a preinstalled default.
 
 `scale` is the number of fractional digits the currency uses, and it is
 **immutable** — JPY is `0` (whole yen, no decimals), USD/EUR are `2`, the Gulf
-dinars are `3`. Region-specific blocks like `consumption_tax` ride along
-opaquely: the universal engine ignores them, and the JP overlay reads them.
+dinars are `3`. Settings blocks an overlay defines ride along opaquely: the
+universal engine ignores them, and the selected packages read them.
 
 `fiscal_year` is the fiscal year the book covers, named by the year it starts
 in. `iris init` sets it to the year holding today (`--fiscal-year` picks
@@ -4735,8 +4484,8 @@ missing definition or enables a package by itself.
 
 Bindings v4 excludes journal workflow status and approval/closure metadata,
 including nested record data. Definitions that read `journal.status` or target
-lifecycle fields fail with an explicit compatibility error. Domain facts such
-as `consumption_tax.status` remain available. The host enforces draft-only
+lifecycle fields fail with an explicit compatibility error. Domain facts, such
+as an overlay's own settings, remain available. The host enforces draft-only
 completion, posting permissions, seals and status-aware report inclusion.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
@@ -4811,14 +4560,12 @@ multiply accounting rows.
 ## Pin several published overlays
 
 `overlays` selects an **unordered set of exact versions**. Use it instead of
-`overlay`; the two forms cannot appear together. For example, a published
-specialist package could accompany tax classification:
+`overlay`; the two forms cannot appear together. For example:
 
 ```yaml
-# Illustrative: jp-rsu must be published before this configuration can load.
 overlays:
-  - jp-tax-classification@2026.10.1
-  - jp-rsu@2026.10.1
+  - journal-balance@2026.10.1
+  - inventory-disposal@2026.10.1
 ```
 
 Every member must have an exact verified Book copy, installed explicitly with
@@ -4828,41 +4575,32 @@ and conflicting published rule IDs or field definitions are errors. Pin order
 does not determine precedence. Each package keeps its own CEL helpers; a recipe
 records the exact version of the package that owns it.
 
-A package can declare `region: JP` and exact supported dependency versions in
-`overlay.yaml`, for example `requires_overlays: {jp-tax-classification: ['2026.10.1']}`. Packages
+A package can declare a `region` and exact supported dependency versions in
+`overlay.yaml`, for example `requires_overlays: {example-base: ['2026.10.1']}`. Packages
 using the new selectors or parameter contract declare `requires_bindings: 2`.
 `iris overlay upgrade --dry-run` checks the candidate set, golden tests,
 book-layer compatibility and settings before showing the proposed pins.
-`--to jp-rsu@<version>` changes that member; without `--to`, upgrade checks
+`--to <id>@<version>` changes that member; without `--to`, upgrade checks
 the latest release of every pinned member together.
 
-The initial function catalog contains seven independently selectable candidates,
-all version `2026.10.1` and requiring bindings 5:
-
-| Catalog category | Individual Overlay IDs |
-| --- | --- |
-| Common completion | `journal-balance`, `inventory-disposal` |
-| Japanese consumption tax | `jp-tax-classification`, `jp-tax-amount`, `jp-tax-filing` |
-| Japanese fixed assets | `jp-small-asset-deduction`, `jp-declining-balance` |
-
+The function catalog holds the common completion functions, `journal-balance`
+and `inventory-disposal`, and each region's functions, which the
+[overlay docs](https://irisbooks.io/docs/en/overlays/) list with their versions and dependencies.
 Categories organize discovery/distribution; they are not activation switches.
-New Japanese business presets copy/select all seven functions. Personal and
-non-JP business setup select the two common functions. Existing Books keep their
+Business setup selects the common functions and the region's available
+packages; personal setup selects the common functions. Existing Books keep their
 actual function pins, including off. Retired combined packages are removed
 without a production migration. Signed publication remains pending.
 
-`jp-tax-amount` and `jp-tax-filing` each require an explicitly selected
-`jp-tax-classification@2026.10.1`; neither requires the other. Classification owns
-the tax-setting schemas and task context. Keep classification enabled while
-removing amount proposals or filing calculations independently. Balancing and
-inventory disposal are independent, as are deduction checks and declining balance.
-A missing dependency refuses selection without an implicit fetch or cascade.
+A package may require other packages at exact versions. Select every
+dependency explicitly: a missing one refuses selection without an implicit
+fetch or cascade. Balancing and inventory disposal are independent.
 
 Each function carries its necessary checks, fields, task, guide and executable
 examples. Native structural/double-entry checks stay active. Recipe invocation
-is explicit. Tax status, elections and eligibility remain confirmed facts;
-pooled depreciation and partial-year declining balance remain unsupported.
-The combined `default`/`jp` and superseded aggregate candidates are retired.
+is explicit. Tax status, elections and eligibility remain confirmed facts; each
+package's docs state what it does not support. Earlier combined aggregate
+candidates are retired.
 
 The binary carries a curated offline installation catalog. Other versions use
 signed GitHub downloads followed by explicit installation. Runtime and historical
@@ -4938,7 +4676,7 @@ package ID, then `rules`, `derivations` or `recipes`, then the item ID:
 ```yaml
 # Illustrative settings for a package defining these items.
 overlay_settings:
-  jp-sales-demo:
+  example-sales:
     rules:
       sales.memo-required:
         params:
@@ -4996,16 +4734,16 @@ schema_version: 1
 date: 2026-05-04
 payee: EXAMPLE.COM
 status: draft                 # draft | posted
-tags: [sales, withholding]
+tags: [sales, platform-fee]
 attachments:
   - path: raw/2026-05-example-com-invoice.pdf
     type: invoice               # invoice | receipt | bank_statement (a causal source)
     locator: "page=1"           # optional fragment pointer ("L47", "p3")
 lines:
   - account: 資産:売掛金
-    debit: 89790
-  - account: 資産:事業主貸
-    debit: 10210
+    debit: 97000
+  - account: 費用:支払手数料
+    debit: 3000
   - account: 収益:売上
     credit: 100000
 ---
@@ -5023,7 +4761,7 @@ Why this transaction happened (not a restatement of the lines).
 | `lines` | yes | 2–999; each has `account` + exactly one of `debit`/`credit` |
 | `lines[].memo` | no | Per-line note |
 | `lines[].quantity` + `unit` | no | Physical quantity for a unit from `book.yaml` `units` (always positive; direction comes from debit/credit) |
-| `lines[].tax` | no | JP consumption tax — see below |
+| `lines[].<field>` | no | Fields a selected overlay defines on a line — see below |
 | body | no | Free Markdown after the closing `---` |
 
 **Line count.** A journal takes at most **999 lines**, and you get a warning
@@ -5041,18 +4779,10 @@ $12.00, not $0.12). Internally everything is integer minor units.
 matches an alias); the date matches the filename; status is valid; YAML parses.
 Reports include **only `posted`** entries.
 
-**Per-line `tax` (JP 課税事業者 only):**
-
-```yaml
-tax:
-  category: taxable_purchase   # taxable_sale | taxable_purchase | exempt_sale |
-                               # exempt_purchase | export_sale | out_of_scope | securities_sale
-  rate: "10"                   # 10 | 8r | 8o | 5 | 3 | 0
-  invoice: true                # holds a qualifying invoice (purchase side)
-  business_class: 5            # 簡易課税 事業区分 1..6 (overrides book default)
-```
-
-See [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/#consumption-tax-消費税).
+**Overlay fields on a line.** A selected overlay can define fields on journal
+lines, such as a tax classification block. iris keeps them on the file, and the
+package's rules check them. `iris overlay list --json` lists each field with its
+accepted values; the package's page under [Overlays](https://irisbooks.io/docs/en/overlays/) explains them.
 
 For assistants: `closed` is a derived display status, never written to
 frontmatter. A journal dated in a sealed fiscal year shows as `closed` in the
@@ -5425,17 +5155,12 @@ The SQL fixture checks that correcting the August price to JPY 1.6 leaves the
 old JPY 1,046,000 report intact until a new generation is built. The refreshed
 value is JPY 1,054,000, with the same quantities and acquisition costs.
 
-**Tax/regime references, checked 2026-10-24:** the fund manager's
-[NAV explanation](https://direct.smd-am.co.jp/learn/guide/price/) demonstrates a
-per-10,000 quotation. [NTA No.1464](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1464.htm)
-(law reference date 2026-04-01) describes acquisition costs and the method for
-repeated purchases; a generic FIFO or moving-average label is not a Japanese
-tax determination. For an actual NISA account, confirm the broker's account
-classification, the [FSA NISA rules](https://www.fsa.go.jp/policy/nisa2/know/index.html)
-and [current eligible-product references](https://www.fsa.go.jp/policy/nisa2/products/).
-A unit symbol, a note saying NISA or a successful validation does not establish
-eligibility. Tax-return mapping and automatic product/regime classification
-remain outside this management example.
+**Tax treatment.** How a region taxes fund units — the acquisition-cost method
+for repeated purchases, tax-advantaged accounts — is regional; a generic FIFO
+or moving-average label is not a tax determination, and a unit symbol, a note
+or a successful validation does not establish an account's tax status. See
+your region's guide under [Overlays](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
+automatic product/regime classification remain outside this management example.
 
 ## Balance assertions
 
@@ -5512,8 +5237,9 @@ include raw evidence. Cloud close checks every accepted native view separately. 
 Use `iris allocation` to split a documented gross expense charge by an explicit
 business fraction. It returns exact amounts without changing files or posting
 entries. Confirm the basis and treatment first; an account name cannot establish
-a business percentage. The [NTA's necessary-expense guidance](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
-requires records distinguishing the business portion of household-related costs.
+a business percentage. Tax law may require records that distinguish the
+business portion of household-related costs; your region's guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/) says where.
 The 1/4 fraction below is a synthetic owner-reviewed example, not a recommended rate.
 
 Save this request as `raw/allocation-jan.json`:
@@ -5951,9 +5677,8 @@ for April, and a whole charge spanning March 15–April 15 under either basis.
 It does not select a latest ratio or invent proration. Obtain separately
 evidenced charge amounts for each period before calculating; the example does
 not establish a deductible percentage, legal expense allocation or tax-return
-mapping. For Japanese income-tax evidence requirements, see
-[NTA No. 2210](https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2210.htm)
-(law as of April 1, 2026; checked October 24, 2026). Reversals must retain the original rounded shares. Correcting an old
+mapping. For your region's evidence requirements, see its guide under
+[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. Correcting an old
 source is a separate reviewed correction with its original identity retained.
 
 The checked complete example retains all original January files plus April
@@ -6173,8 +5898,8 @@ accounts:
   - path: 収益:売上
     type: income
     aliases: [sales]
-  - path: 資産:事業主貸
-    type: asset
+  - path: 資本:引出金
+    type: equity
     owner: true               # the owner's own money — left out of Net Worth
   - path: 資本:元入金
     type: equity
@@ -6185,12 +5910,11 @@ The account's normal side is derived from its `type`. `aliases` let journals
 reference an account by another name or language. Add accounts here before
 referencing them in a journal.
 
-`owner: true` marks the owner's personal draw and contribution accounts — for
-a Japanese sole proprietor, 事業主貸 and 事業主借. They keep their type (so the
-balance sheet lays out the way the 青色申告決算書 expects), but they hold the
+`owner: true` marks the owner's personal draw and contribution accounts. They
+keep their type, so the balance sheet lays out as usual, but they hold the
 owner's own money moving in and out of the business, not something the
 business owns or owes, so [Net Worth](https://irisbooks.io/docs/en/web-app/#net-worth) leaves them out.
-The Japanese starter charts set it.
+Starter charts that include such accounts set it.
 
 `retained_earnings: true` marks the equity account
 [`iris yearend`](https://irisbooks.io/docs/en/cli-reference/#iris-yearend) folds the year's net income
@@ -6223,11 +5947,11 @@ schedule:                          # optional recorded table — see below
   - period: 2028-03
     amount: 187500
 schedule_source:                   # present when an overlay recipe wrote the table — see below
-  overlay: jp-declining-balance@2026.10.1
-  recipe: jp-declining-balance.teiritsu
+  overlay: example-declining@2026.10.1   # illustrative package
+  recipe: example-declining.schedule
   bindings: 5
   primitives: {declining_table: 2, flat_table: 2}
-  params: {full_year_confirmed: true, cost: 480000, life: 4, rate: 0.500, guarantee: 0.12499, revised: 1.000, start: 2027-03}
+  params: {cost: 480000, life: 4, rate: 0.500, start: 2027-03}
 disposal:                          # optional, until disposed
   date: 2029-05-10
   proceeds: 50000
@@ -6254,9 +5978,9 @@ positive `useful_life_months`.
 For straight-line assets you can leave `schedule` out: iris computes the charges
 from `useful_life_months`. An expensed asset must omit `schedule` and has one
 charge for the whole cost in its acquisition month, with no useful life.
-For anything else — Japan's
-定率法 with its switch to 改定償却率, US MACRS with its straight-line
-crossover — the table is recorded on the file (`method: declining_balance`
+For anything else — a
+declining-balance method that switches rate or method partway, for
+example — the table is recorded on the file (`method: declining_balance`
 requires one), and iris uses it verbatim.
 
 Each row is a `period` (`YYYY-MM`) and an `amount`. Annual books write one row
@@ -6281,9 +6005,9 @@ tool's `scale` to the destination Book's scale; its default is 0. For example,
 12,345 minor units with `scale: 2` becomes YAML `amount: 123.45`, which parses
 back to the same 12,345 units. The result reports the scale used.
 
-Your AI assistant builds the table for you. When the book's region overlay
-has a **recipe** for the method — Japan's 定率法 is `jp-declining-balance.teiritsu` — it runs
-that with the published rates as inputs and the recipe composes the table and
+Your AI assistant builds the table for you. When a selected overlay has a
+**recipe** for the method (`list_recipes` shows it), it runs that with the
+published rates as inputs and the recipe composes the table and
 writes it, with its provenance, onto the file (`iris overlay recipe`, or the
 matching MCP tool). For a method no recipe covers it composes the arithmetic
 from the calculator tools (see [CLI and your AI](https://irisbooks.io/docs/en/cli-and-llm/)). Once
@@ -6295,8 +6019,8 @@ rows add up to `acquisition_cost` − `salvage_value` (on a disposed asset, no
 more than that — see [Disposing of an asset](#disposing-of-an-asset)). From the rows alone it
 cannot check that a switch landed in the right year — that is what
 `schedule_source` is for (next section). On a hand-composed table, keep the
-rates you used on the file (any extra keys ride along untouched) so your 税理士
-can check them against the published table.
+rates you used on the file (any extra keys ride along untouched) so your
+accountant can check them against the published table.
 
 For assistants: validation checks that rows ascend without duplicates, carry
 no negatives, sit inside `[acquisition month, acquisition month +
@@ -6312,13 +6036,13 @@ table.
 ### `schedule_source:` — where the table came from, replayed
 
 When a recipe wrote the table, it also recorded its provenance: the overlay
-version (`jp-declining-balance@2026.10.1`, or `book:<hash>` for a recipe from your own
+version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
 `config/overlays/`), the recipe, the engine versions it ran under, and the
 inputs you gave — the rates from the published table, the useful life, the
 first row's month. `iris validate` **replays** the recipe with those inputs and
 refuses the file if the recorded rows differ, so a switch a year late no
 longer passes just because the total is right. The inputs stay on the file for
-your 税理士 to check against the published table. A table without
+your accountant to check against the published table. A table without
 `schedule_source` is checked for shape only. Replay uses the exact recorded
 version retained inside the Book, even when it differs from the current
 selection. Embedded bodies and the download cache never substitute for a missing
@@ -6340,17 +6064,10 @@ gain or a loss.
 A computed straight-line schedule stops at the disposal month by itself. A
 recorded table is never rewritten for you: delete the rows after the disposal
 month, and set the disposal-period row to the charge for the part of that year
-the asset was held (in Japan, 月割). The table may then add up to less than
+the asset was held. The table may then add up to less than
 `acquisition_cost` − `salvage_value`, never more. If a recipe wrote the table,
 `iris validate` still replays the rows before the disposal month; the
 disposal-period row is yours.
-
-Japan's three-year pooled depreciation (`toku_rei: ikkatsu_3yr`) and pool
-disposal are unsupported. The current `jp-small-asset-deduction` package rejects
-that regime with `asset.ikkatsu-unsupported`. An ordinary 36-month straight-line
-schedule does not represent the pooled annual deduction. Keep the evidence and
-record the unresolved treatment in `notes/open-questions.md` for review; omitting
-`disposal:` does not make it a supported workflow.
 
 For assistants: run `iris asset depreciate` for the disposal period first, then
 read the figures rather than computing them: `iris export assets` gives
@@ -6358,38 +6075,34 @@ read the figures rather than computing them: `iris export assets` gives
 `ACCUMULATED` / `DISPOSAL_NBV`. Draft the disposal journal from them: credit
 the asset account with `acquisition_cost`, debit accumulated depreciation with
 `accumulated`, debit cash or the receivable with `proceeds`, and book
-`proceeds − disposal_nbv` as a gain (固定資産売却益) or loss (固定資産売却損 /
-除却損). Link it from the asset's `disposal.journal`. For a recorded table,
+`proceeds − disposal_nbv` as a gain or loss. Link it from the asset's `disposal.journal`. For a recorded table,
 delete rows after the disposal month and set the disposal-period row to the
-held part of that year (JP: 月割) first. JP 一括償却資産 (`toku_rei:
-ikkatsu_3yr`) and pool disposal are unsupported (`asset.ikkatsu-unsupported`);
-keep the evidence and record the open treatment in `notes/open-questions.md`.
-Omitting `disposal:` is not a workaround.
+held part of that year first. If a selected package rejects the asset's
+regime, keep the evidence and record the open treatment in
+`notes/open-questions.md`; omitting `disposal:` is not a workaround.
 
 ## Filings — `filings/<recipe>.md`
 
 The figures a return is filed from, as a recorded file. A figures recipe of
-the region overlay (for Japan, `jp-tax-filing.shouhizei-general` and
-`jp-tax-filing.shouhizei-simplified` for the 消費税 return) sums the posted journals and
-combines them the way the return needs; `iris overlay recipe … --apply --out
-filings/jp-tax-filing.shouhizei-general.md` records the result with the same
-provenance as a schedule:
+a selected overlay sums the posted journals and combines them the way the
+return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
+records the result with the same provenance as a schedule. An illustrative
+filing:
 
 ```yaml
 ---
 schema_version: 1
-filing: jp-tax-filing.shouhizei-general
+filing: example-sales-tax.summary
 period: {from: 2026-01-01, to: 2026-12-31}
 source:
-  overlay: jp-tax-filing@2026.10.1
-  recipe: jp-tax-filing.shouhizei-general
+  overlay: example-sales-tax@2026.10.1   # illustrative package
+  recipe: example-sales-tax.summary
   bindings: 5
-  params: {from: 2026-01-01, to: 2026-12-31, scope_confirmed: true}
+  params: {from: 2026-01-01, to: 2026-12-31}
 figures:
-  sales_10: 11000000
-  sales_tax_10: 1000000
-  deductible_tax: 620000
-  net_tax: 380000
+  taxable_sales: 11000000
+  output_tax: 1000000
+  input_tax: 620000
   payable: 380000
   # …
 ---
@@ -6412,9 +6125,8 @@ review the recipe to record portable provenance. Changed factual inputs and
 unknown path contracts still fail replay.
 
 For assistants: never write a filing by hand. Run the figures recipe with
-`--apply --out PATH`, for example `iris overlay recipe
-jp-tax-filing.shouhizei-general --set from=… --set to=… --set
-scope_confirmed=true --apply --out filings/jp-tax-filing.shouhizei-general.md`,
+`--apply --out PATH`, for example `iris overlay recipe <recipe-id>
+--set from=… --set to=… --apply --out filings/<name>.md`,
 or local MCP `run_recipe(recipe=..., params={...}, apply=true, out=...)`.
 `iris validate` re-runs the recipe over the current journals and refuses a
 filing whose figures no longer follow from them (`overlay.replay-mismatch`).
@@ -6430,7 +6142,7 @@ A book may add its own layer on top:
 
 ```text
 config/overlays/
-├── overlay.yaml        # id: book / extends: jp-tax-classification@2026.10.1
+├── overlay.yaml        # id: book / extends: journal-balance@2026.10.1
 ├── fields.yaml         # optional field types and choices
 ├── functions.yaml      # optional shared expressions
 ├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)
@@ -6614,11 +6326,10 @@ investment packages using that contract are development candidates; they do not
 add approved financial-view calculations or tax-return submission.
 
 For assistants: never replace a source carrying value with a rounded
-statutory basis or a market price. The `jp-securities-basis`, `jp-rsu` and
-`jp-foreign-currency` 2026.10.2 packages are unreleased candidates, not part of
-the signed catalog; their figures are filing preparation aids without regional
-financial-view acceptance or e-Tax submission, and they need complete local
-journals.
+statutory basis or a market price. A regional package marked as an unreleased
+candidate in its docs is not part of the signed catalog; its figures are filing
+preparation aids without financial-view acceptance or filing submission, and it
+needs complete local journals.
 
 # Troubleshooting
 
@@ -6641,9 +6352,9 @@ it's the fastest way to learn what's wrong.
 - **Bad status** — `status` must be `draft` or `posted`.
 - **YAML won't parse** — usually indentation or a stray colon in the
   frontmatter. The error names the file.
-- **Tax classification** (JP taxable books) — a `tax` block with an unknown
-  category, or a rate that doesn't match its category (e.g. a `taxable_sale`
-  with no rate, or an `export_sale` with a non-zero rate).
+- **Overlay rules** — a check from a package your book selected, such as a
+  field with a value the package doesn't accept. The message names the rule;
+  the package's docs under [Overlays](https://irisbooks.io/docs/en/overlays/) explain its fields.
 
 Fix and re-run. Your AI assistant can do this loop for you.
 
@@ -6814,7 +6525,6 @@ Almost always a sync gap or a status difference:
   (drafts vs posted) or what sync does.
 - Check the in-book `notes/open-questions.md` — your AI files ambiguous items
   there.
-- For Japan tax specifics, see
-  [Japan tax & compliance](https://irisbooks.io/docs/en/japan-tax-and-compliance/); your AI verifies
-  volatile values (rates, tables, form layouts) against the NTA's current
-  pages.
+- For your region's tax rules, see its guide under [Overlays](https://irisbooks.io/docs/en/overlays/);
+  your AI verifies volatile values (rates, tables, form layouts) against the
+  tax authority's current pages.

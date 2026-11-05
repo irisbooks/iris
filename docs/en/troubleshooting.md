@@ -17,9 +17,9 @@ it's the fastest way to learn what's wrong.
 - **Bad status** — `status` must be `draft` or `posted`.
 - **YAML won't parse** — usually indentation or a stray colon in the
   frontmatter. The error names the file.
-- **Tax classification** (JP taxable books) — a `tax` block with an unknown
-  category, or a rate that doesn't match its category (e.g. a `taxable_sale`
-  with no rate, or an `export_sale` with a non-zero rate).
+- **Overlay rules** — a check from a package your book selected, such as a
+  field with a value the package doesn't accept. The message names the rule;
+  the package's docs under [Overlays](https://irisbooks.io/docs/en/overlays/) explain its fields.
 
 Fix and re-run. Your AI assistant can do this loop for you.
 
@@ -190,7 +190,6 @@ Almost always a sync gap or a status difference:
   (drafts vs posted) or what sync does.
 - Check the in-book `notes/open-questions.md` — your AI files ambiguous items
   there.
-- For Japan tax specifics, see
-  [Japan tax & compliance](japan-tax-and-compliance.md); your AI verifies
-  volatile values (rates, tables, form layouts) against the NTA's current
-  pages.
+- For your region's tax rules, see its guide under [Overlays](https://irisbooks.io/docs/en/overlays/);
+  your AI verifies volatile values (rates, tables, form layouts) against the
+  tax authority's current pages.
