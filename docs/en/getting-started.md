@@ -11,12 +11,14 @@ See [the file workflow](cli-and-llm.md) for folder and tool access boundaries.
 ## Try the sample books
 
 You can look around before you create anything. [The demo](https://irisbooks.io/demo/)
-is the web app with made-up books for a shop and its owner's household, in
-English and Japanese. It needs no account. Nothing you change is saved, and the
-dates move so that this year's books run to today.
+opens made-up books for a shop and its owner's household, in English and
+Japanese, in the screens `iris view` shows on your computer, with `iris` itself
+running in your browser. It needs no account. You can fix a draft, post it and
+watch the reports change. Nothing leaves your browser, and your changes last
+until you reload the page. The dates move so that this year's books run to today.
 
 To try the same books with your own AI, choose **Try it on your computer** in
-the demo and download the zip. Its README covers installing `iris` and opening
+the demo and download the zip, which includes your changes. Its README covers installing `iris` and opening
 a book in Claude Code or Codex. With `iris` installed,
 `iris view --books-dir <unzipped folder>` opens them on your computer in the
 demo's screens, with nothing uploaded. On your computer the household's fund

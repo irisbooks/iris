@@ -180,7 +180,7 @@ and the filters fold behind a **Filters** button. From here you:
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
-To edit drafts on screen, open your local folder with
+To edit drafts and posted entries on screen, open your local folder with
 [`iris view`](iris-view.md); the edits reach this app at your next sync.
 
 Named-view Books label amounts **View preview**, including shared-root entries.

@@ -197,12 +197,14 @@ See [the file workflow](https://irisbooks.io/docs/en/cli-and-llm/) for folder an
 ## Try the sample books
 
 You can look around before you create anything. [The demo](https://irisbooks.io/demo/)
-is the web app with made-up books for a shop and its owner's household, in
-English and Japanese. It needs no account. Nothing you change is saved, and the
-dates move so that this year's books run to today.
+opens made-up books for a shop and its owner's household, in English and
+Japanese, in the screens `iris view` shows on your computer, with `iris` itself
+running in your browser. It needs no account. You can fix a draft, post it and
+watch the reports change. Nothing leaves your browser, and your changes last
+until you reload the page. The dates move so that this year's books run to today.
 
 To try the same books with your own AI, choose **Try it on your computer** in
-the demo and download the zip. Its README covers installing `iris` and opening
+the demo and download the zip, which includes your changes. Its README covers installing `iris` and opening
 a book in Claude Code or Codex. With `iris` installed,
 `iris view --books-dir <unzipped folder>` opens them on your computer in the
 demo's screens, with nothing uploaded. On your computer the household's fund
@@ -667,7 +669,7 @@ lives on the server.
 | | CLI + your AI | `iris view` | Web app |
 | --- | --- | --- | --- |
 | Main use | Owners and accountants working with AI on files | Reading, posting and fixing your files on screen | Viewing, review and cloud administration |
-| Edits | Your AI writes files; you review | Drafts on a form or as source, saved to your files | Approving drafts only |
+| Edits | Your AI writes files; you review | Drafts and posted entries on a form or as source, saved to your files | Approving drafts only |
 | Works offline | Yes | Yes | No (needs the server) |
 | Reports | `iris report …` (text/JSON) | Rendered from your files | Rendered + CSV export |
 
@@ -1463,8 +1465,9 @@ bar and no extensions. Without either browser it opens in your default
 browser; `--tab` asks for that on purpose. On a Mac, the window appears as
 Google Chrome or Microsoft Edge in the Dock and the app switcher.
 
-`iris view` returns at once. The page keeps working until you close it, and
-the top bar says **On this computer**.
+`iris view` returns at once. The page keeps working until you close it. When a
+book in the folder also syncs with the cloud, the top bar says **Local copy**:
+the page shows your files, and changes reach the cloud copy at your next sync.
 
 ## The launcher
 
@@ -1553,9 +1556,9 @@ A post is refused, and the file left as it was, when:
 
 The posting approval setting and closed years come from the book's last sync.
 
-## Editing drafts
+## Editing entries
 
-On a draft's page, choose **Edit**. Work on the **Form** or on the **Source**,
+On a draft's or a posted entry's page, choose **Edit**. Work on the **Form** or on the **Source**,
 the file itself; you can switch between them. The form changes only what you
 change, and keeps everything it doesn't show, such as comments, quantities and
 fields from the book's overlays. An entry with accounting views opens as source
@@ -1563,7 +1566,9 @@ only.
 
 - **Complete** fills in the amounts you left blank, using the book's overlays,
   the same as [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
-  Nothing is saved until you check the amounts and choose **Save**.
+  It removes any row you added and left empty. When it can't calculate the
+  entry, it says what to change. Nothing is saved until you check the amounts
+  and choose **Save**.
 - **Save** writes the entry to `journals/YYYY-MM/`. Changing its date moves it
   to that month's folder.
 - After each save, **Checks on the saved entry** runs the same checks as
@@ -1573,14 +1578,20 @@ only.
 Save refuses an entry that would stop the book's reports: a blank amount, a line
 with no account or with both a debit and a credit, or a date outside the book's
 fiscal year. It also refuses a change of status, because posting is a separate
-step. An entry that doesn't balance, or names an account the chart doesn't have,
-is saved and flagged in the checks. **Post** stays unavailable until the entry
-balances.
+step. An entry that names an account the chart doesn't have is saved and
+flagged in the checks, and so is a draft that doesn't balance. **Post** stays
+unavailable until the draft balances.
 
 If the checks say the book's own overlay layer isn't trusted on this computer,
 review it and run `iris overlay trust`.
 
-A posted entry can't be edited here. Correct it instead.
+A posted entry is changed in place and stays posted. Save refuses a change that
+posting would refuse, so a posted entry always balances. On a linked book, the
+cloud keeps the earlier version in the entry's history after your next sync; a
+book that doesn't sync keeps no earlier version. You can't edit a posted entry
+here when its fiscal year is closed, or when **Posting approval** is on, because
+the server would refuse the change. To leave the posted entry as it was and
+record the fix as a new entry, use **Correct this entry** instead.
 
 ## New entries and corrections
 
@@ -1823,7 +1834,7 @@ and the filters fold behind a **Filters** button. From here you:
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
-To edit drafts on screen, open your local folder with
+To edit drafts and posted entries on screen, open your local folder with
 [`iris view`](https://irisbooks.io/docs/en/iris-view/); the edits reach this app at your next sync.
 
 Named-view Books label amounts **View preview**, including shared-root entries.

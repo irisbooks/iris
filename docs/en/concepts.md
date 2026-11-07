@@ -240,7 +240,7 @@ lives on the server.
 | | CLI + your AI | `iris view` | Web app |
 | --- | --- | --- | --- |
 | Main use | Owners and accountants working with AI on files | Reading, posting and fixing your files on screen | Viewing, review and cloud administration |
-| Edits | Your AI writes files; you review | Drafts on a form or as source, saved to your files | Approving drafts only |
+| Edits | Your AI writes files; you review | Drafts and posted entries on a form or as source, saved to your files | Approving drafts only |
 | Works offline | Yes | Yes | No (needs the server) |
 | Reports | `iris report …` (text/JSON) | Rendered from your files | Rendered + CSV export |
 
