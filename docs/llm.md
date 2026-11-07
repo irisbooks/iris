@@ -1568,7 +1568,8 @@ only.
   the same as [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
   It removes any row you added and left empty. When it can't calculate the
   entry, it says what to change. Nothing is saved until you check the amounts
-  and choose **Save**.
+  and choose **Save**. An entry saved with a blank amount, draft or posted,
+  still opens here so you can complete it.
 - **Save** writes the entry to `journals/YYYY-MM/`. Changing its date moves it
   to that month's folder.
 - After each save, **Checks on the saved entry** runs the same checks as
@@ -2869,7 +2870,7 @@ and hints affect neither `ok` nor the exit code.
 
 ### iris journal complete
 
-Preview completion of an existing draft journal, using explicitly selected
+Preview completion of an existing journal, draft or posted, using explicitly selected
 Overlay definitions and native arithmetic. Money-only journals can leave one balancing amount as `null`.
 The inventory overlay fills disposal cost and proposes a gain/loss line from
 recorded quantities, settlement amounts and earlier posted acquisitions.
@@ -2887,8 +2888,8 @@ leaving shared lines and other views intact.
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
 lists quantities, costs, lots and effective methods, and `revision` identifies
 the inputs and proposal. Preview writes nothing. `--apply` recalculates before
-writing and refuses a stale revision; it keeps the journal a draft. It does
-not post or sync. Archived books and known sealed years refuse apply.
+writing and refuses a stale revision. It leaves the journal's status as it
+is and does not sync. Archived books and known sealed years refuse apply.
 
 Packages with bindings v5 preparation points can first fill missing scalar
 concern fields through fixed classification/calculation stages. JSON includes
@@ -4496,8 +4497,8 @@ missing definition or enables a package by itself.
 Bindings v4 excludes journal workflow status and approval/closure metadata,
 including nested record data. Definitions that read `journal.status` or target
 lifecycle fields fail with an explicit compatibility error. Domain facts, such
-as an overlay's own settings, remain available. The host enforces draft-only
-completion, posting permissions, seals and status-aware report inclusion.
+as an overlay's own settings, remain available. The host enforces posting
+permissions, seals and status-aware report inclusion.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
 A package can export `points.yaml` with a qualified point ID, interface version,

@@ -133,8 +133,8 @@ missing definition or enables a package by itself.
 Bindings v4 excludes journal workflow status and approval/closure metadata,
 including nested record data. Definitions that read `journal.status` or target
 lifecycle fields fail with an explicit compatibility error. Domain facts, such
-as an overlay's own settings, remain available. The host enforces draft-only
-completion, posting permissions, seals and status-aware report inclusion.
+as an overlay's own settings, remain available. The host enforces posting
+permissions, seals and status-aware report inclusion.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
 A package can export `points.yaml` with a qualified point ID, interface version,

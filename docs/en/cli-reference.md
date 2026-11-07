@@ -310,7 +310,7 @@ and hints affect neither `ok` nor the exit code.
 
 ### iris journal complete
 
-Preview completion of an existing draft journal, using explicitly selected
+Preview completion of an existing journal, draft or posted, using explicitly selected
 Overlay definitions and native arithmetic. Money-only journals can leave one balancing amount as `null`.
 The inventory overlay fills disposal cost and proposes a gain/loss line from
 recorded quantities, settlement amounts and earlier posted acquisitions.
@@ -328,8 +328,8 @@ leaving shared lines and other views intact.
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
 lists quantities, costs, lots and effective methods, and `revision` identifies
 the inputs and proposal. Preview writes nothing. `--apply` recalculates before
-writing and refuses a stale revision; it keeps the journal a draft. It does
-not post or sync. Archived books and known sealed years refuse apply.
+writing and refuses a stale revision. It leaves the journal's status as it
+is and does not sync. Archived books and known sealed years refuse apply.
 
 Packages with bindings v5 preparation points can first fill missing scalar
 concern fields through fixed classification/calculation stages. JSON includes

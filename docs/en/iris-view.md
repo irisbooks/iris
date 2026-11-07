@@ -127,7 +127,8 @@ only.
   the same as [`iris journal complete`](cli-reference.md#iris-journal-complete).
   It removes any row you added and left empty. When it can't calculate the
   entry, it says what to change. Nothing is saved until you check the amounts
-  and choose **Save**.
+  and choose **Save**. An entry saved with a blank amount, draft or posted,
+  still opens here so you can complete it.
 - **Save** writes the entry to `journals/YYYY-MM/`. Changing its date moves it
   to that month's folder.
 - After each save, **Checks on the saved entry** runs the same checks as
