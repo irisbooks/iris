@@ -159,6 +159,15 @@ Bindings v5 では、仕訳の補完前に追加フィールドを計算でき�
 現在の帳簿設定を保存済みの入力の代わりに使うことはありません。
 検証がこの計算を実行して記録を修正することもありません。
 
+Bindings v7 では、定義が自らの結果を利用者が読める言葉で説明できます。
+補完ルールには短い `name`（`{en: Shares sold, ja: 株式の売却}`）、在庫の方針には
+原価の配分方法を説明する `description`、`postings` の提案では金額や追加する明細
+ごとに `reason` を付けられます。いずれも言語ごとに1行で、英語は必須です。
+帳簿独自の `config/overlays/overlay.yaml` にも `name` を付けられます。これらは
+表示にだけ使い、仕訳には書き込みません。公開パッケージで使う場合は
+`requires_bindings: 7` を宣言します。帳簿独自のレイヤーでは bindings に関係なく
+使えます。
+
 ローカルの Overlay 検証では、フィールドの条件、補助関数、帳簿集計、値の提案、
 保存済みの結果の再計算に共通の上限を設けています。CLI は帳簿全体で上限を共有し、
 補完とタスク情報の取得も、それぞれ1回の処理全体で計算量を数えます。
@@ -266,6 +275,31 @@ fields:
 既存のパッケージでは、まずルールの `assert` に書かれた候補値を確認してください。
 構造化した定義を追加するには、新しい公開バージョンか、帳簿独自のフィールド定義が
 必要です。
+
+帳簿ですでに定義しているものを指す設定は、参照として宣言します。`account` は
+勘定科目表のパス1つ、`accounts` はそのリストです。`account_types`（`asset`・
+`liability`・`equity`・`income`・`expense`）で使える種類を絞り込めます。`unit` は
+`units:` に定義した単位1つ、`units` はそのリストです。
+
+```yaml
+fields:
+  book.sales_settlement:
+    type: map
+    description: {en: Accounts sales settle through, ja: 売上の決済に使う勘定科目}
+  book.sales_settlement.gain_account:
+    type: account
+    account_types: [income, expense]
+  book.sales_settlement.cash_accounts:
+    type: accounts
+    account_types: [asset]
+  book.sales_settlement.unit:
+    type: unit
+```
+
+保存される値は通常の文字列のままなので、式からは従来どおり読めます。帳簿に
+定義のない参照は帳簿のチェックで報告され、[`iris view`](iris-view.md#プラグイン)
+ではテキスト欄の代わりに勘定科目表や単位から選べます。参照型には `enum` を
+指定できません。参照型を使う公開パッケージは `requires_bindings: 7` を宣言します。
 
 パッケージの `guides/*.md` には、その処理の手順を書けます。表示された ID を使って
 `iris overlay guide <id> [path]`、またはローカル MCP の `read_overlay_guide`

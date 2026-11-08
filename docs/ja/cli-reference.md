@@ -314,7 +314,9 @@ iris journal complete --apply --revision <preview-revision> journals/2026-10/202
 
 出力は常に JSON です。`proposal` に Markdown 全文、`allocations` に数量・原価・
 ロット・適用方法、`balanced` に貸借を一致させる金額を入れた行、
-`description` に補完ルール自身による計算内容の説明、`revision` に入力と
+`name` と `description` に補完ルール自身の短い名前と計算内容の説明、
+`overlayName` に帳簿独自のレイヤーの名前、`policy` に適用した在庫の方針と
+その説明、`reasons` に提案が金額を定めた理由（行ごと）、`revision` に入力と
 提案を識別する値を返します。仕訳を変えない補完ルールは、仕訳を変える
 ルールと競合しません。
 プレビューでは書き込みません。`--apply` は書き込む前に再計算し、指定した

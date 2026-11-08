@@ -84,7 +84,7 @@ calculated by `iris` from your files:
 - The four reports: **General Ledger**, **Trial Balance**, **Profit & Loss**
   and **Balance Sheet**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
-- **Accounting packages**, which only this page has (see below).
+- **Plugins**, which only this page has (see below).
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
   one. They include every book in the folder.
 
@@ -133,7 +133,8 @@ only.
   left empty. **How it's calculated** works each calculated figure through: a
   sale's cost from the earlier purchases it came from, and the amount that
   balances the entry from the other lines. An amount an overlay sets itself is
-  explained by the overlay's own description, which follows. When two of the book's overlays calculate the entry differently,
+  explained by the reason the overlay gives, or by its own description, which
+  follows. When two of the book's overlays calculate the entry differently,
   both results appear side by side; choose one, and it stays your choice while
   you keep editing. When the entry can't be calculated, the reason
   appears under the totals. Nothing is saved until you check the amounts and
@@ -173,43 +174,55 @@ payee.
 reverse it, keeping its attachments. Add the right lines below them and save,
 then post the correction. The posted entry stays exactly as it was.
 
-## Accounting packages
+## Plugins
 
-**Accounting packages** lists the packages this book keeps a copy of, grouped as
-common or by region, above the **Core checks** that always run. A package that
-needs another is shown under it. Choose one to see what it adds to the book:
-checks, calculations, suggested values, completions, fields, tasks and guides,
-and the package's own notes.
+**Plugins** lists the plugins this book keeps a copy of (`iris` calls them
+[overlays](concepts.md#region-rules-the-overlay)), grouped as common or by
+region, above the **Core checks** that always run. A plugin that needs another
+is shown under it. Choose one to see what it adds to the book: checks,
+calculations, suggested values, completions, fields, tasks and guides, and the
+plugin's own notes.
 
-To turn a package on or off, use its switch or **Turn on** / **Turn off**. The
-page first shows what would change: the packages that go with it (a package
+To turn a plugin on or off, use its switch or **Turn on** / **Turn off**. The
+page first shows what would change: the plugins that go with it (a plugin
 that another one needs can't be turned off alone), what starts or stops, and
-how many recorded results came from these packages. Nothing is written until
+how many recorded results came from these plugins. Nothing is written until
 you confirm, and then exactly what you reviewed; if the book changed in
 between, you're asked to review again. The page changes `overlays:` in
 `config/book.yaml`, as [`iris overlay select`](cli-reference.md#iris-overlay)
-does. A package you turn off keeps its copy in the book, and figures recorded
+does. A plugin you turn off keeps its copy in the book, and figures recorded
 with it are still checked. On a linked book the change reaches the cloud at
 your next sync.
 
-The selection can't change while the book's fiscal year is closed or the book
-is an archive.
+A plugin with **Settings** shows them in a form: the book-level fields it
+declares, such as a choice between methods. A field appears when it applies,
+so choosing one value can bring up others it needs. A setting that names
+accounts or units offers the book's chart of accounts or its declared units, and
+marks one the book doesn't have. A plugin that doesn't describe its settings
+field by field is edited as YAML. Before you save, the
+page shows the change to `config/book.yaml`, and it saves exactly that;
+comments and other settings stay as they were. If the book changed in
+between, you're asked to review again.
 
-**Available to add** lists the packages that come with your version of `iris`
+Nothing here can change while the book's fiscal year is closed or the book is
+an archive.
+
+**Available to add** lists the plugins that come with your version of `iris`
 and that the book doesn't have yet; nothing is downloaded. **Add** shows the
-same kind of review, plus the result of each package's own tests, then copies
-the exact package into the book and turns it on, together with any package it
-needs. A package for another region's books is listed under **Other regions**
-and can't be added. Packages released after your version of `iris` aren't
+same kind of review, plus the result of each plugin's own tests, then copies
+the exact plugin into the book and turns it on, together with any plugin it
+needs. A plugin for another region's books is listed under **Other regions**
+and can't be added. Plugins released after your version of `iris` aren't
 listed: ask your assistant, or run `iris overlay install --pin` with the exact
-version. A newer version of a package the book already has is an upgrade:
-use `iris overlay upgrade`.
+version. A newer version of a plugin the book already has is an upgrade: use
+`iris overlay upgrade`.
 
 The book's own definitions in `config/overlays/` appear at the top; they run
 only after you trust them with `iris overlay trust`.
 
-In [the demo](https://irisbooks.io/demo/) you can see what turning a package on
-or off, or adding one, would change, without changing it.
+In [the demo](https://irisbooks.io/demo/) you can see what turning a plugin on
+or off, adding one, or changing its settings would do, without changing
+anything.
 
 ## Prices and currencies
 

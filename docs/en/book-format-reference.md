@@ -167,6 +167,15 @@ changed source facts/results fail verification, while an unavailable copy gives
 an explicit warning. Current book settings do not replace saved inputs.
 Validation never runs a preparation chain to repair a candidate.
 
+Bindings v7 lets definitions describe their own results in words people read.
+A completion can have a short `name` (`{en: Shares sold, ja: 株式の売却}`), an
+inventory policy a `description` of how it allocates cost, and each amount or
+appended line in a `postings` proposal a `reason`. Each is one line per
+language, with English required. A Book's own `config/overlays/overlay.yaml`
+can also have a `name`. These texts are shown, never written into journals.
+Published packages that use them declare `requires_bindings: 7`; a Book's own
+layer can use them under any bindings.
+
 Local Overlay checks share a budget across the complete validation request,
 including field guards, private helper bodies, native ledger operations,
 derivation hints and recorded-result replay. The CLI uses one session for the
@@ -285,6 +294,33 @@ also have a CEL `when` condition. Present values are checked against their
 types and choices. Older packages without field definitions still expose their
 rule assertions, including any lists of accepted values; structured metadata
 requires a new published version or an additional book-local field definition.
+
+A setting that names something the book already defines is declared as a
+reference. `account` holds one path from the chart of accounts and `accounts` a
+list of them, optionally narrowed by `account_types` (`asset`, `liability`,
+`equity`, `income`, `expense`); `unit` holds one symbol declared under `units:`
+and `units` a list:
+
+```yaml
+fields:
+  book.sales_settlement:
+    type: map
+    description: {en: Accounts sales settle through, ja: 売上の決済に使う勘定科目}
+  book.sales_settlement.gain_account:
+    type: account
+    account_types: [income, expense]
+  book.sales_settlement.cash_accounts:
+    type: accounts
+    account_types: [asset]
+  book.sales_settlement.unit:
+    type: unit
+```
+
+The stored values stay plain strings, so expressions read them as before. The
+book's checks report a reference the book doesn't define, and
+[`iris view`](iris-view.md#plugins) offers the chart or the units instead of a
+text box. Reference types take no `enum`, and a published package that uses
+them declares `requires_bindings: 7`.
 
 A package's `guides/*.md` describes its workflow. Read a discovered guide with
 `iris overlay guide <id> [path]` or local MCP `read_overlay_guide` (`guide`).
