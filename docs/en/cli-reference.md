@@ -326,8 +326,11 @@ omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
-lists quantities, costs, lots and effective methods, and `revision` identifies
-the inputs and proposal. Preview writes nothing. `--apply` recalculates before
+lists quantities, costs, lots and effective methods, `balanced` names the line
+filled with the amount that balances the entry, `description` is the
+completion's own account of what it calculates, and `revision` identifies the
+inputs and proposal. A completion that would leave the journal unchanged
+doesn't conflict with one that changes it. Preview writes nothing. `--apply` recalculates before
 writing and refuses a stale revision. It leaves the journal's status as it
 is and does not sync. Archived books and known sealed years refuse apply.
 

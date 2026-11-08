@@ -1525,6 +1525,7 @@ calculated by `iris` from your files:
 - The four reports: **General Ledger**, **Trial Balance**, **Profit & Loss**
   and **Balance Sheet**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
+- **Accounting packages**, which only this page has (see below).
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
   one. They include every book in the folder.
 
@@ -1564,12 +1565,21 @@ change, and keeps everything it doesn't show, such as comments, quantities and
 fields from the book's overlays. An entry with accounting views opens as source
 only.
 
-- **Complete** fills in the amounts you left blank, using the book's overlays,
-  the same as [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
-  It removes any row you added and left empty. When it can't calculate the
-  entry, it says what to change. Nothing is saved until you check the amounts
-  and choose **Save**. An entry saved with a blank amount, draft or posted,
-  still opens here so you can complete it.
+- **As you type, the book's overlays calculate** what they can, such as an
+  amount you leave blank, the same as
+  [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete). The result
+  appears in the blank field with a dashed outline. A line an overlay would
+  add, such as a gain on a sale, appears below the others. Choose
+  **Fill in** to enter them all at once; it also removes any row you added and
+  left empty. **How it's calculated** works each calculated figure through: a
+  sale's cost from the earlier purchases it came from, and the amount that
+  balances the entry from the other lines. An amount an overlay sets itself is
+  explained by the overlay's own description, which follows. When two of the book's overlays calculate the entry differently,
+  both results appear side by side; choose one, and it stays your choice while
+  you keep editing. When the entry can't be calculated, the reason
+  appears under the totals. Nothing is saved until you check the amounts and
+  choose **Save**. An entry saved with a blank amount, draft or posted, still
+  opens here so you can fill it in.
 - **Save** writes the entry to `journals/YYYY-MM/`. Changing its date moves it
   to that month's folder.
 - After each save, **Checks on the saved entry** runs the same checks as
@@ -1603,6 +1613,44 @@ payee.
 **Correct this entry**, on a posted entry, starts a new draft whose lines
 reverse it, keeping its attachments. Add the right lines below them and save,
 then post the correction. The posted entry stays exactly as it was.
+
+## Accounting packages
+
+**Accounting packages** lists the packages this book keeps a copy of, grouped as
+common or by region, above the **Core checks** that always run. A package that
+needs another is shown under it. Choose one to see what it adds to the book:
+checks, calculations, suggested values, completions, fields, tasks and guides,
+and the package's own notes.
+
+To turn a package on or off, use its switch or **Turn on** / **Turn off**. The
+page first shows what would change: the packages that go with it (a package
+that another one needs can't be turned off alone), what starts or stops, and
+how many recorded results came from these packages. Nothing is written until
+you confirm, and then exactly what you reviewed; if the book changed in
+between, you're asked to review again. The page changes `overlays:` in
+`config/book.yaml`, as [`iris overlay select`](https://irisbooks.io/docs/en/cli-reference/#iris-overlay)
+does. A package you turn off keeps its copy in the book, and figures recorded
+with it are still checked. On a linked book the change reaches the cloud at
+your next sync.
+
+The selection can't change while the book's fiscal year is closed or the book
+is an archive.
+
+**Available to add** lists the packages that come with your version of `iris`
+and that the book doesn't have yet; nothing is downloaded. **Add** shows the
+same kind of review, plus the result of each package's own tests, then copies
+the exact package into the book and turns it on, together with any package it
+needs. A package for another region's books is listed under **Other regions**
+and can't be added. Packages released after your version of `iris` aren't
+listed: ask your assistant, or run `iris overlay install --pin` with the exact
+version. A newer version of a package the book already has is an upgrade:
+use `iris overlay upgrade`.
+
+The book's own definitions in `config/overlays/` appear at the top; they run
+only after you trust them with `iris overlay trust`.
+
+In [the demo](https://irisbooks.io/demo/) you can see what turning a package on
+or off, or adding one, would change, without changing it.
 
 ## Prices and currencies
 
@@ -2886,8 +2934,11 @@ omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
-lists quantities, costs, lots and effective methods, and `revision` identifies
-the inputs and proposal. Preview writes nothing. `--apply` recalculates before
+lists quantities, costs, lots and effective methods, `balanced` names the line
+filled with the amount that balances the entry, `description` is the
+completion's own account of what it calculates, and `revision` identifies the
+inputs and proposal. A completion that would leave the journal unchanged
+doesn't conflict with one that changes it. Preview writes nothing. `--apply` recalculates before
 writing and refuses a stale revision. It leaves the journal's status as it
 is and does not sync. Archived books and known sealed years refuse apply.
 
