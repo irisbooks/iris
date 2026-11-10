@@ -92,7 +92,7 @@ The sidebar stays available on both global and book pages:
   its Overview; when switching from another book, the current section is
   preserved and book-specific filters and resource selections are cleared.
   The arrow expands its sections without changing the current page. One
-  book expands at a time, with Overview, Journals, Activity, four report
+  book expands at a time, with Overview, Journals, Activity, five report
   links, and management pages for Files, Accounts, Notes, Year-end and
   Book settings.
 - **Closed books** groups closed and archived books. A direct link to one
@@ -169,6 +169,12 @@ and the filters fold behind a **Filters** button. From here you:
   status (posted / draft / closed / …), and amount
   (equals / greater / less).
 - **Export** the filtered list to CSV.
+- **Switch to Journal book** to read the entries the way a paper journal
+  book lays them out: posted entries only (a draft isn't in the book yet),
+  oldest first, each entry's lines inline with the debit account and amount
+  beside the credit account and amount, a line's own memo or else the entry's
+  description, and the counterparty; totals at the end once every entry in
+  the period is loaded. It prints, and its CSV has the same rows.
 - **Open an entry** to see its full detail: date, counterparty, status, tags,
   attached source documents (click through to the document), the line-item
   table with debits/credits and totals, and the narrative body.
@@ -207,15 +213,54 @@ version for inspection; restore through permitted local/CLI operations.
 
 ## Reports
 
-Four reports, each with date/as-of filters, a "hide zero-balance rows" toggle,
-and CSV export:
+Five reports, each with date/as-of filters and CSV export (the statements
+also have a "hide zero-balance rows" toggle):
 
-- **General Ledger** — pick an account and see its full ledger for the period,
-  with an optional opening balance. A row's description is the line's memo,
-  or the first line of the entry's body when the line has none.
-- **Trial Balance** — balances as of a date; warns if debits ≠ credits.
+- **General Ledger** — pick an account and see its full ledger for the period
+  laid out like a paper ledger: date, description, corresponding account,
+  counterparty, debit, credit, Dr/Cr and balance, with an optional opening
+  balance. A row's description is the line's memo, or the first line of the
+  entry's body when the line has none. The corresponding account is the
+  account on the other side of the entry, *Various* when there are several
+  (click it to see their lines, and any other lines on the row's side), or
+  *Brought forward* for the book's opening-balances entry. The balance is
+  never negative; Dr/Cr says which side it stands on. A monthly total and a
+  cumulative total follow each month unless a filter hides rows; the
+  cumulative total runs from the start of the year even when the period
+  starts later. Print shows
+  the labels only; the CSV adds the lines behind them. Pick a parent account
+  (or click a group row on the P&L or balance sheet) to see every account
+  beneath it in one ledger, with a sub-account column.
+- **Trial Balance** — balances as of a date, or switch to **Period** for each
+  account's opening balance, the period's debits and credits, and its closing
+  balance (the opening-balances entry counts as opening); warns if debits ≠
+  credits.
 - **P&L** — revenue and expenses with subtotals and net income for a period.
-- **Balance Sheet** — assets, liabilities, and equity as of a date.
+  When the chart gives accounts a section, it reads like a set of accounts:
+  sales, cost of sales, gross profit, operating expenses, operating profit,
+  other income and expenses, profit before tax and net income, with any
+  unclassified accounts just before net income.
+- **Balance Sheet** — assets, liabilities, and equity as of a date. With
+  sections, assets and liabilities each split into current and non-current,
+  with the owner's accounts on their own line at the end.
+- **Compare with last year** on the P&L and balance sheet adds a last-year
+  column: the same months a year earlier for the P&L, the balances at the end
+  of the same month a year earlier for the balance sheet. The figures come
+  from the book's `config/prior-year.yaml`, which `iris yearend` writes from
+  last year's book.
+- **Monthly Trend** — the months of a period side by side: revenue and
+  expenses per month with net income, then each month-end's assets,
+  liabilities and equity. Each section ends with its total, and each
+  month-end closes like the balance sheet: net income for the year so far,
+  then total liabilities and equity, equal to total assets (a warning shows
+  when a month doesn't tie). With sections, the months follow the same lines
+  as the P&L and balance sheet.
+- **Cash Flow** — the cash flow statement for a period: cash at the start,
+  receipts and payments by operating, investing and financing activity,
+  entries it can't place (unclassified), and cash at the end. A chart without
+  sections lists receipts and payments by account instead, in one list. It
+  follows the accounts the chart marks as cash; without one, it says what to
+  mark.
 
 Reports open on the book's fiscal year (`fiscal_year` in `config/book.yaml`),
 from its first day to today, clamped to the year's first or last day when

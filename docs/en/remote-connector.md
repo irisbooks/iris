@@ -43,6 +43,9 @@ credentials or collaborator roles.
   account ledger and grouped totals. Ordinary books use posted entries;
   named views require a current accepted financial ledger. Responses include
   the sync watermark `figures_as_of` when available.
+- **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
+  gives the movements of the accounts the chart marks as cash, by operating,
+  investing and financing activity, with opening and closing cash.
 - **Inspect asset movements** — `get_report(report="cashflow")` is the legacy
   name for monthly gross asset increases/decreases, including receivables and
   fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
@@ -69,7 +72,10 @@ credentials or collaborator roles.
   metadata only. It does not send email or create upload links.
 
 Select cloud books with `book_id` from `list_books`. Report arguments depend on
-`report`: `as_of` for trial balance/balance sheet; `from`/`to` for P&L;
+`report`: `as_of` for trial balance/balance sheet, plus `from` for the
+trial balance's period form; `from`/`to` for P&L, the monthly `trend` and
+the `cash-flow-statement`;
+`compare: prior-year` on P&L and balance sheet for last year's figures;
 `account` plus `from`/`to` or `as_of` for ledger; `by` plus `from`/`to` or
 `year` for sum; `year` for asset movements. Inapplicable fields, invalid types,
 unknown arguments and reversed ranges return errors rather than being ignored.

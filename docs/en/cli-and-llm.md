@@ -493,9 +493,9 @@ sections and sizes. `--section <id>` reads one; `--full` explicitly reads the
 chapter. Local MCP `read_docs` has equivalent `topic`, `section` and `full`
 selectors without a book argument. No login, download or network is required.
 
-For requested setup, use the [start guide](/start/); current cloud authorization
-is in [cloud setup](/start/cloud/). Older tools without bundled lookup can use
-the [docs index](/llms.txt). The [complete AI manual](/llms-full.txt) is optional.
+For requested setup, use the [start guide](https://irisbooks.io/start/); current cloud authorization
+is in [cloud setup](https://irisbooks.io/start/cloud/). Older tools without bundled lookup can use
+the [docs index](https://irisbooks.io/llms.txt). The [complete AI manual](https://irisbooks.io/llms-full.txt) is optional.
 An optional Markdown cache belongs outside bookkeeping records, with source URL
 and release tag: `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
 Match `iris version` where available and search only needed sections. Use the

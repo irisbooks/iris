@@ -292,6 +292,17 @@ migrating from another system, these should reconcile to that system's trial
 balance at the cutover date. (`notes/todos.md` has a task reminding you of
 this.)
 
+Already hold investments or anything else counted in units (fund units,
+shares, coins) bought in earlier years? Put each holding in that opening entry
+with its quantity and unit. Then list what is left of its purchases — original
+dates, quantities and costs — as lots under `opening_inventory` in
+`config/book.yaml`. The book then keeps the holding's acquisition cost apart
+from its book value, later sales use up the oldest lots first by default, and
+`iris yearend` carries the lots still held into the next year's book. The
+earlier purchases themselves can't be entries in this book: they fall outside
+its fiscal year. See
+[acquisition openings](https://irisbooks.io/docs/en/book-format-reference/#independent-annual-books-and-acquisition-openings).
+
 ### 4. Connect your AI assistant
 
 If your assistant can already run the CLI and access this folder, no additional
@@ -1174,9 +1185,9 @@ sections and sizes. `--section <id>` reads one; `--full` explicitly reads the
 chapter. Local MCP `read_docs` has equivalent `topic`, `section` and `full`
 selectors without a book argument. No login, download or network is required.
 
-For requested setup, use the [start guide](/start/); current cloud authorization
-is in [cloud setup](/start/cloud/). Older tools without bundled lookup can use
-the [docs index](/llms.txt). The [complete AI manual](/llms-full.txt) is optional.
+For requested setup, use the [start guide](https://irisbooks.io/start/); current cloud authorization
+is in [cloud setup](https://irisbooks.io/start/cloud/). Older tools without bundled lookup can use
+the [docs index](https://irisbooks.io/llms.txt). The [complete AI manual](https://irisbooks.io/llms-full.txt) is optional.
 An optional Markdown cache belongs outside bookkeeping records, with source URL
 and release tag: `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
 Match `iris version` where available and search only needed sections. Use the
@@ -1522,8 +1533,8 @@ These screens work as they do in [the web app](https://irisbooks.io/docs/en/web-
 calculated by `iris` from your files:
 
 - **Overview**, **Journals** and each entry's detail.
-- The four reports: **General Ledger**, **Trial Balance**, **Profit & Loss**
-  and **Balance Sheet**.
+- The five reports: **General Ledger**, **Trial Balance**, **Profit & Loss**,
+  **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
 - **Plugins**, which only this page has (see below).
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
@@ -1565,15 +1576,13 @@ change, and keeps everything it doesn't show, such as comments, quantities and
 fields from the book's overlays. An entry with accounting views opens as source
 only.
 
-- **As you type, the book's overlays calculate** what they can, such as an
-  amount you leave blank, the same as
-  [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete). The result
-  appears in the blank field with a dashed outline. A line an overlay would
-  add, such as a gain on a sale, appears below the others. Choose
+- **As you type, the book's overlays calculate** what they can, the same as
+  [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete). A
+  calculated amount appears in its blank field with a dashed outline, and a
+  line an overlay would add appears below the others. Choose
   **Fill in** to enter them all at once; it also removes any row you added and
-  left empty. **How it's calculated** works each calculated figure through: a
-  sale's cost from the earlier purchases it came from, and the amount that
-  balances the entry from the other lines. An amount an overlay sets itself is
+  left empty. **How it's calculated** works each calculated figure through from
+  the figures it came from. An amount an overlay sets itself is
   explained by the reason the overlay gives, or by its own description, which
   follows. When two of the book's overlays calculate the entry differently,
   both results appear side by side; choose one, and it stays your choice while
@@ -1808,7 +1817,7 @@ The sidebar stays available on both global and book pages:
   its Overview; when switching from another book, the current section is
   preserved and book-specific filters and resource selections are cleared.
   The arrow expands its sections without changing the current page. One
-  book expands at a time, with Overview, Journals, Activity, four report
+  book expands at a time, with Overview, Journals, Activity, five report
   links, and management pages for Files, Accounts, Notes, Year-end and
   Book settings.
 - **Closed books** groups closed and archived books. A direct link to one
@@ -1885,6 +1894,12 @@ and the filters fold behind a **Filters** button. From here you:
   status (posted / draft / closed / …), and amount
   (equals / greater / less).
 - **Export** the filtered list to CSV.
+- **Switch to Journal book** to read the entries the way a paper journal
+  book lays them out: posted entries only (a draft isn't in the book yet),
+  oldest first, each entry's lines inline with the debit account and amount
+  beside the credit account and amount, a line's own memo or else the entry's
+  description, and the counterparty; totals at the end once every entry in
+  the period is loaded. It prints, and its CSV has the same rows.
 - **Open an entry** to see its full detail: date, counterparty, status, tags,
   attached source documents (click through to the document), the line-item
   table with debits/credits and totals, and the narrative body.
@@ -1923,15 +1938,54 @@ version for inspection; restore through permitted local/CLI operations.
 
 ## Reports
 
-Four reports, each with date/as-of filters, a "hide zero-balance rows" toggle,
-and CSV export:
+Five reports, each with date/as-of filters and CSV export (the statements
+also have a "hide zero-balance rows" toggle):
 
-- **General Ledger** — pick an account and see its full ledger for the period,
-  with an optional opening balance. A row's description is the line's memo,
-  or the first line of the entry's body when the line has none.
-- **Trial Balance** — balances as of a date; warns if debits ≠ credits.
+- **General Ledger** — pick an account and see its full ledger for the period
+  laid out like a paper ledger: date, description, corresponding account,
+  counterparty, debit, credit, Dr/Cr and balance, with an optional opening
+  balance. A row's description is the line's memo, or the first line of the
+  entry's body when the line has none. The corresponding account is the
+  account on the other side of the entry, *Various* when there are several
+  (click it to see their lines, and any other lines on the row's side), or
+  *Brought forward* for the book's opening-balances entry. The balance is
+  never negative; Dr/Cr says which side it stands on. A monthly total and a
+  cumulative total follow each month unless a filter hides rows; the
+  cumulative total runs from the start of the year even when the period
+  starts later. Print shows
+  the labels only; the CSV adds the lines behind them. Pick a parent account
+  (or click a group row on the P&L or balance sheet) to see every account
+  beneath it in one ledger, with a sub-account column.
+- **Trial Balance** — balances as of a date, or switch to **Period** for each
+  account's opening balance, the period's debits and credits, and its closing
+  balance (the opening-balances entry counts as opening); warns if debits ≠
+  credits.
 - **P&L** — revenue and expenses with subtotals and net income for a period.
-- **Balance Sheet** — assets, liabilities, and equity as of a date.
+  When the chart gives accounts a section, it reads like a set of accounts:
+  sales, cost of sales, gross profit, operating expenses, operating profit,
+  other income and expenses, profit before tax and net income, with any
+  unclassified accounts just before net income.
+- **Balance Sheet** — assets, liabilities, and equity as of a date. With
+  sections, assets and liabilities each split into current and non-current,
+  with the owner's accounts on their own line at the end.
+- **Compare with last year** on the P&L and balance sheet adds a last-year
+  column: the same months a year earlier for the P&L, the balances at the end
+  of the same month a year earlier for the balance sheet. The figures come
+  from the book's `config/prior-year.yaml`, which `iris yearend` writes from
+  last year's book.
+- **Monthly Trend** — the months of a period side by side: revenue and
+  expenses per month with net income, then each month-end's assets,
+  liabilities and equity. Each section ends with its total, and each
+  month-end closes like the balance sheet: net income for the year so far,
+  then total liabilities and equity, equal to total assets (a warning shows
+  when a month doesn't tie). With sections, the months follow the same lines
+  as the P&L and balance sheet.
+- **Cash Flow** — the cash flow statement for a period: cash at the start,
+  receipts and payments by operating, investing and financing activity,
+  entries it can't place (unclassified), and cash at the end. A chart without
+  sections lists receipts and payments by account instead, in one list. It
+  follows the accounts the chart marks as cash; without one, it says what to
+  mark.
 
 Reports open on the book's fiscal year (`fiscal_year` in `config/book.yaml`),
 from its first day to today, clamped to the year's first or last day when
@@ -2392,6 +2446,9 @@ credentials or collaborator roles.
   account ledger and grouped totals. Ordinary books use posted entries;
   named views require a current accepted financial ledger. Responses include
   the sync watermark `figures_as_of` when available.
+- **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
+  gives the movements of the accounts the chart marks as cash, by operating,
+  investing and financing activity, with opening and closing cash.
 - **Inspect asset movements** — `get_report(report="cashflow")` is the legacy
   name for monthly gross asset increases/decreases, including receivables and
   fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
@@ -2418,7 +2475,10 @@ credentials or collaborator roles.
   metadata only. It does not send email or create upload links.
 
 Select cloud books with `book_id` from `list_books`. Report arguments depend on
-`report`: `as_of` for trial balance/balance sheet; `from`/`to` for P&L;
+`report`: `as_of` for trial balance/balance sheet, plus `from` for the
+trial balance's period form; `from`/`to` for P&L, the monthly `trend` and
+the `cash-flow-statement`;
+`compare: prior-year` on P&L and balance sheet for last year's figures;
 `account` plus `from`/`to` or `as_of` for ledger; `by` plus `from`/`to` or
 `year` for sum; `year` for asset movements. Inapplicable fields, invalid types,
 unknown arguments and reversed ranges return errors rather than being ignored.
@@ -2514,15 +2574,17 @@ the book folder and of its record from `iris api history --all --json`
 The engine handles the universal, stable parts: double-entry math, the fields
 recorded on each line, totals and data exports. Regional rules — tax
 classifications, depreciation methods, the figures a return needs — come only
-from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Each region has a guide there:
-which packages to select, and what they leave to you.
+from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
+for your region, its region guide there says which to select and what they
+leave to you; a book whose region has none gets the universal checks only.
 
 A figures recipe records its result under `filings/` with its provenance, and
 `iris validate` re-runs it, so a correction posted after you filed shows up as
 an error until the recipe is re-run. The forms themselves change yearly and
 vary by place, so your AI prepares them from the engine's figures, the
 recorded filings and the current official form, and keeps them in the book
-under `compiled/<region>/<form>/`. IrisBooks sums; your AI files.
+under `compiled/<region>/<form>/`. IrisBooks sums, your AI prepares the forms,
+and you file them.
 
 ## Year-end close
 
@@ -2707,6 +2769,7 @@ iris init [flags] <path>
 | `--sample` | Seed ~40 demo journals for the business chart; unavailable with personal setup |
 | `--posting` | Posting policy written into AGENTS.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
 | `--book-id` | Pre-link to an existing server book (advanced) |
+| `--no-user-defaults` | Don't merge your account's default units into the new book (offline / reproducible init) |
 
 The interactive wizard, parent-MCP `create_book` and explicit Web/API creation
 use the same static planner. Personal setup selects the common package and
@@ -2802,8 +2865,19 @@ standalone copy, in a new folder beside this one (`acme-2025` →
   unit-tracked holdings); income and expense reset to zero; net income folds
   into the equity account marked `retained_earnings: true` in
   `config/chart-of-accounts.yaml`, or the chart's only equity account when
-  none is marked. With several equity accounts and none marked, the run stops
-  and asks you to mark one.
+  none is marked. The owner's accounts (`owner: true`) also start the new
+  year at zero: their balances fold into that same account, so the owner's
+  capital goes up by the profit and contributions and down by the draws. With several equity accounts and none marked, the run stops
+  and asks you to mark one;
+- `config/prior-year.yaml`: last year's figures per account (its opening
+  balances and each month's posted totals), so the new book's P&L and balance
+  sheet can compare with last year on their own (`--compare prior-year`).
+  `iris validate` in the new book checks that this file and the
+  opening-balances entry agree: each asset and liability account's closing
+  balance last year must be what the entry carries, and equity with last
+  year's profit must match the entry's equity in total. A difference (after
+  either was edited, or after last year changed) is a warning; run
+  `iris yearend` again in last year's book to rewrite both.
 
 Entries already dated in the new year **move** to the new book, with the raw
 files they cite. Earlier journals, `compiled/`, `filings/`, parse caches and
@@ -2931,15 +3005,16 @@ and hints affect neither `ok` nor the exit code.
 
 ### iris journal complete
 
-Preview completion of an existing journal, draft or posted, using explicitly selected
-Overlay definitions and native arithmetic. Money-only journals can leave one balancing amount as `null`.
-The inventory overlay fills disposal cost and proposes a gain/loss line from
-recorded quantities, settlement amounts and earlier posted acquisitions.
+Preview completion of an existing journal, draft or posted, using the
+completions of the book's selected packages. Leave an amount you want
+calculated as `null`; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each package
+completes.
 
 ```bash
-iris journal complete [--book-path PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris journal complete [--book-path PATH] [--view NAME] [--completion ID] [--apply] [--revision HASH] <journal>
 iris journal complete journals/2026-10/2026-10-21-sale.md
 iris journal complete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
+iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-sale.md
 ```
 
 The path is relative to the book. Omitted `--book-path` finds the current book;
@@ -2955,7 +3030,22 @@ with its description, `reasons` says by line why a proposal set a figure, and
 `revision` identifies the inputs and proposal. A completion that would leave the journal unchanged
 doesn't conflict with one that changes it. Preview writes nothing. `--apply` recalculates before
 writing and refuses a stale revision. It leaves the journal's status as it
-is and does not sync. Archived books and known sealed years refuse apply.
+is and does not sync. Archived books and known sealed years refuse apply, and
+so does a posted journal while the book's posting approval is on.
+
+When nothing can be proposed, the command exits 1 and prints JSON with
+`refusal.reason` and `refusal.message`. The reasons are `completeSeveral` (more
+than one amount is `null`), `completeQuantity` (a quantity line needs its
+amount), `completeUnbalanced` (nothing is `null` and the amounts differ),
+`completeZero` (the missing amount would be zero), `completeSide` (the `null`
+amount is on the wrong side), `completeAccount` (an account isn't in the chart),
+`year` (the date is outside the fiscal year), `completeNone` (no selected
+completion applies), `completeConflict`, `completeNotChosen` and `completeOther`
+(the message carries the engine's reason). For `completeConflict`, the book's
+completions disagree: `choices` holds each one's full preview, and
+`--completion ID` takes the proposal of one of them, for preview and for
+`--apply`. With one proposal, `--completion` must name the completion that made
+it (`completeNotChosen` otherwise). Nothing chooses for you.
 
 Packages with bindings v5 preparation points can first fill missing scalar
 concern fields through fixed classification/calculation stages. JSON includes
@@ -2965,24 +3055,11 @@ ordinary `iris validate` can replay it from retained Book definitions. Preparati
 preserves authored values and requires balanced source postings. The same preview
 and revision guard are available through local MCP `complete_journal`.
 
-**FIFO is implicit.** Configure `inventory.params.gain_account` once in
-`config/book.yaml`; no journal-level method or automatic lot labels are needed.
-Matching `inventory.params.method` overrides the opening method, then FIFO
-applies. `accounts.exact` and `commodity` optionally narrow the scope. See
-[defaults and inferred values](https://irisbooks.io/docs/en/book-format-reference/#defaults-and-inferred-values)
-for a minimal sale example. Completion leaves recorded amounts intact and
-rejects conflicts, missing settlement/fee amounts, insufficient holdings and
-unknown opening acquisition basis. Use `null` on an amount you want calculated.
-Fees stay explicit; short positions and zero-cost disposals are unsupported.
-
-The public [overlays repository](https://github.com/irisbooks/overlays) supplies
-`journal-balance` and `inventory-disposal` as independent completion functions.
-Each requires an exact selection and Book copy under `config/overlay-packages/`.
-New Books copy/select both explicitly. Removing inventory disposal keeps monetary
-balancing available; removing balancing does not disable disposal calculations.
-Omitted or empty selections enable neither. Embedded releases and caches never
-supply runtime fallback. Specialist or trusted Book-local completions can
-replace matching common completion IDs. The catalog contains only the independent function packages.
+Completions come only from the packages the book selects, each from an exact
+Book copy under `config/overlay-packages/`; new Books select the common ones.
+Omitted or empty selections enable none, and embedded releases and caches never
+supply a fallback. A specialist package or a trusted Book-local completion can
+replace a common completion with the same ID.
 
 `iris overlay list --json` and local MCP `describe_overlay` list completions.
 Trusted book-local or selected published `completions/*.yaml` definitions can
@@ -3117,8 +3194,7 @@ by your Book. Read a compact task index, then request only the relevant task:
 
 ```bash
 iris context [path]
-iris context --task journal-balance.journal --record journals/2026-10/purchase.md [path]
-iris context --task inventory-disposal.inventory --record journals/2026-10/sale.md [path]
+iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
 Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
@@ -3365,15 +3441,17 @@ Output is the same trial-balance document as `iris report tb` (see below).
 Financial statements. Subcommands:
 
 ```bash
-iris report tb [--as-of YYYY-MM-DD] [path]               # trial balance
-iris report pl [--from D] [--to D] [path]                # profit & loss
-iris report bs [--as-of YYYY-MM-DD] [path]               # balance sheet
-iris report ledger --account PATH [--as-of D] [path]     # general ledger for one account
+iris report tb [--from D] [--as-of YYYY-MM-DD] [path]    # trial balance (period form with --from)
+iris report pl [--from D] [--to D] [--compare prior-year] [path]  # profit & loss
+iris report bs [--as-of YYYY-MM-DD] [--compare prior-year] [path]  # balance sheet
+iris report trend [--from D] [--to D] [path]             # monthly trend
+iris report cf [--from D] [--to D] [path]                # cash flow statement
+iris report ledger --account PATH [--from D] [--as-of D] [path] # general ledger for one account
 iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
                                                          # group-by sums over journal lines
 ```
 
-All five report commands and `iris balance` accept `--include-drafts` to preview
+Every report command and `iris balance` accepts `--include-drafts` to preview
 draft entries. This selects read-only comparison mode when `--mode` is omitted;
 for example, `iris report pl --include-drafts`. The JSON identifies the effective
 mode and whether draft sources are included. Without the flag, drafts are excluded.
@@ -3409,31 +3487,168 @@ The JSON always states the dates it used, and the web app, the MCP tools and
 the remote connector use the same defaults. For filing figures, name the
 period (`--year`, or `--from`/`--to`).
 
-**Output shapes.** All five build on one row type:
+**Output shapes.** The statements build on one row type:
 
 ```text
-Balance = { account, debits, credits, type?, net }
+Balance = { account, code?, contra?, section?, debits, credits, type?, net, prior? }
 
 tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
+tb --from { from, to, rows[{ account, code?, type?, opening, debits, credits, closing }],
+          totalOpeningDebit, totalOpeningCredit, totalDebit, totalCredit,
+          totalClosingDebit, totalClosingCredit, balanced }
 pl      { from?, to?, income[Balance], expenses[Balance],
-          totalIncome, totalExpense, net }
+          totalIncome, totalExpense, net,
+          prior?{ from, to, totalIncome, totalExpense, net },
+          lines?[StatementLine], contraNets?[ContraNet] }
 bs      { asOf?, assets[Balance], liabilities[Balance], equity[Balance],
           totalAssets, totalLiabilities, totalEquity,
-          currentEarnings, balanced }
-ledger  { account, asOf?,
-          entries[{ date, file, payee, debit, credit, balance }],
-          totalDebits, totalCredits, balance }
+          currentEarnings, balanced,
+          prior?{ asOf, totalAssets, totalLiabilities, totalEquity, currentEarnings },
+          lines?{ assets[StatementLine], liabilities[StatementLine] },
+          contraNets?[ContraNet] }
+StatementLine = { kind, id, label?{ en, ja }, type?, accounts?[], amount, prior? }
+ContraNet = { account, gross, deduction, net, prior? }
+ledger  { account, from?, to, openingBalance, openingBalanceSide?,
+          entries[{ date, filePath, account, payee, status, memo?, summary?,
+                    counter{ kind, account? }, opposite?[EntryLine], sameSide?[EntryLine],
+                    debit, credit, balance, balanceSide? }],
+          months[{ month, debit, credit, cumulativeDebit, cumulativeCredit,
+                   balance, balanceSide? }],
+          totalDebit, totalCredit, closingBalance, closingBalanceSide? }
+EntryLine = { account, amount, memo? }
+trend   { from, to, months[],
+          income[TrendRow], totalIncome, expenses[TrendRow], totalExpenses, netIncome,
+          assets[TrendRow], totalAssets, liabilities[TrendRow], totalLiabilities,
+          equity[TrendRow], totalEquity, currentEarnings, balanced,
+          lines?{ profitAndLoss[TrendLayoutLine], assets[TrendLayoutLine], liabilities[TrendLayoutLine] } }
+TrendRow = { account, code?, contra?, type, values[], total }
+TrendLayoutLine = { kind, id, label?, type?, accounts?[], values[], total }
+cf      { from?, to?, cashAccounts[], openingCash,
+          operating{ rows[CashFlowRow], total }, investing{ … }, financing{ … },
+          flows?{ rows[CashFlowRow], total },
+          unclassified[{ date, filePath, account?, amount }], unclassifiedTotal,
+          netChange, closingCash, balanced }
+CashFlowRow = { account, code?, inflow, outflow, net }
+TrendLine = { values[], total }   # totalIncome … currentEarnings
 sum     { groupBy[], from?, to?,
           rows[{ keys[], debit, credit, net, lines }],
           totalDebit, totalCredit, totalNet, totalLines }
 ```
 
+`tb`, `pl` and `bs` rows follow the chart's order, and `code` is the chart's
+code for the account when it has one (see
+[chart of accounts](https://irisbooks.io/docs/en/book-format-reference/#chart-of-accounts-configchart-of-accountsyaml)).
 `net` is always a number, including `0` for a cleared account. When `type`
 is present it uses the account's native direction; an unclassified row uses
 `debits - credits`. Current CLI clients fill an omitted legacy net before
-re-emitting JSON. Existing filters can still omit an entire zero row. `ledger.entries[].balance` is the running balance *after* that entry,
-and `file` is the journal it came from, so every ledger row traces back to its
-journal.
+re-emitting JSON. Existing filters can still omit an entire zero row.
+
+`ledger` reads like a paper general ledger, and has the same shape in every
+place you can read one: here, the MCP servers and the web app's API.
+`filePath` is the journal each row came from, so every row traces back to it. `memo` is the line's memo and
+`summary` the first line of the entry's body; a row's description is the memo,
+or the summary when there is none. `counter` is the row's corresponding
+account: `account` when the other side of the entry is one account (named in
+`counter.account`), `various` when it is two or more, `opening` for the book's
+opening-balances entry (the entry tagged `opening-balance`), `none` when the
+entry has no other side. `opposite` lists the other side's lines as recorded;
+`sameSide` lists this side's other lines, which explain a row that differs
+from the other side's total (sales of 1,000 beside a shipping charge of 100
+when cash moved 1,100). Each list appears only when it says more than
+`counter`: `opposite` is left out when `counter.account` names its only line
+(that line's amount is the row's plus `sameSide`'s), and `sameSide` when the
+row is alone on its side. `balance` is the running balance *after* the row and
+is never negative; `balanceSide` (`debit` or `credit`, absent at zero) says
+which side it stands on. A sales account stands on the credit side; cash on
+the credit side means something is wrong. `months` has each month's totals
+(`debit`, `credit`), the cumulative totals from the start of the book's year
+(months before `--from` included) and the month-end balance. The
+opening-balances entry is carried forward, not a month's movement, so it
+counts in neither total. `closingBalance` is the balance after the last row,
+on `closingBalanceSide`.
+
+`--account` can name a parent path such as `Assets:Bank` when the chart
+lists `Assets:Bank:Main` and `Assets:Bank:Savings`: its ledger rolls up every
+account beneath it, and each entry's `account` names the one it hit. A
+transfer between two of them shows both rows, each with the other as its
+corresponding account. With `--from`, postings before that date are carried
+in as `openingBalance` (never negative, standing on `openingBalanceSide`) and
+the listing starts there.
+
+When the chart gives accounts a `section` (see
+[chart of accounts](https://irisbooks.io/docs/en/book-format-reference/#chart-of-accounts-configchart-of-accountsyaml)),
+`pl` and `bs` add `lines`: the statement laid out the way a set of accounts
+reads. Each row carries its `section`. A `section` line (`kind`) holds the
+`accounts` of one or more sections, with their total in the accounts' own
+direction (`type`; a line holding both income and expenses totals income
+minus expenses). A `subtotal` line is the profit so far: sales minus cost of
+sales is gross profit, then operating profit, profit before tax and net
+income. Accounts with no section go in an `unclassified` line just before the
+last subtotal, so they count in net income but in no other subtotal. On the
+balance sheet, assets and liabilities each split into current and
+non-current, then any unclassified accounts, then an `owner` line for the
+owner's accounts (`owner: true`) that set no section. `label` gives each line's name
+in English and Japanese. A chart without sections gets no `lines`, and the
+rest of the output is unchanged.
+
+A row with `contra` is a contra account, deducted from the account or parent
+path it names. `contraNets` gives the figure for each of those: `gross` (that
+account, or the accounts beneath the path, without its contra accounts), the
+`deduction`, and the `net`, gross minus the deduction, all in that account's
+own direction. With `--compare prior-year`, `prior` is last year's net. A
+statement without contra accounts gets no `contraNets`.
+
+`--compare prior-year` adds last year's figures from the book's
+`config/prior-year.yaml` (see [`iris yearend`](#iris-yearend)): `pl` gets the
+same calendar months a year earlier, `bs` the balances at the end of the same
+month a year earlier. Each row gains `prior` (in the account's own direction,
+`0` for an account without figures last year) and the statement a `prior`
+block with last year's dates and totals; accounts only last year had appear
+with a zero current figure. Months are whole: the file keeps monthly totals.
+A book without the file gets no `prior` and a note on stderr.
+
+`iris report trend` lays the whole months from `--from`'s to `--to`'s side by
+side. `values` has one number per month in `months`, in the account's own
+direction: income and expense accounts show each month's movement (`total`
+is the period's sum, and `netIncome` the months' net income); asset,
+liability and equity accounts show the balance at each month's end, the
+opening-balances entry included (`total` is the closing balance). Each
+section has its total, a `{ values, total }` line like a row's.
+`currentEarnings` is net income from the start of the year up to each
+month's end, which the balance sheet shows with equity, so each month's
+assets equal liabilities, equity and current earnings; `balanced` is true
+when every month ties. When the chart gives accounts a section, `lines` lays
+the months out the way `pl` and `bs` lay out their `lines`, one value per
+month: the profit and loss lines with their subtotals, then the asset and
+liability sides by section.
+
+`iris report cf` is the cash flow statement for the period. It follows the
+accounts the chart marks `cash: true` and the accounts beneath them, listed
+in `cashAccounts`, and starts from their balance before `--from`, the opening-balances entry
+included (`openingCash`). Each movement is classified by the other side of
+its entry: a line on another account moved its credit minus debit through
+cash, and that account's section decides whether it was `operating`,
+`investing` or `financing` (an account's `cash_flow` overrides; the owner's
+draw and contribution accounts count as financing). Each category lists
+those accounts with their receipts (`inflow`), payments (`outflow`) and
+`net`. An entry is split by line only when it is exact: when its other lines
+all share one category, or when its cash lines stand alone on their side.
+Otherwise the whole entry goes in `unclassified`, never apportioned, as does
+a line on an account with no section. Moves between cash accounts are not
+flows. `netChange` is the sum of the categories and `unclassified`, and
+`balanced` is true when opening cash plus `netChange` equals `closingCash`.
+A chart without sections keeps the plain statement: the categories stay
+empty and `flows` lists every account cash moved against, with its receipts,
+payments and net, so nothing is unclassified.
+A chart with no cash account gets empty sections and a note on stderr.
+
+`iris report tb --from D` gives the trial balance for the period from `D` to
+`--as-of`: each account's `opening` balance, the period's `debits` and
+`credits`, and its `closing` balance, with opening and closing in the
+account's own direction like `net`. The opening-balances entry counts as
+opening whatever its date. Each pair of totals (opening debit and credit
+balances, the period's debits and credits, closing debit and credit balances)
+ties when `balanced` is true.
 `sum.rows[].keys` is positional: one entry per `--by` key, in the order you gave
 them.
 
@@ -3489,6 +3704,13 @@ Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
 iris export assets [--year YYYY] [--out FILE] [path]
 ```
+
+Each `ledger-<account>.csv` is laid out like a paper ledger: `date`, `file`,
+`description`, `counter_account` (the account, or *Various* / *Brought
+forward* in the book's language), `payee`, `debit`, `credit`, `balance_side`
+(*Dr* / *Cr*), `balance` (never negative), then `opposite` and `same_side`,
+the lines behind the corresponding account as `account amount; account
+amount`. A monthly total row and a cumulative total row follow each month.
 
 The assets CSV adds one column per extra field your asset files carry, such as a
 field an overlay defines, named by its dotted path (for example `location.room`)
@@ -4231,7 +4453,7 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **Output shapes:**
 
 ```text
-balance   [ { account, debits, credits, type?, net } ]
+balance   [ { account, code?, debits, credits, type?, net } ]
 holdings  [ { account, unit, quantity } ]
 history   [ { id, path, op, sha?, versionId?, sizeBytes,
               actor, actorDisplay?, source?, reason?,
@@ -4443,6 +4665,7 @@ your-book/
 │   ├── chart-of-accounts.yaml    # your accounts
 │   ├── rules.yaml                # optional categorization hints (may be empty)
 │   ├── balance-assertions.yaml   # optional observed account balances and evidence
+│   ├── prior-year.yaml           # last year's figures, written by `iris yearend`
 │   └── overlays/                 # optional: this book's own overlay layer (rules, recipes)
 ├── raw/                          # source documents; any structure, type inferred from content
 ├── journals/
@@ -4547,9 +4770,7 @@ stored in the Book at `config/overlay-packages/`. This store is separate from
 A package is **available** when its verified copy is in the Book, **enabled**
 when selected, and **applicable** only where its conditions match. Stored copies
 do not activate themselves. Omitted or empty selections enable no optional
-packages. Common completion requires explicit `journal-balance@<version>` and/or
-`inventory-disposal@<version>` copies and selections.
-Core accounting/structural checks remain active. Region never supplies a hidden
+packages. Core accounting/structural checks remain active. Region never supplies a hidden
 selection. A missing or changed exact copy is diagnosed without substitution;
 use `iris overlay install` explicitly to copy selected distribution versions.
 Cloud preserves these files/settings but never evaluates Overlay definitions.
@@ -4662,17 +4883,22 @@ and conflicting published rule IDs or field definitions are errors. Pin order
 does not determine precedence. Each package keeps its own CEL helpers; a recipe
 records the exact version of the package that owns it.
 
-A package can declare a `region` and exact supported dependency versions in
-`overlay.yaml`, for example `requires_overlays: {example-base: ['2026.10.1']}`. Packages
-using the new selectors or parameter contract declare `requires_bindings: 2`.
+A package can declare a `region` and the lowest dependency version it needs in
+`overlay.yaml`, for example `requires_overlays: {example-base: ['2026.10.1']}`. Any
+later release of that dependency also satisfies it: a package release adds behavior
+and never changes a result an earlier release produced. A release that corrects an
+earlier result declares it under `fixes`; `iris validate` and the upgrade preview
+then name the carried openings, filings, schedules and prepared fields calculated by
+the corrected release, so you can run them again and correct the records that change.
+Packages using the new selectors or parameter contract declare `requires_bindings: 2`.
 `iris overlay upgrade --dry-run` checks the candidate set, golden tests,
 book-layer compatibility and settings before showing the proposed pins.
 `--to <id>@<version>` changes that member; without `--to`, upgrade checks
 the latest release of every pinned member together.
 
-The function catalog holds the common completion functions, `journal-balance`
-and `inventory-disposal`, and each region's functions, which the
-[overlay docs](https://irisbooks.io/docs/en/overlays/) list with their versions and dependencies.
+The function catalog holds common functions and each region's functions; the
+[overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
+dependencies.
 Categories organize discovery/distribution; they are not activation switches.
 Business setup selects the common functions and the region's available
 packages; personal setup selects the common functions. Existing Books keep their
@@ -4978,33 +5204,10 @@ Comparison JSON lists `selection.inventoryMethods`; portfolio SQL exposes
 account. Ordinary validation and approved reports use the recorded ledger;
 computed comparisons stay unapproved.
 
-To complete a sale draft, record the proceeds and quantity, and mark its cost
-as `credit: null`. With the gain account above configured and the purchase
-above posted, save this as `journals/2026-10/2026-10-21-sale.md`:
-
-```markdown
----
-schema_version: 1
-date: 2026-10-21
-status: draft
-lines:
-  - account: Assets:Bank
-    debit: 70000
-  - account: Assets:Investments
-    credit: null
-    quantity: 5
-    unit: FUND
----
-```
-
-Run `iris journal complete journals/2026-10/2026-10-21-sale.md` to preview a ¥50,000
-inventory credit and a ¥20,000 gain credit. Apply the preview with `--apply`
-and its `--revision`. An explicitly selected Book copy of the `inventory-disposal` Overlay supplies inventory
-completion without additional journal attributes. Confirm the selection with
-`iris context`; an off/missing package does not acquire completion implicitly. Fees, when present, remain explicit expense postings.
-With `journal-balance` selected, an ordinary money-only journal can leave one balancing amount as
-`debit: null` or `credit: null`. Completion keeps drafts unposted; validation
-checks the resulting recorded amounts. See [iris journal complete](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
+A journal amount left as `null` is filled in only by a selected package's
+completion; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each package completes
+and the inputs it needs. Preview and apply a completion with
+[`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
 
 ## Fund units, partial sales and dated valuation
 
@@ -6007,10 +6210,21 @@ schema_version: 1
 accounts:
   - path: 資産:普通預金        # hierarchical, colon-separated; this is the identity
     type: asset               # asset | liability | equity | income | expense
+    section: current          # optional — where the statements place it
+    cash: true                # optional — a cash account
     code: "1010"              # optional external code
     aliases: [bank, 銀行, Assets:Bank]
+    description: Sales are paid in here; card bills are paid from it   # optional — what the account is for
+  - path: 資産:普通預金:旧口座
+    type: asset
+    closed: 2026-06-30        # optional — the last day the account is used
+  - path: 負債:短期借入金
+    type: liability
+    section: current
+    cash_flow: financing      # optional — the cash flow category, when not the usual one
   - path: 収益:売上
     type: income
+    section: sales
     aliases: [sales]
   - path: 資本:引出金
     type: equity
@@ -6018,16 +6232,40 @@ accounts:
   - path: 資本:元入金
     type: equity
     retained_earnings: true   # optional — where `iris yearend` folds net income
+  - path: 資産:建物減価償却累計額
+    type: asset
+    contra: 資産:建物          # optional — a contra account and what it is deducted from
 ```
 
 The account's normal side is derived from its `type`. `aliases` let journals
 reference an account by another name or language. Add accounts here before
 referencing them in a journal.
 
+Reports list accounts in the order this file lists them: the trial balance,
+profit and loss, balance sheet, the account list and their CSV exports. List
+accounts in the order you want to read them, for example cash first and
+current before non-current. When an account has a `code`, reports show it: in
+the trial balance's code column and as `code` on each report row.
+
+With `strict_accounts: false`, a journal can use an account the chart doesn't
+list. Reports place it next to its closest relatives in the chart:
+
+- above the listed accounts beneath it, when it is their parent;
+- otherwise after the last listed account that shares the most leading path
+  segments with it, so `Assets:Commodities:SP500` follows `Assets:Commodities`
+  and that account's listed sub-accounts, and `Assets:Crypto` comes at the end
+  of the `Assets` accounts;
+- after every listed account when it shares no leading segment.
+
 `owner: true` marks the owner's personal draw and contribution accounts. They
 keep their type, so the balance sheet lays out as usual, but they hold the
 owner's own money moving in and out of the business, not something the
 business owns or owes, so [Net Worth](https://irisbooks.io/docs/en/web-app/#net-worth) leaves them out.
+When the chart uses sections, the balance sheet lists them on their own line
+at the end of their side rather than as unclassified, unless you give them a
+section. [`iris yearend`](https://irisbooks.io/docs/en/cli-reference/#iris-yearend) does not carry them
+into the next year: their balances fold into the owner's capital, and each
+year starts them at zero.
 Starter charts that include such accounts set it.
 
 `retained_earnings: true` marks the equity account
@@ -6038,6 +6276,80 @@ and the cloud refuse a chart that breaks either rule. When no account sets it,
 `iris yearend` uses the chart's only equity account, so the starter charts
 (which have exactly one) leave it out. Set it once your chart has more than
 one equity account.
+
+`contra` makes an account a contra account: an account that reduces
+another one, such as accumulated depreciation or an allowance for doubtful
+accounts. It names what the account is deducted from:
+
+- another account, as in `contra: 資産:建物` above. The balance sheet shows
+  it as a deduction under that account, which becomes a group totalling the
+  net;
+- or a parent path, such as `contra: 資産:有形固定資産`. It is deducted from
+  that group's total, after the group's accounts.
+
+A contra account keeps the type of what it reduces (`asset` above), so its
+balance stands on the other side. That is normal for it, not an error. Reports
+list it right after what it is deducted from, wherever the chart lists it, and
+each report row carries `contra`; the P&L and balance sheet also give the net
+(`contraNets`, see [`iris report`](https://irisbooks.io/docs/en/cli-reference/#iris-report)). `iris validate` and the cloud refuse a
+`contra` that names the account itself or one beneath it, names neither an
+account nor a parent of one, names an account of another type, or names
+another contra account.
+
+The starter charts include an accumulated depreciation account for each
+account they depreciate, such as `資産:工具器具備品減価償却累計額` with
+`contra: 資産:工具器具備品`, next to it and commented out wherever the asset
+is. An [asset file](#asset-files-assetsyyyymd) names it as its
+`accumulated_depreciation_account`.
+
+`section` places the account on the statements, so the profit and loss
+statement can show gross and operating profit and the balance sheet can
+separate current from non-current:
+
+| `section` | For | What goes there |
+|---|---|---|
+| `sales` | income | sales from your main business |
+| `cost_of_sales` | expenses | the direct cost of what you sold |
+| `operating` | income, expenses | running the business: rent, wages, supplies; other operating income |
+| `non_operating` | income, expenses | interest, dividends and other financing or investment items |
+| `extraordinary` | income, expenses | unusual one-off gains and losses |
+| `income_tax` | expenses | tax on profit |
+| `current` | assets, liabilities | used up, collected or paid within a year |
+| `non_current` | assets, liabilities | everything else: equipment, vehicles, long-term loans |
+
+An account without a section takes the one of the account its `contra`
+names, else the one of its nearest listed parent, so a section on
+`資産:固定資産` covers the accounts beneath it. Equity takes no section. An
+account the statements still can't place is shown as unclassified, outside
+every subtotal but net income, and `iris validate` gives a hint once the
+chart uses sections. A chart without any section keeps the plain statements.
+The starter charts set a section on every account except the owner's
+accounts and the holding account for entries not yet classified.
+
+`cash: true` marks a cash or bank account (asset accounts only). `cash_flow`
+(`operating`, `investing` or `financing`) sets the cash flow category of
+movements against the account when its section would suggest another, such
+as short-term borrowings, which are current but financing. Both carry down
+like a section: an account without its own takes the one of the account its
+`contra` names, else the one of its nearest listed parent, so an account
+listed beneath `Assets:Bank` is cash too. An account that isn't an asset is
+never cash, whatever its parent. `iris validate` and the cloud refuse an unknown section, a section of another type, `cash`
+on an account that isn't an asset, and an unknown `cash_flow`.
+
+`description` says what the account is for, in your own words: what goes
+here and what doesn't. The account list in the web app shows it, the entry
+editor in `iris view` shows it beside the account as you pick one, and the
+account list your AI reads includes it. It is the place for the rule you
+would tell a new bookkeeper. Nothing calculates with it.
+
+`closed` is the last day an account is used, such as a bank account you
+closed or a loan you repaid. Entries up to that day stay as they are.
+`iris validate` and the cloud warn about a line dated after it, and the entry
+editor in `iris view` stops offering the account for later dates. It is a
+warning, not a refusal, because a final interest payment can arrive after
+the account is closed. Keep the account in the chart while this year's
+entries use it. Once its balance is zero, you can leave it out of the next
+year's chart after [`iris yearend`](https://irisbooks.io/docs/en/cli-reference/#iris-yearend).
 
 ## Asset files — `assets/YYYY/*.md`
 
@@ -6053,7 +6365,7 @@ useful_life_months: 48
 method: straight_line              # straight_line | declining_balance | expensed
 asset_account: "資産:工具器具備品"
 depreciation_expense_account: "費用:減価償却費"
-accumulated_depreciation_account: "資産:減価償却累計額"
+accumulated_depreciation_account: "資産:工具器具備品減価償却累計額"
 acquisition_journal: "[[2026-04-15-apple-01]]"   # optional wikilink
 schedule:                          # optional recorded table — see below
   - period: 2027-03                # YYYY-MM, the month the charge lands
@@ -6256,7 +6568,7 @@ A book may add its own layer on top:
 
 ```text
 config/overlays/
-├── overlay.yaml        # id: book / extends: journal-balance@2026.10.1
+├── overlay.yaml        # id: book / extends: example-base@2026.10.1
 ├── fields.yaml         # optional field types and choices
 ├── functions.yaml      # optional shared expressions
 ├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)
@@ -6419,6 +6731,22 @@ cost means unknown. The opening journal still states the monetary/quantity
 balance and must reconcile with these fields within this book.
 Do not infer acquisition cost from a revalued opening amount.
 
+In a book you start with holdings bought before its fiscal year, write this
+entry yourself. Earlier purchases can't be journals in this book, since they
+fall outside its fiscal year, so list each remaining purchase as a lot: its own
+`id`, the original purchase `date` (on or before the fiscal year's first day),
+and the `quantity` and `cost_minor` still held. The lots must add up to the
+entry's `quantity` and `acquisition_cost_minor`, and the opening journal's line
+for the holding states the same quantity. Journal amounts are written as
+decimals while these fields are minor units: at `scale: 2`, a journal amount of
+`1700.00` is `170000` here. `iris networth` and `iris yearend` refuse an opening
+whose quantity or lots don't add up; `iris validate` doesn't check them. Under
+FIFO you may omit `lots`; the holding then counts as one lot dated the fiscal year's
+first day, and the original purchase dates are lost. Specific identification
+needs the lots. A moving-average opening lists no lots, only its total quantity
+and cost. Leave `acquisition_cost_minor` null only when the cost is truly
+unknown.
+
 Local comparisons and retained financial calculations allocate later disposals
 from these lots, or from the moving-average pool, using the method recorded
 here. They refuse, rather than estimate, when an opening holding has no entry,
@@ -6430,20 +6758,12 @@ Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics deri
 one from the fiscal year, journal path and original line index within this book’s
 inventory. Changing the book’s cloud ID does not change that lot ID.
 
-An exported inventory policy can also retain `allocation_cost_minor` and
-`allocation_policy` on an opening. The first is a separate calculated basis;
-the second identifies the exact package pin and qualified policy. Neither
-replaces acquisition cost or recorded carrying value. For policies that round
-unit cost, retain this state through `iris yearend`; do not reconstruct it from
-market value. These fields require an engine supporting bindings 6. Regional
-investment packages using that contract are development candidates; they do not
-add approved financial-view calculations or tax-return submission.
+An opening can also hold `allocation_cost_minor` and `allocation_policy`. A
+package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
+They never replace acquisition cost or recorded carrying value.
 
-For assistants: never replace a source carrying value with a rounded
-statutory basis or a market price. A regional package marked as an unreleased
-candidate in its docs is not part of the signed catalog; its figures are filing
-preparation aids without financial-view acceptance or filing submission, and it
-needs complete local journals.
+For assistants: never replace a recorded carrying value or acquisition cost
+with a market price.
 
 # Troubleshooting
 

@@ -81,8 +81,8 @@ These screens work as they do in [the web app](web-app.md), with figures
 calculated by `iris` from your files:
 
 - **Overview**, **Journals** and each entry's detail.
-- The four reports: **General Ledger**, **Trial Balance**, **Profit & Loss**
-  and **Balance Sheet**.
+- The five reports: **General Ledger**, **Trial Balance**, **Profit & Loss**,
+  **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
 - **Plugins**, which only this page has (see below).
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
@@ -124,15 +124,13 @@ change, and keeps everything it doesn't show, such as comments, quantities and
 fields from the book's overlays. An entry with accounting views opens as source
 only.
 
-- **As you type, the book's overlays calculate** what they can, such as an
-  amount you leave blank, the same as
-  [`iris journal complete`](cli-reference.md#iris-journal-complete). The result
-  appears in the blank field with a dashed outline. A line an overlay would
-  add, such as a gain on a sale, appears below the others. Choose
+- **As you type, the book's overlays calculate** what they can, the same as
+  [`iris journal complete`](cli-reference.md#iris-journal-complete). A
+  calculated amount appears in its blank field with a dashed outline, and a
+  line an overlay would add appears below the others. Choose
   **Fill in** to enter them all at once; it also removes any row you added and
-  left empty. **How it's calculated** works each calculated figure through: a
-  sale's cost from the earlier purchases it came from, and the amount that
-  balances the entry from the other lines. An amount an overlay sets itself is
+  left empty. **How it's calculated** works each calculated figure through from
+  the figures it came from. An amount an overlay sets itself is
   explained by the reason the overlay gives, or by its own description, which
   follows. When two of the book's overlays calculate the entry differently,
   both results appear side by side; choose one, and it stays your choice while

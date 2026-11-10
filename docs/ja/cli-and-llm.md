@@ -462,9 +462,9 @@ AI は帳簿の `AGENTS.md`、作業の現状、関係する質問や過去の�
 `--full` は章の全文を明示的に読みます。ローカル MCP の `read_docs` も `topic`・
 `section`・`full` で同じ内容を返し、帳簿の指定は不要です。認証・ダウンロード・通信は不要です。
 
-導入を依頼する場合は[開始ガイド](/start/)、現在のクラウド認証は
-[クラウド接続](/start/cloud/)を使います。同梱資料を読めない古いツールは
-[索引](/llms.txt)を使えます。[AI 向け全マニュアル](/llms-full.txt)は任意の参照資料です。
+導入を依頼する場合は[開始ガイド](https://irisbooks.io/start/)、現在のクラウド認証は
+[クラウド接続](https://irisbooks.io/start/cloud/)を使います。同梱資料を読めない古いツールは
+[索引](https://irisbooks.io/llms.txt)を使えます。[AI 向け全マニュアル](https://irisbooks.io/llms-full.txt)は任意の参照資料です。
 Markdown を保存する場合は帳簿の外に置き、取得元とリリースタグを残します。
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md` のタグは、
 可能なら `iris version` と一致させ、必要な節だけを検索します。帳簿のルールは選択中の

@@ -100,6 +100,17 @@ migrating from another system, these should reconcile to that system's trial
 balance at the cutover date. (`notes/todos.md` has a task reminding you of
 this.)
 
+Already hold investments or anything else counted in units (fund units,
+shares, coins) bought in earlier years? Put each holding in that opening entry
+with its quantity and unit. Then list what is left of its purchases — original
+dates, quantities and costs — as lots under `opening_inventory` in
+`config/book.yaml`. The book then keeps the holding's acquisition cost apart
+from its book value, later sales use up the oldest lots first by default, and
+`iris yearend` carries the lots still held into the next year's book. The
+earlier purchases themselves can't be entries in this book: they fall outside
+its fiscal year. See
+[acquisition openings](book-format-reference.md#independent-annual-books-and-acquisition-openings).
+
 ### 4. Connect your AI assistant
 
 If your assistant can already run the CLI and access this folder, no additional

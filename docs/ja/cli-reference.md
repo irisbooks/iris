@@ -84,6 +84,7 @@ iris init [flags] <path>
 | `--sample` | 事業用の勘定科目に対応するデモ仕訳を約40件追加。personal では利用不可 |
 | `--posting` | AGENTS.md に書き込む記帳ポリシー: `approve`(既定 — あなたが確認して記帳)/ `auto`(検証を通った仕訳をアシスタントが自動記帳) |
 | `--book-id` | 既存のサーバー帳簿に事前リンク（上級） |
+| `--no-user-defaults` | アカウントの既定の単位を新しい帳簿に反映しない（オフライン・再現可能な作成） |
 
 対話形式の初期設定、親フォルダーの MCP `create_book`、Web・API の明示的な新規作成は、
 同じ作成処理を使います。personal は共通パッケージと家計の勘定科目、business は共通・
@@ -174,8 +175,17 @@ iris status [--json] [path]
   数量も含めて）、収益・費用はゼロにリセットされ、当期純利益は
   `config/chart-of-accounts.yaml` で `retained_earnings: true` を付けた資本科目
   （どの科目にも付いていなければ勘定科目表で唯一の資本科目）へ折り込まれます。
+  事業主の科目（`owner: true`）も新年度はゼロから始まり、その残高は同じ資本科目へ
+  折り込まれます。事業主の資本は、利益と持ち込みの分だけ増え、引き出しの分だけ減ります。
   資本科目が複数あってどれにも付いていない場合は、いずれか 1 つに付けるよう
   求めて止まります。
+- `config/prior-year.yaml`。前期の科目ごとの数字（期首残高と各月の記帳済の合計）で、
+  新しい帳簿の損益計算書と貸借対照表は、これだけで前期と比較できます
+  （`--compare prior-year`）。新しい帳簿で `iris validate` を実行すると、このファイルと
+  期首残高の仕訳が一致するかを確かめます。資産・負債の科目は前期末の残高が仕訳の
+  金額と、純資産は前期の利益を含めた合計が仕訳の純資産の合計と一致する必要があります。
+  一致しない場合（どちらかを編集した、前期を修正したなど）は警告になります。前期の
+  帳簿で `iris yearend` を実行し直すと、両方が書き直されます。
 
 すでに新年度の日付で記録した仕訳は、参照している元資料とともに新しい帳簿へ
 **移動**します。それより前の仕訳、`compiled/`、`filings/`、パースキャッシュ、
@@ -297,15 +307,15 @@ Overlay の入力・計算量・出力の上限は帳簿全体で共有します
 
 ### iris journal complete
 
-既存の仕訳を、下書き・記帳済を問わず補完し、結果をプレビューします。帳簿のオーバーレイと
-組み込みのルールを使います。金額だけの仕訳では、貸借を合わせる1行の金額を
-`null` にできます。在庫のオーバーレイは、記録済みの数量・決済額と過去の
-記帳済の取得仕訳から売却原価を計算し、損益の行を提案します。
+既存の仕訳を、下書き・記帳済を問わず、帳簿が選択したパッケージの補完で補い、結果を
+プレビューします。計算したい金額は `null` にします。各パッケージが何を補完するかは
+[オーバーレイのドキュメント](https://irisbooks.io/docs/ja/overlays/)で確認できます。
 
 ```bash
-iris journal complete [--book-path PATH] [--view NAME] [--apply] [--revision HASH] <journal>
+iris journal complete [--book-path PATH] [--view NAME] [--completion ID] [--apply] [--revision HASH] <journal>
 iris journal complete journals/2026-10/2026-10-21-sale.md
 iris journal complete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
+iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-sale.md
 ```
 
 パスは帳簿からの相対パスです。`--book-path` の省略時は現在の帳簿を探し、
@@ -321,7 +331,22 @@ iris journal complete --apply --revision <preview-revision> journals/2026-10/202
 ルールと競合しません。
 プレビューでは書き込みません。`--apply` は書き込む前に再計算し、指定した
 リビジョンが古ければ拒否します。仕訳の状態は変えず、同期も行いません。
-アーカイブ帳簿と、締め済みと確認できる年度には適用できません。
+アーカイブ帳簿と、締め済みと確認できる年度には適用できません。記帳承認が
+オンの帳簿では、記帳済の仕訳にも適用できません。
+
+提案できないときは終了コード1で、`refusal.reason` と `refusal.message` を
+含む JSON を出力します。理由は `completeSeveral`（`null` の金額が複数ある）、
+`completeQuantity`（数量のある行には金額が必要）、`completeUnbalanced`
+（`null` がなく貸借が一致しない）、`completeZero`（未記入の金額が0になる）、
+`completeSide`（`null` の金額が貸借の反対側にある）、`completeAccount`
+（勘定科目表にない科目がある）、`year`（日付が会計年度外）、`completeNone`
+（適用できる補完ルールがない）、`completeConflict`、`completeNotChosen`、
+`completeOther`（エンジンの理由を `message` に含む）です。`completeConflict` は
+帳簿の補完ルール同士で結果が異なる場合で、`choices` にそれぞれの完全な
+プレビューを返します。`--completion ID` でどれかを選ぶと、プレビューと
+`--apply` の両方でその提案を使います。提案が1つの場合は、`--completion` に
+その提案のルールを指定する必要があります（異なると `completeNotChosen`）。
+選択を自動で行うことはありません。
 
 Bindings v5 の定義があるパッケージでは、分類・計算の順に、未記入の追加フィールドを
 先に埋められます。対象は単一の値で、元の仕訳は貸借が一致している必要があります。
@@ -331,25 +356,11 @@ JSON の `preparationPlan` と `preparationTrace` に、計算元の固定バー
 記入済みの値は保持します。同じプレビューとリビジョンによる適用確認を、
 ローカル MCP の `complete_journal` でも使えます。
 
-**原価配分は先入先出法（FIFO）が既定**です。損益の計上先を
-`config/book.yaml` の `inventory.params.gain_account` に一度指定します。
-仕訳ごとの方法指定や、自動採番したロットの記入は不要です。
-対象に一致する `inventory.params.method` を優先し、なければ期首の方法、
-それもなければ FIFO を使います。`accounts.exact` と `commodity` で対象を
-絞れます。売却仕訳の最小例は
-[省略できる項目と自動で決まる値](book-format-reference.md#省略できる項目と自動で決まる値)
-を参照してください。記録済みの金額と計算結果の不一致、決済額・手数料の未記入、
-保有数量不足、期首の取得原価不明はエラーになります。
-計算する金額には `null` を指定します。手数料は明記してください。
-空売りと取得原価ゼロの売却には対応していません。
-
-公開[オーバーレイリポジトリ](https://github.com/irisbooks/overlays)の
-`journal-balance` と `inventory-disposal` を個別に選択します。それぞれ固定バージョンの
-選択と、帳簿の `config/overlay-packages/` にあるコピーが必要です。
-新規帳簿は二つを明示的にコピーして選択します。売却原価計算を外しても貸借補完は
-使え、貸借補完を外しても売却原価計算は使えます。空の選択ではどちらも動作しません。
-同梱版やキャッシュを実行時の代替には使いません。専門パッケージや信頼済みの帳簿独自の
-定義は、同じ ID の共通補完を置き換えられます。
+補完は、帳簿が選択したパッケージからのみ提供されます。それぞれ帳簿の
+`config/overlay-packages/` にある固定バージョンのコピーが必要で、新規帳簿は共通の
+パッケージを選択します。空の選択ではどれも動作せず、同梱版やキャッシュを代替には
+使いません。専門パッケージや信頼済みの帳簿独自の補完は、同じ ID の共通補完を
+置き換えられます。
 
 `iris overlay list --json` とローカル MCP の `describe_overlay` で補完ルールを
 確認できます。信頼済みの帳簿ローカル定義や選択済み公開パッケージの
@@ -475,8 +486,7 @@ iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
 
 ```bash
 iris context [path]
-iris context --task journal-balance.journal --record journals/2026-10/purchase.md [path]
-iris context --task inventory-disposal.inventory --record journals/2026-10/sale.md [path]
+iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
 出力は常にJSONです。`--json` も受け付けますが、出力は変わりません。繰り返し指定
@@ -715,15 +725,17 @@ iris balance [--as-of YYYY-MM-DD] [path]
 財務諸表。サブコマンド:
 
 ```bash
-iris report tb [--as-of YYYY-MM-DD] [path]               # 試算表
-iris report pl [--from D] [--to D] [path]                # 損益計算書
-iris report bs [--as-of YYYY-MM-DD] [path]               # 貸借対照表
-iris report ledger --account PATH [--as-of D] [path]     # 科目別元帳
+iris report tb [--from D] [--as-of YYYY-MM-DD] [path]    # 試算表（--from で期間の試算表）
+iris report pl [--from D] [--to D] [--compare prior-year] [path]  # 損益計算書
+iris report bs [--as-of YYYY-MM-DD] [--compare prior-year] [path]  # 貸借対照表
+iris report trend [--from D] [--to D] [path]             # 月次推移表
+iris report cf [--from D] [--to D] [path]                # キャッシュ・フロー計算書
+iris report ledger --account PATH [--from D] [--as-of D] [path] # 科目別元帳
 iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
                                                          # 仕訳明細のグループ別集計
 ```
 
-5つのレポートコマンドと `iris balance` は、`--include-drafts` で下書きを含めて
+すべてのレポートコマンドと `iris balance` は、`--include-drafts` で下書きを含めて
 確認できます。`--mode` を省略すると、読み取り専用の比較モードになります。
 例: `iris report pl --include-drafts`。JSON には実際のモードと下書きを含むかどうかを
 示します。このフラグを付けない場合、下書きは除外します。
@@ -755,30 +767,142 @@ AI はもともと JSON を読み、人間向けの整形表示は Web アプリ
 リモートコネクタも同じ既定値を使います。申告に使う数字は、期間（`--year` または
 `--from`/`--to`）を指定して出してください。
 
-**出力形**。5つとも1つの行型の上に組み立てられています。
+**出力形**。各レポートは1つの行型の上に組み立てられています。
 
 ```text
-Balance = { account, debits, credits, type?, net }
+Balance = { account, code?, contra?, section?, debits, credits, type?, net, prior? }
 
 tb      { asOf?, rows[Balance], totalDebit, totalCredit, balanced }
+tb --from { from, to, rows[{ account, code?, type?, opening, debits, credits, closing }],
+          totalOpeningDebit, totalOpeningCredit, totalDebit, totalCredit,
+          totalClosingDebit, totalClosingCredit, balanced }
 pl      { from?, to?, income[Balance], expenses[Balance],
-          totalIncome, totalExpense, net }
+          totalIncome, totalExpense, net,
+          prior?{ from, to, totalIncome, totalExpense, net },
+          lines?[StatementLine], contraNets?[ContraNet] }
 bs      { asOf?, assets[Balance], liabilities[Balance], equity[Balance],
           totalAssets, totalLiabilities, totalEquity,
-          currentEarnings, balanced }
-ledger  { account, asOf?,
-          entries[{ date, file, payee, debit, credit, balance }],
-          totalDebits, totalCredits, balance }
+          currentEarnings, balanced,
+          prior?{ asOf, totalAssets, totalLiabilities, totalEquity, currentEarnings },
+          lines?{ assets[StatementLine], liabilities[StatementLine] },
+          contraNets?[ContraNet] }
+StatementLine = { kind, id, label?{ en, ja }, type?, accounts?[], amount, prior? }
+ContraNet = { account, gross, deduction, net, prior? }
+ledger  { account, from?, to, openingBalance, openingBalanceSide?,
+          entries[{ date, filePath, account, payee, status, memo?, summary?,
+                    counter{ kind, account? }, opposite?[EntryLine], sameSide?[EntryLine],
+                    debit, credit, balance, balanceSide? }],
+          months[{ month, debit, credit, cumulativeDebit, cumulativeCredit,
+                   balance, balanceSide? }],
+          totalDebit, totalCredit, closingBalance, closingBalanceSide? }
+EntryLine = { account, amount, memo? }
+trend   { from, to, months[],
+          income[TrendRow], totalIncome, expenses[TrendRow], totalExpenses, netIncome,
+          assets[TrendRow], totalAssets, liabilities[TrendRow], totalLiabilities,
+          equity[TrendRow], totalEquity, currentEarnings, balanced,
+          lines?{ profitAndLoss[TrendLayoutLine], assets[TrendLayoutLine], liabilities[TrendLayoutLine] } }
+TrendRow = { account, code?, contra?, type, values[], total }
+TrendLayoutLine = { kind, id, label?, type?, accounts?[], values[], total }
+cf      { from?, to?, cashAccounts[], openingCash,
+          operating{ rows[CashFlowRow], total }, investing{ … }, financing{ … },
+          flows?{ rows[CashFlowRow], total },
+          unclassified[{ date, filePath, account?, amount }], unclassifiedTotal,
+          netChange, closingCash, balanced }
+CashFlowRow = { account, code?, inflow, outflow, net }
+TrendLine = { values[], total }   # totalIncome … currentEarnings
 sum     { groupBy[], from?, to?,
           rows[{ keys[], debit, credit, net, lines }],
           totalDebit, totalCredit, totalNet, totalLines }
 ```
 
+`tb`・`pl`・`bs` の行は勘定科目表の順に並び、`code` は勘定科目表にその科目のコードが
+あるときのコードです（[勘定科目表](book-format-reference.md#勘定科目表-configchart-of-accountsyaml)を参照）。
 `net` は数値で返し、相殺済みの科目でも `0` を省略しません。`type` があれば
 科目の通常残高の向き、未分類なら `debits - credits` です。現在のCLIは、旧サーバーが
 省略した `net` も補ってからJSONを出します。既存の絞り込みで残高ゼロの行全体を
-除く場合はあります。`ledger.entries[].balance` はその行を反映した**後**の累計残高、`file`
-は元の仕訳ファイルなので、元帳のどの行からも元の仕訳へたどれます。
+除く場合はあります。
+
+`ledger` は紙の総勘定元帳と同じ読み方をし、ここでも MCP サーバーでもウェブアプリの API
+でも同じ形です。`filePath` は各行の元の仕訳ファイルなので、元帳のどの行からも元の仕訳へ
+たどれます。`memo` は明細行のメモ、`summary` は仕訳の説明
+本文の1行目で、行の摘要はメモ、メモがなければ `summary` です。`counter` は行の相手勘定で、
+仕訳の反対側が1科目なら `account`（科目は `counter.account`）、2科目以上なら `various`
+（諸口）、帳簿の期首残高の仕訳（`opening-balance` タグの仕訳）なら `opening`（前期繰越）、
+反対側の行がなければ `none` です。`opposite` は反対側の明細行を記録どおりに、`sameSide`
+は同じ側のほかの明細行を並べます。後者は、行の金額が反対側の合計と違う理由を示します
+（現金 1,100 に対して売上 1,000 と送料 100 など）。どちらも `counter` 以上のことを
+言うときだけ付きます。`opposite` は `counter.account` がその唯一の行を示すとき
+（その行の金額は、この行の金額と `sameSide` の合計の和）、`sameSide` はこの行が
+自分の側に1行だけのときに省きます。`balance` はその行を反映した**後**の
+残高で、負になりません。`balanceSide`（`debit` か `credit`、ゼロなら省略）が借方・貸方の
+どちらに立つ残高かを示します。売上は貸方に立ち、現金が貸方に立てば何かがおかしいという
+合図です。`months` は月ごとの月計（`debit`・`credit`）、帳簿の年度の初めからの累計
+（`--from` より前の月も含む）、月末の残高です。期首残高の仕訳は前期繰越で、その月の
+動きではないので、どちらにも数えません。`closingBalance` は最後の行の後の残高で、
+`closingBalanceSide` に立ちます。
+
+`--account` には親のパスも指定できます。たとえば勘定科目表に `資産:普通預金:銀行A` と
+`資産:普通預金:銀行B` があれば `資産:普通預金` の元帳はその下の科目をまとめ、各行の
+`account` がどの補助科目の行かを示します。補助科目どうしの振替は両方の行に出て、
+それぞれもう一方が相手勘定です。`--from` を付けると、その日より前の行は
+`openingBalance`（負にならず、`openingBalanceSide` に立つ残高）として繰り越し、
+一覧はその日から始まります。
+
+勘定科目表で科目に `section` を指定すると（[勘定科目表](book-format-reference.md#勘定科目表-configchart-of-accountsyaml)を参照）、
+`pl` と `bs` に `lines` が加わります。決算書の並びに組み替えた明細です。各行には
+`section` が付きます。`section` の行（`kind`）は1つ以上の区分に属する `accounts`
+と、その合計を科目の通常残高の向き（`type`）で持ちます。収益と費用の両方を含む行の
+合計は、収益から費用を引いた額です。`subtotal` の行はそこまでの利益です。売上高から
+売上原価を引いた売上総利益、続いて営業利益、税引前当期純利益、当期純利益と並びます。
+区分のない科目は、最後の小計の直前の `unclassified` の行に入ります。当期純利益には
+含まれますが、ほかの小計には含まれません。貸借対照表では、資産と負債をそれぞれ流動と
+固定に分け、その後に区分のない科目、最後に区分を付けていない事業主の科目（`owner: true`）
+の `owner` の行を置きます。`label` は各行の英語と日本語の名前です。
+区分のない勘定科目表では `lines` は付かず、そのほかの出力は変わりません。
+
+`contra` のある行は評価勘定で、指定した科目または親のパスから差し引きます。
+`contraNets` は差し引く相手ごとの金額です。`gross`（その科目、または親のパスの下の科目の
+合計。その評価勘定は除く）、差し引く額 `deduction`、差し引いた後の `net` を、相手の科目の
+向きで返します。`--compare prior-year` では、`prior` が前年の `net` です。評価勘定のない
+計算書には `contraNets` は付きません。
+
+`--compare prior-year` は、帳簿の `config/prior-year.yaml`（[`iris yearend`](#iris-yearend)
+を参照）から前期の数字を加えます。`pl` は1年前の同じ暦月、`bs` は1年前の同じ月の
+月末残高です。各行に `prior`（科目の通常残高の向き。前期に数字がない科目は `0`）、
+レポートに前期の日付と合計を持つ `prior` が付きます。前期にしかない科目は当期 `0`
+で現れます。比較は月単位です（ファイルは月ごとの合計を持つため）。このファイルの
+ない帳簿では `prior` が付かず、標準エラーに注記が出ます。
+
+`iris report trend` は `--from` の月から `--to` の月までを月ごとに並べた月次推移表です。
+`values` は `months` の各月に1つずつで、科目の通常残高の向きです。収益・費用の科目は
+各月の動き（`total` は期間の合計、`netIncome` は各月の当期純利益）、資産・負債・
+純資産の科目は各月末の残高（期首残高の仕訳を含み、`total` は期末残高）です。区分ごとに
+行と同じ `{ values, total }` 形の合計があります。`currentEarnings` は年度の初めから
+各月末までの当期純利益で、貸借対照表では純資産と並べます。各月の資産は負債・純資産・
+当期純利益の合計と一致し、すべての月で一致すれば `balanced` が true です。勘定科目表で
+科目に区分を付けると、`lines` が `pl` と `bs` の `lines` と同じ並びを月ごとに返します。
+損益の行と小計、続いて資産と負債の区分です。
+
+`iris report cf` は期間のキャッシュ・フロー計算書です。勘定科目表で `cash: true` を
+付けた科目とその下の科目（`cashAccounts`）を対象とし、`--from` より前の残高（期首残高の仕訳を含む）を
+`openingCash` とします。現金の動きは、その仕訳の相手側で分類します。ほかの科目の行は、
+貸方から借方を引いた額が現金を通ったものとみなし、その科目の区分で `operating`（営業）・
+`investing`（投資）・`financing`（財務）を決めます（科目の `cash_flow` が優先し、
+事業主の科目は財務とします）。区分ごとに、相手の科目と収入 `inflow`・支出 `outflow`・
+`net` を並べます。行ごとに分けるのは、正確に分けられるときだけです。相手側の行がすべて
+同じ区分のとき、または現金の行だけが片側にあるときです。それ以外は仕訳全体を
+`unclassified` に入れ、按分はしません。区分のない科目の行も `unclassified` に入ります。
+現金の科目どうしの移動は計上しません。`netChange` は各区分と `unclassified` の合計で、
+期首の現金と `netChange` の合計が `closingCash` と一致すれば `balanced` が true です。
+区分を使わない勘定科目表では、区分のない計算書になります。各区分は空のままで、`flows` に
+現金が動いた相手の科目を収入・支出・`net` とともに並べるので、`unclassified` は出ません。
+現金の科目がない勘定科目表では、各区分は空になり、標準エラー出力にその旨を表示します。
+
+`iris report tb --from D` は `D` から `--as-of` までの期間の試算表です。科目ごとに
+期首の残高 `opening`、期間の借方 `debits`・貸方 `credits`、期末の残高 `closing` を
+返します。`opening` と `closing` は `net` と同じく科目の通常残高の向きです。期首残高の
+仕訳は日付にかかわらず `opening` に入ります。`balanced` が true なら、期首の借方残高と
+貸方残高、期間の借方と貸方、期末の借方残高と貸方残高がそれぞれ一致します。
 `sum.rows[].keys` は位置対応で、`--by` に渡したキーと同じ順に1つずつ並びます。
 
 ### iris search
@@ -832,6 +956,12 @@ iris references [--json] <path> [path]
 iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
 iris export assets [--year YYYY] [--out FILE] [path]
 ```
+
+各 `ledger-<科目>.csv` は紙の元帳の並びです。`date`、`file`、`description`（摘要）、
+`counter_account`（相手勘定。科目、または帳簿の言語で「諸口」「前期繰越」）、`payee`
+（取引先）、`debit`、`credit`、`balance_side`（借・貸）、`balance`（負にならない残高）、
+続いて相手勘定の内訳 `opposite` と `same_side`（`科目 金額; 科目 金額`）です。月ごとに
+月計の行と累計の行が続きます。
 
 資産の CSV には、資産ファイルにある追加の項目（オーバーレイが定義する項目など）が
 1 項目につき 1 列ずつ加わります。列名はドット区切りのパス
@@ -1485,7 +1615,7 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **出力形:**
 
 ```text
-balance   [ { account, debits, credits, type?, net } ]
+balance   [ { account, code?, debits, credits, type?, net } ]
 holdings  [ { account, unit, quantity } ]
 history   [ { id, path, op, sha?, versionId?, sizeBytes,
               actor, actorDisplay?, source?, reason?,

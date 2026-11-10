@@ -49,15 +49,17 @@ the book folder and of its record from `iris api history --all --json`
 The engine handles the universal, stable parts: double-entry math, the fields
 recorded on each line, totals and data exports. Regional rules — tax
 classifications, depreciation methods, the figures a return needs — come only
-from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Each region has a guide there:
-which packages to select, and what they leave to you.
+from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
+for your region, its region guide there says which to select and what they
+leave to you; a book whose region has none gets the universal checks only.
 
 A figures recipe records its result under `filings/` with its provenance, and
 `iris validate` re-runs it, so a correction posted after you filed shows up as
 an error until the recipe is re-run. The forms themselves change yearly and
 vary by place, so your AI prepares them from the engine's figures, the
 recorded filings and the current official form, and keeps them in the book
-under `compiled/<region>/<form>/`. IrisBooks sums; your AI files.
+under `compiled/<region>/<form>/`. IrisBooks sums, your AI prepares the forms,
+and you file them.
 
 ## Year-end close
 
