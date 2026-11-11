@@ -41,12 +41,15 @@
 `seal --dry-run`、計算結果の書き込みは `validate --apply`・
 `financial prepare --apply`・`overlay recipe --out PATH --apply` を使います。
 
-JSON を出すコマンドには共通の約束があります。**金額は帳簿通貨のマイナー単位の
-整数**（scale 0 なら ¥1,200 は `1200`、scale 2 なら $12.00 が `1200`）、日付は
-`YYYY-MM-DD` の文字列、出力は2スペースインデントで整形されます。以下の出力形は
-キーの骨組みで書いてあり、`?` は値が空のとき省略されるキーです。レポートと残高の
-JSON には帳簿の `currency` と `currencyScale` も入るため、$1,000.00 の仕訳は
-`"currencyScale": 2` で `100000` と読めます。
+多くのコマンドは `--json` で機械可読な結果を1つ出し、レポートは常に JSON を
+出します。JSON を出すコマンドには共通の約束があります。日付は `YYYY-MM-DD` の文字列、
+出力は2スペースインデントで整形されます。**金額は帳簿通貨の10進数の文字列**で、
+仕訳ファイルと同じ書き方です（`"54.99"`、¥1,200 なら `"1200"`）。結果から写した
+数字は、そのまま仕訳やコマンドの引数に戻せます。金額を含む結果は `currency` と
+`currencyScale`（帳簿の小数点以下の桁数）を併記します。数量はその単位の桁数の
+10進数（ビットコイン半分なら `"0.5"`）、価格は1単位あたりの10進数
+（`"9850000"`）です。行を足し合わせたくなる結果には、合計が最初から入っています。
+以下の出力形はキーの骨組みで書いてあり、`?` は値が空のとき省略されるキーです。
 
 CLIとローカルMCPのJSON結果は、**lowerCamelCase** に統一しています。
 例は `fiscalYear`、`commonCompletions`、`referenceData`、`newPath`、`localSha`、
@@ -115,8 +118,25 @@ iris init [flags] <path>
 `CLAUDE.md` と `README.md` も不足していれば追加し、既存の内容は上書きしません。
 
 ```bash
-iris clone [--force] <book-id> [dest]
+iris clone [--force] [--json] <book-id> [dest]
 ```
+
+`dest` を省略すると、帳簿名と会計年度からフォルダ名を付けます（`Acme-2026`、
+`サンプル商店-2026`）。`iris yearend` が引き継ぐのと同じ名前です。ダウンロードの
+進み具合は2秒ごとに標準エラー出力に出し、完了時の要約には帳簿名・会計年度・
+取得先のフォルダが出ます。クローンは帳簿の締めと設定も読み込むので、最初の同期の
+前から、締め済みの年度は編集を受け付けず、`iris status` にも締めが表示されます。
+
+**出力形**（`--json`）:
+
+```text
+{ status, bookId, name?, fiscalYear?, path?, files, bytes, guidesAdded[],
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? } }
+```
+
+`status` は `ok` か `error` です。拒否や失敗のときも終了コードは変わらず、
+[`iris sync`](#iris-sync) と同じく `error`（リクエストが失敗したときは
+`errorDetail` も）を返します。`path` は絶対パスです。
 
 ### iris status
 
@@ -132,7 +152,7 @@ iris status [--json] [path]
 { name, bookId, region, language, currency, fiscalStartMonth,
   archived, archive?{ sourceBookId, fiscalYear },
   draftCount?, remoteDeleted?, packageContext?,
-  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId? } }
+  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId?, reason? } }
 ```
 
 `archive` はアーカイブフォルダのときだけ、`draftCount` は下書きを数えられたとき
@@ -143,7 +163,8 @@ iris status [--json] [path]
 締め日時、引き継いだ締めの ID を含めます。`checkedAt` はサーバーからの取得、締め、
 再オープンに成功したときの確認日時です。更新に失敗しても古い確認日時を保持します。
 `unsealed` は最後の一覧取得時に締めがなかったことを表し、情報の不足・破損や
-接続先の不一致は `unknown` です。古い形式の締め済み情報には ID や確認日時が
+接続先の不一致は `unknown` です。`reason` に理由と更新方法が入ります。クローンは
+完了前に締めを読み込みます。古い形式の締め済み情報には ID や確認日時が
 ない場合があります。`local-only` はクラウドの締めがないローカル帳簿、`archive` は
 手元のアーカイブを表し、現在のクラウドの状態を保証しません。通信やログインは
 行いません。更新には `iris sync` を使ってください。未同期のファイルは締めの
@@ -322,8 +343,8 @@ iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-s
 `--view` の省略時は既定のビューを使います。ビューを指定すると、そのビューの
 行だけを更新し、共通の行と他のビューを保持します。
 
-出力は常に JSON です。`proposal` に Markdown 全文、`allocations` に数量・原価・
-ロット・適用方法、`balanced` に貸借を一致させる金額を入れた行、
+出力は常に JSON です。`proposal` に Markdown 全文、`allocations` に数量・原価
+（仕訳と同じ10進数）・ロット・適用方法、`balanced` に貸借を一致させる金額を入れた行、
 `name` と `description` に補完ルール自身の短い名前と計算内容の説明、
 `overlayName` に帳簿独自のレイヤーの名前、`policy` に適用した在庫の方針と
 その説明、`reasons` に提案が金額を定めた理由（行ごと）、`revision` に入力と
@@ -743,7 +764,7 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
 減価償却もファイルを変更せずに計算します。名前付きビューの承認済みレポートは、
 現在の入力に対して承認された計算結果を使います。
 
-レポートの出力は **JSON** です（金額は最小単位の整数）。クラウドのレスポンスには、
+レポートの出力は **JSON** です（金額は帳簿通貨の10進数の文字列）。クラウドのレスポンスには、
 リビジョンや鮮度などの追加情報が含まれる場合があります。
 テキスト表モードはありません: 日本語の勘定科目名では端末の列揃えが安定せず、
 AI はもともと JSON を読み、人間向けの整形表示は Web アプリが担います。
@@ -910,7 +931,7 @@ sum     { groupBy[], from?, to?,
 任意のフィルタの組み合わせ（AND）で仕訳を探します。決定論的・オフライン。
 
 ```bash
-iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
+iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
@@ -921,10 +942,14 @@ iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
 **出力形**（`--json`）:
 
 ```text
-[ { path, date, payee, status, amount, lines } ]
+{ currency, currencyScale, count, total,
+  journals[{ path, date, payee, status, amount, lines }] }
 ```
 
-`amount` はその仕訳の借方合計（マイナー単位）、`lines` は明細行数です。
+`amount` はその仕訳の借方合計で、帳簿通貨の10進数の文字列（`"54.99"`）です。
+`lines` は明細行数です。`count` と `total` は一致した件数と金額の合計なので、
+行を足し合わせずに `total` を使ってください。`--min` と `--max` も同じ書き方で
+金額を指定します。`--min 98` なら $98.00 以上の仕訳に一致します。
 
 ### iris references
 
@@ -997,6 +1022,12 @@ Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカ�
 `CLAUDE.md` は同期しません。`AGENTS.md` は帳簿の共有方針であり、
 クラウドでの変更には オーナー権限が必要です。
 
+毎回のパスは、結果と件数を示す1行の要約で終わります。例えば
+`Sync complete: 0 pushed, 0 pulled, 0 server deletions, 0 conflicts.` と出るので、
+`--json` なしでも「何も変わらなかった」ことが読み取れます。その下に、失敗、
+キューに残ったファイル、未解決のコンフリクト、ローカルに反映できなかった変更、
+拒否が続きます。`--json` のドキュメントと同じ内容です。
+
 終了コード: `0` クリーン · `1` 拒否/コンフリクト/IO · `2` 使い方/設定 · `3` 終端的
 切断（帳簿削除、アクセス取消、セッション失効）。
 
@@ -1011,11 +1042,22 @@ Markdown、および `raw/` の原資料です。`.iris/`、競合サイドカ�
 { status, counts{ pushed, pulled, deleted, conflicts }, queueLeft,
   disconnected, disconnectReason?,
   newRejections[], allRejections[], applyErrors[], blockedByConflicts[],
-  error? }
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? },
+  notice?{ message, files[] } }
 ```
 
 - `status` — `ok` | `rejected` | `conflicts` | `disconnected` | `error`
 - `disconnectReason` — `deleted` | `forbidden` | `auth_expired`
+- `errorDetail` — サーバーへのリクエストが失敗したとき、`error` と一緒に返り
+  ます。`kind` は `status`（サーバーが HTTP `status` で応答した）、`timeout`、
+  `connect`、`dns`、`tls`、`proxy`、`canceled`、`other` のいずれかで、
+  `retryable` は sync を再実行すれば成功しうるかを表します。
+  応答がなかったときは、`phase` がリクエストの到達段階（`dns`、`connect`、`tls`、
+  `send`、`wait`）を、`elapsedMs` が失敗までの時間を表します。
+  [トラブルシューティング](troubleshooting.md#クラウドのコマンドがネットワークエラーを報告する)を参照してください。
+- `notice` — 帳簿の初回アップロードか、`raw/` の証憑を送るパスのときに入ります。
+  IrisBooks に送るデータに公的機関が発行する個人識別番号を含めないことの
+  確認で、送る証憑ファイルが `files` に入ります。それ以外のパスでは省略されます。
 - `newRejections` / `allRejections` — 要対応レコード。`iris sync issues list
   --json` と同じ形です
 - `blockedByConflicts` — 未解決の `.conflicted` サイドカーがある正規パス。
@@ -1114,12 +1156,12 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 **出力形**。`list --json`:
 
 ```text
-[ { unit, currency, date, valueMicro, source?, origin, recordedAt,
+[ { unit, currency, date, price, source?, origin, recordedAt,
     revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
 
-`valueMicro` は**1単位あたり**の値 × 1,000,000 です（¥9,850,000 のビットコインは
-`9850000000000`）。`origin` は `local`（この端末で記録）か `server`。
+`price` は**1単位あたり**の値を `--price` と同じ10進数の文字列で表します
+（¥9,850,000 のビットコインは `"9850000"`）。`origin` は `local`（この端末で記録）か `server`。
 `sync --json` は `{ pushed, pulled, conflicts }` を返します。
 競合が残る場合は、他の価格の同期を進めたうえで終了コード 1 を返します。
 
@@ -1189,6 +1231,10 @@ duckdb -readonly portfolio.duckdb
 SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
 PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
 ```
+
+コマンドの結果と違い、このファイルはエンジンの整数をそのまま保存します。金額の列は
+その通貨の最小単位（小数2桁の通貨ならセント）、数量はその単位の最小単位です。
+数字を示す前に、10 の scale 乗で割ってください。
 
 `iris yearend` は完全な期首ロットと取得原価を翌年度の帳簿に引き継ぎます。
 各年度の帳簿は単独で使え、その会計年度の期間だけ集計に含まれます。
@@ -1394,7 +1440,7 @@ Web アプリからサインアウトしても CLI には影響せず、90 日�
 
 ```bash
 iris api login
-iris api whoami     # キャッシュ済みトークンを検証
+iris api whoami     # 認証情報を確かめ、そのアカウントを表示
 iris api logout     # このデバイスのセッションを取り消してトークンを削除
 ```
 
@@ -1615,15 +1661,17 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **出力形:**
 
 ```text
-balance   [ { account, code?, debits, credits, type?, net } ]
-holdings  [ { account, unit, quantity } ]
+balance   { currency, currencyScale, totalDebit, totalCredit,
+            rows[{ account, code?, debits, credits, type?, net }] }
+holdings  [ { account, unit, unitScale, quantity } ]
 history   [ { id, path, op, sha?, versionId?, sizeBytes,
               actor, actorDisplay?, source?, reason?,
               postSealPeriod?, movedFromPath?, ts } ]
 ```
 
-`holdings` は単位が付いた行だけを数え、正味ゼロのポジションはサーバー側で
-除かれます。
+金額は帳簿通貨の10進数、`quantity` はその単位の桁数（`unitScale`）の10進数で、
+仕訳ファイルと同じ書き方です。`holdings` は単位が付いた行だけを数え、
+正味ゼロのポジションはサーバー側で除かれます。
 
 `history`（訂正・削除の恒久的な記録）の `actor` は安定したアカウント識別子
 （監査上の身元）で、`actorDisplay` はそれをサーバーが読み取り時に名前や

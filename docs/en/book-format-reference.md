@@ -945,8 +945,8 @@ iris allocation --schema
 iris allocation --input raw/allocation-jan.json
 ```
 
-The result is gross `10001`, business `2500`, private `7501` JPY. Amounts and minor
-units are exact strings. `evidenceVerification: unchecked` means the calculator
+The result is gross `10001`, business `2500`, private `7501` JPY. Amounts are
+exact decimal strings. `evidenceVerification: unchecked` means the calculator
 has not opened the evidence files; review those sources separately. Retain the
 request, calculation version, input hash and result in your Book's notes.
 `inputSha` hashes the parsed request in canonical field order; formatting changes
@@ -1751,12 +1751,12 @@ summary or partial CSV. New recipe executions record table primitive version 2; 
 version-1 records replay their original arithmetic within the same host limits.
 Replay never substitutes the latest version for missing or unknown provenance.
 
-MCP table tools take integer minor units and accept exact decimal integer
-strings for large amounts. Read `amountExact` / `totalExact` or the generated
-YAML rather than converting large numeric fields to floating point. Set the
-tool's `scale` to the destination Book's scale; its default is 0. For example,
-12,345 minor units with `scale: 2` becomes YAML `amount: 123.45`, which parses
-back to the same 12,345 units. The result reports the scale used.
+MCP table tools take amounts the way the asset file writes them: decimal
+strings in the book currency (`"1500000"`, `"1234.56"`), with `scale` set to
+the destination Book's scale. A number is refused rather than guessed at. The
+result gives each row's `amount` and the `total` as decimal strings, with the
+YAML to paste, which reads back as the same amounts. The result reports the
+scale used.
 
 Your AI assistant builds the table for you. When a selected overlay has a
 **recipe** for the method (`list_recipes` shows it), it runs that with the
@@ -1990,17 +1990,18 @@ opening_inventory:
     unit: FUND
     method: fifo
     quantity: 100
-    carrying_value_minor: 1200000
-    acquisition_cost_minor: 1000000
+    carrying_value: 1200000
+    acquisition_cost: 1000000
     lots:
       - id: original-purchase
         date: 2025-11-01
         quantity: 100
-        cost_minor: 1000000
+        cost: 1000000
 ```
 
-Quantities are integers at the unit's scale; money is integer book-currency
-minor units. Carrying value and acquisition cost are separate. Carrying value
+Amounts are written as journal files write them: money in the book currency
+(`1700.00` at `scale: 2`) and quantities at the unit's scale (`0.5`). Carrying
+value and acquisition cost are separate. Carrying value
 also disambiguates a native-currency cash residual from a unit holding in the
 same account. FIFO/specific openings retain original lots and their dates;
 moving-average openings use a quantity/cost pool without lots. A null acquisition
@@ -2012,17 +2013,20 @@ In a book you start with holdings bought before its fiscal year, write this
 entry yourself. Earlier purchases can't be journals in this book, since they
 fall outside its fiscal year, so list each remaining purchase as a lot: its own
 `id`, the original purchase `date` (on or before the fiscal year's first day),
-and the `quantity` and `cost_minor` still held. The lots must add up to the
-entry's `quantity` and `acquisition_cost_minor`, and the opening journal's line
-for the holding states the same quantity. Journal amounts are written as
-decimals while these fields are minor units: at `scale: 2`, a journal amount of
-`1700.00` is `170000` here. `iris networth` and `iris yearend` refuse an opening
+and the `quantity` and `cost` still held. The lots must add up to the
+entry's `quantity` and `acquisition_cost`, and the opening journal's line
+for the holding states the same quantity and amount. `iris networth` and `iris yearend` refuse an opening
 whose quantity or lots don't add up; `iris validate` doesn't check them. Under
 FIFO you may omit `lots`; the holding then counts as one lot dated the fiscal year's
 first day, and the original purchase dates are lost. Specific identification
 needs the lots. A moving-average opening lists no lots, only its total quantity
-and cost. Leave `acquisition_cost_minor` null only when the cost is truly
+and cost. Leave `acquisition_cost` null only when the cost is truly
 unknown.
+
+A book written by an earlier iris may hold `carrying_value_minor`,
+`acquisition_cost_minor`, `allocation_cost_minor` and lot `cost_minor`, with
+amounts and quantities as integers in the smallest unit. Such an entry still
+reads as written; use one form per entry. `iris yearend` writes the decimal form.
 
 Local comparisons and retained financial calculations allocate later disposals
 from these lots, or from the moving-average pool, using the method recorded
@@ -2035,7 +2039,7 @@ Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics deri
 one from the fiscal year, journal path and original line index within this book’s
 inventory. Changing the book’s cloud ID does not change that lot ID.
 
-An opening can also hold `allocation_cost_minor` and `allocation_policy`. A
+An opening can also hold `allocation_cost` and `allocation_policy`. A
 package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
 They never replace acquisition cost or recorded carrying value.
 

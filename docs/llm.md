@@ -1416,11 +1416,11 @@ rows under `schedule:`; (3) if the method will recur, write a recipe under
 `rate_bp` is the rate per row, so with `step_months: 12` (the default) pass
 the published annual rate as is (0.500 → 5000); pass `step_months: 1` for
 monthly rows. `start_period` is `YYYY-MM`; for an annual book use the fiscal
-year's last month. `rounding` is `floor` (default), `half_up` or `ceil`. Set
-`scale` to the destination book's currency scale (default 0, JPY): it formats
-`yaml` in whole currency units, while JSON amounts stay in minor units. Above
-9,007,199,254,740,991, pass `basis`, `salvage` and `amount_per_row` as decimal
-integer strings and read `amountExact` / `totalExact`. Tables stop at 4,096
+year's last month. `rounding` is `floor` (default), `half_up` or `ceil`. `scale` is required:
+the destination book's `currencyScale` (0 JPY, 2 USD). Pass `basis`, `salvage`
+and `amount_per_row` as decimal strings in the book currency, as the asset file
+writes them (`"1234.56"`); rows, `total` and `yaml` come back the same way.
+Tables stop at 4,096
 rows and refuse dates after year 9999; excessive or invalid work fails rather
 than returning zero.
 
@@ -2453,8 +2453,9 @@ credentials or collaborator roles.
   name for monthly gross asset increases/decreases, including receivables and
   fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
 - **Browse journals and accounts** — `list_accounts`, `search_journals` and
-  `get_journal`. Search filters combine with AND. Amount bounds are nonnegative
-  integer minor units; follow `nextCursor` using the same filters. `journal_path`
+  `get_journal`. Search filters combine with AND. Amounts, including the bounds,
+  are decimal strings in the book currency, as journal files write them
+  (`"98.00"`); follow `nextCursor` using the same filters. `journal_path`
   from search selects a journal. Sealed-year entries appear as `closed`.
 - **Read Net Worth, holdings and prices** — `get_networth`, `get_holdings` and
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,
@@ -2719,13 +2720,18 @@ selectors use `--book-path`; the former ambiguous `--book` flag is removed.
 Closing previews use `seal --dry-run`; calculation writes use `validate
 --apply`, `financial prepare --apply`, and `overlay recipe --out PATH --apply`.
 
-Commands that emit JSON share one convention: **amounts are integers in the
-book currency's minor units** (¥1,200 is `1200` at scale 0; $12.00 is `1200` at
-scale 2), dates are `YYYY-MM-DD` strings, and the document is pretty-printed
-with a two-space indent. The output shapes below are written as key skeletons —
-`?` marks a key that is omitted when empty. Report and balance JSON also state
-the book's `currency` and `currencyScale`, so a $1,000.00 entry reads as
-`100000` with `"currencyScale": 2`.
+Most commands accept `--json` for one machine-readable result, and reports
+always print JSON. Commands that emit JSON share one convention: dates are
+`YYYY-MM-DD` strings, and the document is pretty-printed with a two-space
+indent. **Amounts are decimal strings in the book currency**, written the way
+journal files write them (`"54.99"`; `"1200"` for ¥1,200), so a figure you
+copy out of a result goes straight back into a journal or a command argument.
+A result with amounts names its `currency` and `currencyScale` (how many
+decimal places the book uses). Quantities are decimals at their unit's scale
+(`"0.5"` for half a bitcoin) and prices are decimals of one whole unit
+(`"9850000"`). Where you would add rows up, the result carries the total
+already. The output shapes below are written as key skeletons — `?` marks a
+key that is omitted when empty.
 
 JSON result fields use **lowerCamelCase** across CLI commands and local MCP
 results: `fiscalYear`, `commonCompletions`, `referenceData`, `newPath`, `localSha`,
@@ -2803,8 +2809,26 @@ is published; local `CLAUDE.md` and `README.md` entry files are added when absen
 Existing custom files are preserved.
 
 ```bash
-iris clone [--force] <book-id> [dest]
+iris clone [--force] [--json] <book-id> [dest]
 ```
+
+Without `dest`, the folder is named after the book and its fiscal year
+(`Acme-2026`, `サンプル商店-2026`), the name `iris yearend` continues. Download
+progress goes to stderr every two seconds; the summary names the book, its
+fiscal year and the folder it landed in. Clone also reads the book's seals and
+settings, so a sealed year refuses edits and `iris status` shows its seal before
+the first sync.
+
+**Output shape** (`--json`):
+
+```text
+{ status, bookId, name?, fiscalYear?, path?, files, bytes, guidesAdded[],
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? } }
+```
+
+`status` is `ok` or `error`; a refusal or failure keeps its exit code and
+reports `error` (and `errorDetail` for a failed request) the way
+[`iris sync`](#iris-sync) does. `path` is absolute.
 
 ### iris status
 
@@ -2821,7 +2845,7 @@ iris status [--json] [path]
 { name, bookId, region, language, currency, fiscalStartMonth,
   archived, archive?{ sourceBookId, fiscalYear },
   draftCount?, remoteDeleted?, packageContext?,
-  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId? } }
+  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId?, reason? } }
 ```
 
 `archive` appears only inside an archive folder, `draftCount` only when the
@@ -2833,7 +2857,8 @@ book gone.
 known. `checkedAt` is the successful server read or close/reopen observation time;
 a failed refresh keeps the previous data and time. `unsealed` means the last
 complete read found no seal. Missing, corrupt, unbound or foreign-endpoint state
-is `unknown`; an old closed flag can lack references/time. `local-only` has no
+is `unknown`, and `reason` says why and what refreshes it; an old closed flag
+can lack references/time. A clone reads the seals before it finishes. `local-only` has no
 cloud seal. `archive` describes the local archive marker, without claiming the
 live cloud is still closed. This command does not connect or log in. Run
 `iris sync` to refresh; local unsynced files may differ from the sealed sources.
@@ -3022,7 +3047,7 @@ omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
-lists quantities, costs, lots and effective methods, `balanced` names the line
+lists quantities, costs (decimals, as the journal writes them), lots and effective methods, `balanced` names the line
 filled with the amount that balances the entry, `name` and `description` are
 the completion's own short name and account of what it calculates,
 `overlayName` names a Book's own layer, `policy` is the inventory policy applied
@@ -3123,7 +3148,7 @@ See [the format and complete example](https://irisbooks.io/docs/en/book-format-r
 
 For assistants: results carry account, date and fiscal year,
 measure/unit/scale, posted or explicit posted-and-drafts scope, normal
-direction, exact decimal and integer strings for actual/expected/difference,
+direction, exact decimal strings for actual/expected/difference,
 and evidence status. Local MCP `reconcile` uses the same checker in single-book
 and parent mode. A pass does not certify Overlay policy or the authenticity of
 the source evidence.
@@ -3459,7 +3484,7 @@ Explicit `--mode approved --include-drafts` is rejected. Comparison mode also
 calculates inventory and depreciation without writing files; approved named-view
 reports use the current accepted financial generation.
 
-Report output is **JSON** (amounts in minor units). Cloud responses may
+Report output is **JSON** (amounts as decimal strings in the book currency). Cloud responses may
 include additional revision or freshness metadata. There is no text-table mode:
 terminal column alignment is
 unreliable for Japanese account names, your AI consumes JSON anyway, and the
@@ -3658,7 +3683,7 @@ Find journals by any combination of filters (combined with AND). Deterministic
 and offline.
 
 ```bash
-iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
+iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
@@ -3669,10 +3694,15 @@ sealed fiscal year displays as `closed` regardless of what its file says, and
 **Output shape** (`--json`):
 
 ```text
-[ { path, date, payee, status, amount, lines } ]
+{ currency, currencyScale, count, total,
+  journals[{ path, date, payee, status, amount, lines }] }
 ```
 
-`amount` is the entry's debit total in minor units; `lines` is its line count.
+`amount` is the entry's debit total as a decimal string in the book currency
+(`"54.99"`); `lines` is its line count. `count` and `total` are the number of
+matches and their amounts added up, so quote `total` rather than summing the
+rows. `--min` and `--max` take amounts in the same form: `--min 98` matches
+entries of $98.00 or more.
 
 ### iris references
 
@@ -3745,6 +3775,13 @@ files under `config/overlay-packages/`, Markdown under `journals/`,
 exports, and local entry files such as `README.md` and `CLAUDE.md`.
 `AGENTS.md` holds shared book policy; only an Owner may change it in the cloud.
 
+Every pass ends with one summary line that states the outcome and the counts,
+for example `Sync complete: 0 pushed, 0 pulled, 0 server deletions, 0
+conflicts.` — so a clean pass with nothing to do reads as such without
+`--json`. Below it come any failure, files still queued, unresolved
+conflicts, changes that failed to apply locally and rejections: the same facts
+the `--json` document holds.
+
 Exit codes: `0` clean · `1` rejections/conflicts/IO · `2` usage/setup · `3`
 terminal disconnect (book deleted, access revoked, session expired).
 
@@ -3759,11 +3796,23 @@ the one your AI reads after every edit:
 { status, counts{ pushed, pulled, deleted, conflicts }, queueLeft,
   disconnected, disconnectReason?,
   newRejections[], allRejections[], applyErrors[], blockedByConflicts[],
-  error? }
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? },
+  notice?{ message, files[] } }
 ```
 
 - `status` — `ok` | `rejected` | `conflicts` | `disconnected` | `error`
 - `disconnectReason` — `deleted` | `forbidden` | `auth_expired`
+- `errorDetail` — present with `error` when a request to the server failed.
+  `kind` is `status` (the server answered with HTTP `status`), `timeout`,
+  `connect`, `dns`, `tls`, `proxy`, `canceled` or `other`; `retryable` says
+  whether running sync again may succeed. When no response arrived, `phase`
+  says how far the request got (`dns`, `connect`, `tls`, `send` or `wait`)
+  and `elapsedMs` when it failed. See
+  [Troubleshooting](https://irisbooks.io/docs/en/troubleshooting/#a-cloud-command-reports-a-network-error).
+- `notice` — present when the pass is the book's first upload or sends
+  evidence under `raw/`: a reminder that data sent to IrisBooks must contain no
+  government-issued personal identification numbers, with the evidence files in
+  `files`. Other passes leave it out.
 - `newRejections` / `allRejections` — attention records, the same shape
   `iris sync issues list --json` returns
 - `blockedByConflicts` — canonical paths with an unresolved `.conflicted`
@@ -3861,12 +3910,12 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 **Output shapes.** `list --json`:
 
 ```text
-[ { unit, currency, date, valueMicro, source?, origin, recordedAt,
+[ { unit, currency, date, price, source?, origin, recordedAt,
     revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
 
-`valueMicro` is the value of **one whole unit** × 1,000,000, so a ¥9,850,000
-bitcoin is `9850000000000`. `origin` is `local` (captured on this machine) or
+`price` is the value of **one whole unit** as a decimal string, as `--price`
+takes it: a ¥9,850,000 bitcoin is `"9850000"`. `origin` is `local` (captured on this machine) or
 `server`. `sync --json` returns `{ pushed, pulled, conflicts }`; unresolved
 conflicts give exit code 1 after other cells have synced.
 
@@ -3951,6 +4000,11 @@ coverage issues, plus a `portfolio_at` table macro. You can query or pivot it:
 SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
 PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
 ```
+
+Unlike command results, the file keeps the engine's integers: money columns
+are in the currency's smallest unit (cents in a two-decimal currency) and
+quantities in the unit's. Divide by 10 to the power of the scale before you
+quote a figure.
 
 `iris yearend` carries complete opening lots and costs into each new book.
 Each annual book works alone and contributes only within its fiscal year.
@@ -4063,7 +4117,8 @@ running the server, in both modes, and never returns the sign-in link.
 For assistants: `export_local(kind="journals"|"assets", year?, as_of?,
 out_dir?)` writes CSVs inside the selected book (`as_of` for journals only;
 `out_dir` defaults to `exports/`). `search_journals` filters by date, amount
-(minor units), payee, status, account and tag.
+(decimal strings in the book currency, e.g. `"98.00"`), payee, status, account
+and tag.
 
 #### Authorize cloud access
 
@@ -4190,7 +4245,7 @@ app under your Settings (avatar menu) → API tokens.
 
 ```bash
 iris api login
-iris api whoami     # validate the cached token
+iris api whoami     # check the credential and name its account
 iris api logout     # revoke this device's session and remove the token
 ```
 
@@ -4288,9 +4343,9 @@ app/API from `IRISBOOKS_APP_BASE` / `IRISBOOKS_API_BASE` and saves the choice;
 an inherited `IRIS_API_ENDPOINT` can send later commands elsewhere, so keep
 endpoint overrides cleared unless deliberately selecting another service.
 `whoami` reports the actual API endpoint and checks the effective credential:
-`IRIS_API_TOKEN` wins over a cached session, an environment token's identity is
-unavailable locally, and authentication alone does not establish every Book
-permission. Price sync refuses a store bound to another endpoint or user; use a
+`IRIS_API_TOKEN` wins over a cached session, the server names the account
+behind either one (an older server can't name a token's account), and
+authentication alone does not establish every Book permission. Price sync refuses a store bound to another endpoint or user; use a
 fresh profile directory rather than deleting that binding. A local MCP server
 uses the host process's credential directory and environment, not a Book
 setting or the VM shell's variables: configure the profile in that host
@@ -4453,15 +4508,17 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **Output shapes:**
 
 ```text
-balance   [ { account, code?, debits, credits, type?, net } ]
-holdings  [ { account, unit, quantity } ]
+balance   { currency, currencyScale, totalDebit, totalCredit,
+            rows[{ account, code?, debits, credits, type?, net }] }
+holdings  [ { account, unit, unitScale, quantity } ]
 history   [ { id, path, op, sha?, versionId?, sizeBytes,
               actor, actorDisplay?, source?, reason?,
               postSealPeriod?, movedFromPath?, ts } ]
 ```
 
-`holdings` counts only unit-tagged lines, and positions that net to zero are
-omitted server-side.
+Amounts are decimals in the book currency and `quantity` is a decimal at the
+unit's scale (`unitScale`), as journal files write them. `holdings` counts only
+unit-tagged lines, and positions that net to zero are omitted server-side.
 
 In `history` — the durable correction/deletion record — `actor` is the stable
 account identifier (the audit identity) and `actorDisplay` is the server's
@@ -5618,8 +5675,8 @@ iris allocation --schema
 iris allocation --input raw/allocation-jan.json
 ```
 
-The result is gross `10001`, business `2500`, private `7501` JPY. Amounts and minor
-units are exact strings. `evidenceVerification: unchecked` means the calculator
+The result is gross `10001`, business `2500`, private `7501` JPY. Amounts are
+exact decimal strings. `evidenceVerification: unchecked` means the calculator
 has not opened the evidence files; review those sources separately. Retain the
 request, calculation version, input hash and result in your Book's notes.
 `inputSha` hashes the parsed request in canonical field order; formatting changes
@@ -6424,12 +6481,12 @@ summary or partial CSV. New recipe executions record table primitive version 2; 
 version-1 records replay their original arithmetic within the same host limits.
 Replay never substitutes the latest version for missing or unknown provenance.
 
-MCP table tools take integer minor units and accept exact decimal integer
-strings for large amounts. Read `amountExact` / `totalExact` or the generated
-YAML rather than converting large numeric fields to floating point. Set the
-tool's `scale` to the destination Book's scale; its default is 0. For example,
-12,345 minor units with `scale: 2` becomes YAML `amount: 123.45`, which parses
-back to the same 12,345 units. The result reports the scale used.
+MCP table tools take amounts the way the asset file writes them: decimal
+strings in the book currency (`"1500000"`, `"1234.56"`), with `scale` set to
+the destination Book's scale. A number is refused rather than guessed at. The
+result gives each row's `amount` and the `total` as decimal strings, with the
+YAML to paste, which reads back as the same amounts. The result reports the
+scale used.
 
 Your AI assistant builds the table for you. When a selected overlay has a
 **recipe** for the method (`list_recipes` shows it), it runs that with the
@@ -6713,17 +6770,18 @@ opening_inventory:
     unit: FUND
     method: fifo
     quantity: 100
-    carrying_value_minor: 1200000
-    acquisition_cost_minor: 1000000
+    carrying_value: 1200000
+    acquisition_cost: 1000000
     lots:
       - id: original-purchase
         date: 2025-11-01
         quantity: 100
-        cost_minor: 1000000
+        cost: 1000000
 ```
 
-Quantities are integers at the unit's scale; money is integer book-currency
-minor units. Carrying value and acquisition cost are separate. Carrying value
+Amounts are written as journal files write them: money in the book currency
+(`1700.00` at `scale: 2`) and quantities at the unit's scale (`0.5`). Carrying
+value and acquisition cost are separate. Carrying value
 also disambiguates a native-currency cash residual from a unit holding in the
 same account. FIFO/specific openings retain original lots and their dates;
 moving-average openings use a quantity/cost pool without lots. A null acquisition
@@ -6735,17 +6793,20 @@ In a book you start with holdings bought before its fiscal year, write this
 entry yourself. Earlier purchases can't be journals in this book, since they
 fall outside its fiscal year, so list each remaining purchase as a lot: its own
 `id`, the original purchase `date` (on or before the fiscal year's first day),
-and the `quantity` and `cost_minor` still held. The lots must add up to the
-entry's `quantity` and `acquisition_cost_minor`, and the opening journal's line
-for the holding states the same quantity. Journal amounts are written as
-decimals while these fields are minor units: at `scale: 2`, a journal amount of
-`1700.00` is `170000` here. `iris networth` and `iris yearend` refuse an opening
+and the `quantity` and `cost` still held. The lots must add up to the
+entry's `quantity` and `acquisition_cost`, and the opening journal's line
+for the holding states the same quantity and amount. `iris networth` and `iris yearend` refuse an opening
 whose quantity or lots don't add up; `iris validate` doesn't check them. Under
 FIFO you may omit `lots`; the holding then counts as one lot dated the fiscal year's
 first day, and the original purchase dates are lost. Specific identification
 needs the lots. A moving-average opening lists no lots, only its total quantity
-and cost. Leave `acquisition_cost_minor` null only when the cost is truly
+and cost. Leave `acquisition_cost` null only when the cost is truly
 unknown.
+
+A book written by an earlier iris may hold `carrying_value_minor`,
+`acquisition_cost_minor`, `allocation_cost_minor` and lot `cost_minor`, with
+amounts and quantities as integers in the smallest unit. Such an entry still
+reads as written; use one form per entry. `iris yearend` writes the decimal form.
 
 Local comparisons and retained financial calculations allocate later disposals
 from these lots, or from the moving-average pool, using the method recorded
@@ -6758,7 +6819,7 @@ Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics deri
 one from the fiscal year, journal path and original line index within this book’s
 inventory. Changing the book’s cloud ID does not change that lot ID.
 
-An opening can also hold `allocation_cost_minor` and `allocation_policy`. A
+An opening can also hold `allocation_cost` and `allocation_policy`. A
 package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
 They never replace acquisition cost or recorded carrying value.
 
@@ -6891,6 +6952,40 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
   intentionally revoked, that's expected.
 - **auth_expired** — your session is gone. Re-authenticate
   (`iris api login`) and run `iris sync` again.
+
+## A cloud command reports a network error
+
+When a request to the server fails, the message names the request, what went
+wrong, and whether trying again can help:
+
+```text
+iris api login: device authorization request failed: POST https://irisbooks.io/api/cli-auth/device/start: no HTTP response within 45s (timeout; retryable): context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+```
+
+The parentheses hold the kind of failure and whether a retry may succeed:
+
+- **timeout**, **connect** — no answer arrived. This is usually a passing
+  network problem: run the same command again. If it keeps failing, check your
+  connection.
+- **dns** — the server's name did not resolve. `not retryable` means the name
+  does not exist: check the address in the message and your DNS settings.
+- **tls** — the secure connection could not be verified. This usually happens
+  on a network that inspects traffic; ask its administrator to allow the
+  address in the message.
+- **proxy** — your proxy failed or refused the address. `not retryable` means
+  the proxy blocks it: add the address to the proxy's allowlist.
+- **HTTP** followed by a status — the server answered. `retryable` statuses
+  (408, 429, 500, 502, 503, 504) are temporary, so try again shortly. Any other
+  status repeats until the request changes; read the text after it.
+
+When no answer arrived, the message also says how far the request got and
+when it failed, for example `while connecting, after 30.0s`. Stuck while
+resolving the host name or connecting points to your network or a proxy;
+waiting for the response points to the service, so try again shortly.
+
+If `iris api login --device-complete` gets no answer, the pending login is
+kept, so run the same command again. `iris sync --json` reports the same facts
+in its `errorDetail` field.
 
 ## "I need to change a sealed year"
 

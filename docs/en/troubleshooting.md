@@ -123,6 +123,40 @@ Exit code `3` means a **terminal disconnect**. The summary (and the
 - **auth_expired** — your session is gone. Re-authenticate
   (`iris api login`) and run `iris sync` again.
 
+## A cloud command reports a network error
+
+When a request to the server fails, the message names the request, what went
+wrong, and whether trying again can help:
+
+```text
+iris api login: device authorization request failed: POST https://irisbooks.io/api/cli-auth/device/start: no HTTP response within 45s (timeout; retryable): context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+```
+
+The parentheses hold the kind of failure and whether a retry may succeed:
+
+- **timeout**, **connect** — no answer arrived. This is usually a passing
+  network problem: run the same command again. If it keeps failing, check your
+  connection.
+- **dns** — the server's name did not resolve. `not retryable` means the name
+  does not exist: check the address in the message and your DNS settings.
+- **tls** — the secure connection could not be verified. This usually happens
+  on a network that inspects traffic; ask its administrator to allow the
+  address in the message.
+- **proxy** — your proxy failed or refused the address. `not retryable` means
+  the proxy blocks it: add the address to the proxy's allowlist.
+- **HTTP** followed by a status — the server answered. `retryable` statuses
+  (408, 429, 500, 502, 503, 504) are temporary, so try again shortly. Any other
+  status repeats until the request changes; read the text after it.
+
+When no answer arrived, the message also says how far the request got and
+when it failed, for example `while connecting, after 30.0s`. Stuck while
+resolving the host name or connecting points to your network or a proxy;
+waiting for the response points to the service, so try again shortly.
+
+If `iris api login --device-complete` gets no answer, the pending login is
+kept, so run the same command again. `iris sync --json` reports the same facts
+in its `errorDetail` field.
+
 ## "I need to change a sealed year"
 
 A sealed fiscal year is **locked**: `iris post` refuses journals dated in it

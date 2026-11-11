@@ -50,8 +50,9 @@ credentials or collaborator roles.
   name for monthly gross asset increases/decreases, including receivables and
   fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
 - **Browse journals and accounts** — `list_accounts`, `search_journals` and
-  `get_journal`. Search filters combine with AND. Amount bounds are nonnegative
-  integer minor units; follow `nextCursor` using the same filters. `journal_path`
+  `get_journal`. Search filters combine with AND. Amounts, including the bounds,
+  are decimal strings in the book currency, as journal files write them
+  (`"98.00"`); follow `nextCursor` using the same filters. `journal_path`
   from search selects a journal. Sealed-year entries appear as `closed`.
 - **Read Net Worth, holdings and prices** — `get_networth`, `get_holdings` and
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,

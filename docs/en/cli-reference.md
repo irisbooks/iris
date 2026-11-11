@@ -41,13 +41,18 @@ selectors use `--book-path`; the former ambiguous `--book` flag is removed.
 Closing previews use `seal --dry-run`; calculation writes use `validate
 --apply`, `financial prepare --apply`, and `overlay recipe --out PATH --apply`.
 
-Commands that emit JSON share one convention: **amounts are integers in the
-book currency's minor units** (¥1,200 is `1200` at scale 0; $12.00 is `1200` at
-scale 2), dates are `YYYY-MM-DD` strings, and the document is pretty-printed
-with a two-space indent. The output shapes below are written as key skeletons —
-`?` marks a key that is omitted when empty. Report and balance JSON also state
-the book's `currency` and `currencyScale`, so a $1,000.00 entry reads as
-`100000` with `"currencyScale": 2`.
+Most commands accept `--json` for one machine-readable result, and reports
+always print JSON. Commands that emit JSON share one convention: dates are
+`YYYY-MM-DD` strings, and the document is pretty-printed with a two-space
+indent. **Amounts are decimal strings in the book currency**, written the way
+journal files write them (`"54.99"`; `"1200"` for ¥1,200), so a figure you
+copy out of a result goes straight back into a journal or a command argument.
+A result with amounts names its `currency` and `currencyScale` (how many
+decimal places the book uses). Quantities are decimals at their unit's scale
+(`"0.5"` for half a bitcoin) and prices are decimals of one whole unit
+(`"9850000"`). Where you would add rows up, the result carries the total
+already. The output shapes below are written as key skeletons — `?` marks a
+key that is omitted when empty.
 
 JSON result fields use **lowerCamelCase** across CLI commands and local MCP
 results: `fiscalYear`, `commonCompletions`, `referenceData`, `newPath`, `localSha`,
@@ -120,8 +125,26 @@ is published; local `CLAUDE.md` and `README.md` entry files are added when absen
 Existing custom files are preserved.
 
 ```bash
-iris clone [--force] <book-id> [dest]
+iris clone [--force] [--json] <book-id> [dest]
 ```
+
+Without `dest`, the folder is named after the book and its fiscal year
+(`Acme-2026`, `サンプル商店-2026`), the name `iris yearend` continues. Download
+progress goes to stderr every two seconds; the summary names the book, its
+fiscal year and the folder it landed in. Clone also reads the book's seals and
+settings, so a sealed year refuses edits and `iris status` shows its seal before
+the first sync.
+
+**Output shape** (`--json`):
+
+```text
+{ status, bookId, name?, fiscalYear?, path?, files, bytes, guidesAdded[],
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? } }
+```
+
+`status` is `ok` or `error`; a refusal or failure keeps its exit code and
+reports `error` (and `errorDetail` for a failed request) the way
+[`iris sync`](#iris-sync) does. `path` is absolute.
 
 ### iris status
 
@@ -138,7 +161,7 @@ iris status [--json] [path]
 { name, bookId, region, language, currency, fiscalStartMonth,
   archived, archive?{ sourceBookId, fiscalYear },
   draftCount?, remoteDeleted?, packageContext?,
-  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId? } }
+  sealStatus{ fiscalYear, state, source, checkedAt?, sealId?, sealedAt?, supersedesSealId?, reason? } }
 ```
 
 `archive` appears only inside an archive folder, `draftCount` only when the
@@ -150,7 +173,8 @@ book gone.
 known. `checkedAt` is the successful server read or close/reopen observation time;
 a failed refresh keeps the previous data and time. `unsealed` means the last
 complete read found no seal. Missing, corrupt, unbound or foreign-endpoint state
-is `unknown`; an old closed flag can lack references/time. `local-only` has no
+is `unknown`, and `reason` says why and what refreshes it; an old closed flag
+can lack references/time. A clone reads the seals before it finishes. `local-only` has no
 cloud seal. `archive` describes the local archive marker, without claiming the
 live cloud is still closed. This command does not connect or log in. Run
 `iris sync` to refresh; local unsynced files may differ from the sealed sources.
@@ -339,7 +363,7 @@ omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
 Output is always JSON: `proposal` contains the complete Markdown, `allocations`
-lists quantities, costs, lots and effective methods, `balanced` names the line
+lists quantities, costs (decimals, as the journal writes them), lots and effective methods, `balanced` names the line
 filled with the amount that balances the entry, `name` and `description` are
 the completion's own short name and account of what it calculates,
 `overlayName` names a Book's own layer, `policy` is the inventory policy applied
@@ -769,7 +793,7 @@ Explicit `--mode approved --include-drafts` is rejected. Comparison mode also
 calculates inventory and depreciation without writing files; approved named-view
 reports use the current accepted financial generation.
 
-Report output is **JSON** (amounts in minor units). Cloud responses may
+Report output is **JSON** (amounts as decimal strings in the book currency). Cloud responses may
 include additional revision or freshness metadata. There is no text-table mode:
 terminal column alignment is
 unreliable for Japanese account names, your AI consumes JSON anyway, and the
@@ -968,7 +992,7 @@ Find journals by any combination of filters (combined with AND). Deterministic
 and offline.
 
 ```bash
-iris search [--from D] [--to D] [--min N] [--max N] [--payee S] \
+iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
@@ -979,10 +1003,15 @@ sealed fiscal year displays as `closed` regardless of what its file says, and
 **Output shape** (`--json`):
 
 ```text
-[ { path, date, payee, status, amount, lines } ]
+{ currency, currencyScale, count, total,
+  journals[{ path, date, payee, status, amount, lines }] }
 ```
 
-`amount` is the entry's debit total in minor units; `lines` is its line count.
+`amount` is the entry's debit total as a decimal string in the book currency
+(`"54.99"`); `lines` is its line count. `count` and `total` are the number of
+matches and their amounts added up, so quote `total` rather than summing the
+rows. `--min` and `--max` take amounts in the same form: `--min 98` matches
+entries of $98.00 or more.
 
 ### iris references
 
@@ -1055,6 +1084,13 @@ files under `config/overlay-packages/`, Markdown under `journals/`,
 exports, and local entry files such as `README.md` and `CLAUDE.md`.
 `AGENTS.md` holds shared book policy; only an Owner may change it in the cloud.
 
+Every pass ends with one summary line that states the outcome and the counts,
+for example `Sync complete: 0 pushed, 0 pulled, 0 server deletions, 0
+conflicts.` — so a clean pass with nothing to do reads as such without
+`--json`. Below it come any failure, files still queued, unresolved
+conflicts, changes that failed to apply locally and rejections: the same facts
+the `--json` document holds.
+
 Exit codes: `0` clean · `1` rejections/conflicts/IO · `2` usage/setup · `3`
 terminal disconnect (book deleted, access revoked, session expired).
 
@@ -1069,11 +1105,23 @@ the one your AI reads after every edit:
 { status, counts{ pushed, pulled, deleted, conflicts }, queueLeft,
   disconnected, disconnectReason?,
   newRejections[], allRejections[], applyErrors[], blockedByConflicts[],
-  error? }
+  error?, errorDetail?{ kind, status?, retryable, phase?, elapsedMs? },
+  notice?{ message, files[] } }
 ```
 
 - `status` — `ok` | `rejected` | `conflicts` | `disconnected` | `error`
 - `disconnectReason` — `deleted` | `forbidden` | `auth_expired`
+- `errorDetail` — present with `error` when a request to the server failed.
+  `kind` is `status` (the server answered with HTTP `status`), `timeout`,
+  `connect`, `dns`, `tls`, `proxy`, `canceled` or `other`; `retryable` says
+  whether running sync again may succeed. When no response arrived, `phase`
+  says how far the request got (`dns`, `connect`, `tls`, `send` or `wait`)
+  and `elapsedMs` when it failed. See
+  [Troubleshooting](troubleshooting.md#a-cloud-command-reports-a-network-error).
+- `notice` — present when the pass is the book's first upload or sends
+  evidence under `raw/`: a reminder that data sent to IrisBooks must contain no
+  government-issued personal identification numbers, with the evidence files in
+  `files`. Other passes leave it out.
 - `newRejections` / `allRejections` — attention records, the same shape
   `iris sync issues list --json` returns
 - `blockedByConflicts` — canonical paths with an unresolved `.conflicted`
@@ -1171,12 +1219,12 @@ iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --
 **Output shapes.** `list --json`:
 
 ```text
-[ { unit, currency, date, valueMicro, source?, origin, recordedAt,
+[ { unit, currency, date, price, source?, origin, recordedAt,
     revision?, baseRevision?, editId?, conflict?, pending? } ]
 ```
 
-`valueMicro` is the value of **one whole unit** × 1,000,000, so a ¥9,850,000
-bitcoin is `9850000000000`. `origin` is `local` (captured on this machine) or
+`price` is the value of **one whole unit** as a decimal string, as `--price`
+takes it: a ¥9,850,000 bitcoin is `"9850000"`. `origin` is `local` (captured on this machine) or
 `server`. `sync --json` returns `{ pushed, pulled, conflicts }`; unresolved
 conflicts give exit code 1 after other cells have synced.
 
@@ -1249,6 +1297,11 @@ coverage issues, plus a `portfolio_at` table macro. You can query or pivot it:
 SELECT account, unit, valuation, cost, inventory_method FROM portfolio_at('2026-10-19', 'JPY', 0);
 PIVOT journal_lines ON unit USING sum(debit-credit) GROUP BY book_id, account;
 ```
+
+Unlike command results, the file keeps the engine's integers: money columns
+are in the currency's smallest unit (cents in a two-decimal currency) and
+quantities in the unit's. Divide by 10 to the power of the scale before you
+quote a figure.
 
 `iris yearend` carries complete opening lots and costs into each new book.
 Each annual book works alone and contributes only within its fiscal year.
@@ -1470,7 +1523,7 @@ app under your Settings (avatar menu) → API tokens.
 
 ```bash
 iris api login
-iris api whoami     # validate the cached token
+iris api whoami     # check the credential and name its account
 iris api logout     # revoke this device's session and remove the token
 ```
 
@@ -1703,15 +1756,17 @@ iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] 
 **Output shapes:**
 
 ```text
-balance   [ { account, code?, debits, credits, type?, net } ]
-holdings  [ { account, unit, quantity } ]
+balance   { currency, currencyScale, totalDebit, totalCredit,
+            rows[{ account, code?, debits, credits, type?, net }] }
+holdings  [ { account, unit, unitScale, quantity } ]
 history   [ { id, path, op, sha?, versionId?, sizeBytes,
               actor, actorDisplay?, source?, reason?,
               postSealPeriod?, movedFromPath?, ts } ]
 ```
 
-`holdings` counts only unit-tagged lines, and positions that net to zero are
-omitted server-side.
+Amounts are decimals in the book currency and `quantity` is a decimal at the
+unit's scale (`unitScale`), as journal files write them. `holdings` counts only
+unit-tagged lines, and positions that net to zero are omitted server-side.
 
 In `history` — the durable correction/deletion record — `actor` is the stable
 account identifier (the audit identity) and `actorDisplay` is the server's
