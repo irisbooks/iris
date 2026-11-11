@@ -51,5 +51,5 @@ grep " iris_darwin_arm64$" checksums.txt | shasum -a 256 -c -
 
 ## Links
 
-- Product & documentation: <https://irisbooks.jp> · <https://irisbooks.jp/manual/>
-- Getting started: <https://irisbooks.jp/start>
+- Product & documentation: <https://irisbooks.io> · <https://irisbooks.io/manual/>
+- Getting started: <https://irisbooks.io/start>
