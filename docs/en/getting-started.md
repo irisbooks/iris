@@ -64,7 +64,10 @@ irm https://irisbooks.io/install.ps1 | iex
 
 The installer downloads the binary for your platform, checks that it matches
 the published one, and puts it on your `PATH`. If it doesn't match, nothing
-is installed. Confirm the installed version with:
+is installed. On a first install on a desktop, it also adds **IrisBooks** to
+your apps, so you can open your books without a terminal (see
+[the launcher](iris-view.md#the-launcher)); set `IRIS_NO_LAUNCHER=1` to skip
+that. Updates never add it. Confirm the installed version with:
 
 ```bash
 iris version
@@ -190,7 +193,8 @@ iris view
 This opens the book in a window of its own: reports, journals and documents,
 read from your files. Post the drafts your AI prepared, fix one, or start an
 entry yourself. It needs no account. To open your books without a terminal,
-add the launcher with `iris view --add-launcher`. See
+open **IrisBooks** from your apps and choose the book's folder. If it isn't
+there, add it with `iris view --add-launcher`. See
 [Your books on this computer](iris-view.md).
 
 ## Path B — Use the web app (cloud)

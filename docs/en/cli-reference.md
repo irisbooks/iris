@@ -1961,7 +1961,9 @@ Status is `update_available`, `up_to_date`, `newer_than_latest`, `development`,
 `check_failed`, or `updated`. Exit 0 means a successful check/update (including
 no update needed); exit 1 means failure; exit 2 means invalid arguments.
 
-No implicit network checks occur during book operations. `IRIS_DL_BASE`
+No implicit network checks occur during book operations. `iris view`'s
+**Settings → About** runs the same check and install when the person asks, or
+daily once they tick its automatic check. `IRIS_DL_BASE`
 selects the download base (default `https://irisbooks.io/dl`); the release
 signature is always checked against the built-in key, without requiring
 `minisign` to be installed. A failed verification preserves the old executable.

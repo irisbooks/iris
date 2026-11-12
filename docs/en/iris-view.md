@@ -30,7 +30,9 @@ the page shows your files, and changes reach the cloud copy at your next sync.
 
 ## The launcher
 
-To open your books without a terminal or an AI, add the IrisBooks launcher:
+To open your books without a terminal or an AI, use the IrisBooks launcher.
+The installer adds it on a first install on a desktop. To add it yourself, or
+again after removing it:
 
 ```bash
 iris view --add-launcher
@@ -247,10 +249,29 @@ If two windows change the same entry, the second save is refused with "This
 entry changed after you opened it" and your text stays in the box. Copy what you
 need, then choose **Reload the entry** to see the other window's change.
 
+## Updates
+
+**Settings → About** shows which version of `iris` is running. Choose **Check
+for updates** to ask irisbooks.io for the latest version. If a newer one is out,
+choose **Update to …**: `iris` downloads it, checks its signature and checksum,
+replaces itself, and restarts the page, which reloads on its own. If the check
+fails, the version you have stays in place.
+
+Tick **Check automatically** to have the page ask at most once a day while it's
+open. An **Update available** label then appears at the top of the page when
+there's a newer version. Nothing installs until you choose **Update**. The
+setting is yours on this computer, so it covers every folder you open.
+
+If your AI app runs IrisBooks for you, restart that app after updating so it
+uses the new version too. A copy installed as an extension in your AI app is
+updated from that app's extension settings; the About section links to the
+download. A development build can't update itself.
+
 ## Privacy and stopping
 
 - The page is served by `iris` at `127.0.0.1` on this computer. It reads only
-  the book files, needs no account, and sends nothing anywhere.
+  the book files and needs no account. It sends nothing anywhere, except the
+  version check described in [Updates](#updates) when you ask for it.
 - `iris view` signs your browser in with a one-time link that it never prints.
 - The window uses a browser profile of its own with extensions turned off, so a
   browser extension can't read your books through it. A tab in your everyday

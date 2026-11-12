@@ -263,7 +263,10 @@ irm https://irisbooks.io/install.ps1 | iex
 
 The installer downloads the binary for your platform, checks that it matches
 the published one, and puts it on your `PATH`. If it doesn't match, nothing
-is installed. Confirm the installed version with:
+is installed. On a first install on a desktop, it also adds **IrisBooks** to
+your apps, so you can open your books without a terminal (see
+[the launcher](https://irisbooks.io/docs/en/iris-view/#the-launcher)); set `IRIS_NO_LAUNCHER=1` to skip
+that. Updates never add it. Confirm the installed version with:
 
 ```bash
 iris version
@@ -389,7 +392,8 @@ iris view
 This opens the book in a window of its own: reports, journals and documents,
 read from your files. Post the drafts your AI prepared, fix one, or start an
 entry yourself. It needs no account. To open your books without a terminal,
-add the launcher with `iris view --add-launcher`. See
+open **IrisBooks** from your apps and choose the book's folder. If it isn't
+there, add it with `iris view --add-launcher`. See
 [Your books on this computer](https://irisbooks.io/docs/en/iris-view/).
 
 ## Path B — Use the web app (cloud)
@@ -1578,7 +1582,9 @@ the page shows your files, and changes reach the cloud copy at your next sync.
 
 ## The launcher
 
-To open your books without a terminal or an AI, add the IrisBooks launcher:
+To open your books without a terminal or an AI, use the IrisBooks launcher.
+The installer adds it on a first install on a desktop. To add it yourself, or
+again after removing it:
 
 ```bash
 iris view --add-launcher
@@ -1795,10 +1801,29 @@ If two windows change the same entry, the second save is refused with "This
 entry changed after you opened it" and your text stays in the box. Copy what you
 need, then choose **Reload the entry** to see the other window's change.
 
+## Updates
+
+**Settings → About** shows which version of `iris` is running. Choose **Check
+for updates** to ask irisbooks.io for the latest version. If a newer one is out,
+choose **Update to …**: `iris` downloads it, checks its signature and checksum,
+replaces itself, and restarts the page, which reloads on its own. If the check
+fails, the version you have stays in place.
+
+Tick **Check automatically** to have the page ask at most once a day while it's
+open. An **Update available** label then appears at the top of the page when
+there's a newer version. Nothing installs until you choose **Update**. The
+setting is yours on this computer, so it covers every folder you open.
+
+If your AI app runs IrisBooks for you, restart that app after updating so it
+uses the new version too. A copy installed as an extension in your AI app is
+updated from that app's extension settings; the About section links to the
+download. A development build can't update itself.
+
 ## Privacy and stopping
 
 - The page is served by `iris` at `127.0.0.1` on this computer. It reads only
-  the book files, needs no account, and sends nothing anywhere.
+  the book files and needs no account. It sends nothing anywhere, except the
+  version check described in [Updates](#updates) when you ask for it.
 - `iris view` signs your browser in with a one-time link that it never prints.
 - The window uses a browser profile of its own with extensions turned off, so a
   browser extension can't read your books through it. A tab in your everyday
@@ -1815,7 +1840,9 @@ wants to look at the books themselves, for example to review and post the
 drafts you prepared, not on every task. Local MCP offers the same as `open_view`,
 with no arguments, in single-book and parent modes. A browser in your VM or
 container isn't the user's: from there, ask the user to open IrisBooks from
-their launcher or run `iris view` on their own computer.
+their launcher or run `iris view` on their own computer. On the user's own
+computer, offer once to run `iris view --add-launcher` so they can open the
+books later without you; ask first, because it adds an app to their system.
 
 # Using the web app
 
@@ -2253,35 +2280,46 @@ Settings are split by what they affect. Open them with the top-right
 **Settings** gear or **avatar menu → Settings**.
 
 **Your settings** (avatar menu → Settings — available everywhere, even
-outside any book) hold what belongs to you, not to a book:
+outside any book) hold what belongs to you, not to a book. They are split
+into sections: pick one from the list on the left (on a phone, the row of
+buttons at the top). The address remembers the section, so you can bookmark
+it.
 
-- **Change password** — enter your current password and confirm a new one.
-  After saving, browser/CLI sessions, API tokens and connected apps are
-  revoked. Sign in with the new password and reconnect your tools.
-- **Sign-in email** — verify the new address with its email code. Until
-  verification finishes, your current address still works for login and
-  recovery. Use **I already have a verification code** after a page reload.
-- **Close account** — permanent. Export needed data and delete cloud books
-  you created or hold Owner access to first. Sign out and sign in again,
-  then close within five minutes by typing your email and confirming.
-  Personal settings/prices and shared-book access are removed; your sign-in
-  identity is deleted. Local files and others' shared books remain. Book
-  histories, deleted-book retention and security records follow the privacy
-  policy. If cleanup is incomplete, contact support privately with the
-  reference shown. A closed account cannot be reopened.
-- **Language** — switch the interface between English and 日本語.
-- **Appearance** — light, dark, or follow the system.
+- **Sign-in & security**
+  - **Change password** — enter your current password and confirm a new one.
+    After saving, browser/CLI sessions, API tokens and connected apps are
+    revoked. Sign in with the new password and reconnect your tools.
+  - **Sign-in email** — verify the new address with its email code. Until
+    verification finishes, your current address still works for login and
+    recovery. Use **I already have a verification code** after a page reload.
+  - **Account security** — sign out every device and revoke all API tokens,
+    CLI sessions, connected apps, and pending sign-in approvals. Confirm the
+    action, then sign in again and reconnect your tools. Use this if a device
+    or credential may have been lost.
+  - **Close account** — permanent. Export needed data and delete cloud books
+    you created or hold Owner access to first. Sign out and sign in again,
+    then close within five minutes by typing your email and confirming.
+    Personal settings/prices and shared-book access are removed; your sign-in
+    identity is deleted. Local files and others' shared books remain. Book
+    histories, deleted-book retention and security records follow the privacy
+    policy. If cleanup is incomplete, contact support privately with the
+    reference shown. A closed account cannot be reopened.
+- **Preferences**
+  - **Language** — switch the interface between English and 日本語.
+  - **Appearance** — light, dark, or follow the system.
+- **Reporting currency** — the currency for totals across books, such as Net Worth.
+- **Price history** — the prices and exchange rates you've recorded. Filter by
+  unit, currency or year, and page through the list. **Record a price** adds
+  one; **Correct** on a row changes its price or source.
 - **Books** — every book you're a member of, with your role; each row opens
   that book's own settings page.
-- **Account security** — sign out every device and revoke all API tokens,
-  CLI sessions, connected apps, and pending sign-in approvals. Confirm the
-  action, then sign in again and reconnect your tools. Use this if a device
-  or credential may have been lost.
-- **Personal Access Tokens** — create tokens for the CLI and integrations.
-- **Connect your AI** — the remote connector URL and setup steps. See
-  [Your AI on the go](https://irisbooks.io/docs/en/remote-connector/).
-- **Connected apps** — the AI apps connected through the remote connector,
-  with a **Disconnect** button to revoke one's access.
+- **AI assistants**
+  - **Connect your AI** — the remote connector URL and setup steps. See
+    [Your AI on the go](https://irisbooks.io/docs/en/remote-connector/).
+  - **Connected apps** — the AI apps connected through the remote connector,
+    with a **Disconnect** button to revoke one's access.
+- **Access tokens**
+  - **Personal Access Tokens** — create tokens for the CLI and integrations.
 
 **Book settings** (sidebar → Settings, inside the book — or one click from
 the Books list above) hold what belongs to that book:
@@ -4866,7 +4904,9 @@ Status is `update_available`, `up_to_date`, `newer_than_latest`, `development`,
 `check_failed`, or `updated`. Exit 0 means a successful check/update (including
 no update needed); exit 1 means failure; exit 2 means invalid arguments.
 
-No implicit network checks occur during book operations. `IRIS_DL_BASE`
+No implicit network checks occur during book operations. `iris view`'s
+**Settings → About** runs the same check and install when the person asks, or
+daily once they tick its automatic check. `IRIS_DL_BASE`
 selects the download base (default `https://irisbooks.io/dl`); the release
 signature is always checked against the built-in key, without requiring
 `minisign` to be installed. A failed verification preserves the old executable.

@@ -432,35 +432,46 @@ Settings are split by what they affect. Open them with the top-right
 **Settings** gear or **avatar menu → Settings**.
 
 **Your settings** (avatar menu → Settings — available everywhere, even
-outside any book) hold what belongs to you, not to a book:
+outside any book) hold what belongs to you, not to a book. They are split
+into sections: pick one from the list on the left (on a phone, the row of
+buttons at the top). The address remembers the section, so you can bookmark
+it.
 
-- **Change password** — enter your current password and confirm a new one.
-  After saving, browser/CLI sessions, API tokens and connected apps are
-  revoked. Sign in with the new password and reconnect your tools.
-- **Sign-in email** — verify the new address with its email code. Until
-  verification finishes, your current address still works for login and
-  recovery. Use **I already have a verification code** after a page reload.
-- **Close account** — permanent. Export needed data and delete cloud books
-  you created or hold Owner access to first. Sign out and sign in again,
-  then close within five minutes by typing your email and confirming.
-  Personal settings/prices and shared-book access are removed; your sign-in
-  identity is deleted. Local files and others' shared books remain. Book
-  histories, deleted-book retention and security records follow the privacy
-  policy. If cleanup is incomplete, contact support privately with the
-  reference shown. A closed account cannot be reopened.
-- **Language** — switch the interface between English and 日本語.
-- **Appearance** — light, dark, or follow the system.
+- **Sign-in & security**
+  - **Change password** — enter your current password and confirm a new one.
+    After saving, browser/CLI sessions, API tokens and connected apps are
+    revoked. Sign in with the new password and reconnect your tools.
+  - **Sign-in email** — verify the new address with its email code. Until
+    verification finishes, your current address still works for login and
+    recovery. Use **I already have a verification code** after a page reload.
+  - **Account security** — sign out every device and revoke all API tokens,
+    CLI sessions, connected apps, and pending sign-in approvals. Confirm the
+    action, then sign in again and reconnect your tools. Use this if a device
+    or credential may have been lost.
+  - **Close account** — permanent. Export needed data and delete cloud books
+    you created or hold Owner access to first. Sign out and sign in again,
+    then close within five minutes by typing your email and confirming.
+    Personal settings/prices and shared-book access are removed; your sign-in
+    identity is deleted. Local files and others' shared books remain. Book
+    histories, deleted-book retention and security records follow the privacy
+    policy. If cleanup is incomplete, contact support privately with the
+    reference shown. A closed account cannot be reopened.
+- **Preferences**
+  - **Language** — switch the interface between English and 日本語.
+  - **Appearance** — light, dark, or follow the system.
+- **Reporting currency** — the currency for totals across books, such as Net Worth.
+- **Price history** — the prices and exchange rates you've recorded. Filter by
+  unit, currency or year, and page through the list. **Record a price** adds
+  one; **Correct** on a row changes its price or source.
 - **Books** — every book you're a member of, with your role; each row opens
   that book's own settings page.
-- **Account security** — sign out every device and revoke all API tokens,
-  CLI sessions, connected apps, and pending sign-in approvals. Confirm the
-  action, then sign in again and reconnect your tools. Use this if a device
-  or credential may have been lost.
-- **Personal Access Tokens** — create tokens for the CLI and integrations.
-- **Connect your AI** — the remote connector URL and setup steps. See
-  [Your AI on the go](remote-connector.md).
-- **Connected apps** — the AI apps connected through the remote connector,
-  with a **Disconnect** button to revoke one's access.
+- **AI assistants**
+  - **Connect your AI** — the remote connector URL and setup steps. See
+    [Your AI on the go](remote-connector.md).
+  - **Connected apps** — the AI apps connected through the remote connector,
+    with a **Disconnect** button to revoke one's access.
+- **Access tokens**
+  - **Personal Access Tokens** — create tokens for the CLI and integrations.
 
 **Book settings** (sidebar → Settings, inside the book — or one click from
 the Books list above) hold what belongs to that book:
