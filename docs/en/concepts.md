@@ -1,7 +1,8 @@
 # Core concepts
 
 A short tour of the ideas that make IrisBooks make sense. Once these click,
-both the CLI and the web app feel obvious.
+both the CLI and the web app feel obvious. The [glossary](#glossary) at the
+end of the page collects the terms.
 
 ## Files are your books
 
@@ -124,8 +125,11 @@ history, search), see [Records, history and year-end](records-and-year-end.md).
 ## Region rules — the overlay
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
-law. Reusable accounting functions live in **Overlays**: versioned rules and
-computations (**recipes**) written in YAML and CEL. Each function is selected
+law. Checks and calculations that differ by region, such as tax and depreciation,
+are distributed as add-ons to a book called **Overlays** (`iris view` shows
+them as plugins; the unit you select is a package). An overlay is versioned
+rules and computations (**recipes**) written in a readable form: YAML, and an
+expression language called CEL. Each function is selected
 independently: common functions such as journal balancing, and each region's
 tax and depreciation functions. The public repository holds their sources,
 guides and examples, and the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe each region's
@@ -144,8 +148,8 @@ an exact verified copy inside the Book.
 You and your AI can change the selection, create Book-specific rules and
 contribute improvements to the community.
 
-- **Rules** check your entries through local `iris validate`. The cloud stores
-  definitions and results without executing Overlay policy.
+- **Rules** check your entries through local `iris validate`. The cloud only stores
+  the definitions and results; it does not run the rules.
 - **Recipes** compute region figures — a depreciation schedule, the figures a
   tax return needs — and record the result together with its source (the overlay version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
@@ -155,9 +159,9 @@ contribute improvements to the community.
   you decide. Figures recorded under an older version keep being checked
   against that version.
 
-An omitted or empty selection enables no optional functions. Universal checks
-(balanced entries, known accounts, dates and amounts) remain active. Region never
-enables an Overlay automatically; upgrades change already selected versions.
+If `overlays` is omitted or empty, no optional function runs. The universal
+checks (balanced entries, known accounts, dates and amounts) still do. Setting
+a book's region never enables an overlay by itself.
 
 The published overlays are open source (Apache-2.0) at
 [github.com/irisbooks/overlays](https://github.com/irisbooks/overlays), so you
@@ -219,7 +223,7 @@ To amend a sealed year, use [`iris reopen`](cli-reference.md#iris-reopen).
 Changes in the locked scope made after reopening are permanently flagged as
 **post-seal edits** in the server's audit trail. Changes to `raw/` and `notes/`
 have ordinary history, without that flag. When you're done, re-seal; the new
-seal supersedes the old one in the audit chain. Sealing never removes files.
+seal replaces the old one, and the old one stays in the history. Sealing never removes files.
 See [Year-end close](records-and-year-end.md#year-end-close).
 
 ## The durable history (correction/deletion record)
@@ -235,7 +239,7 @@ Local git history is not a substitute: it lives on your own machine and can be
 rewritten, so it is not an independent record. That is why the durable history
 lives on the server.
 
-## The lenses, side by side
+## CLI, iris view and the web app, side by side
 
 | | CLI + your AI | `iris view` | Web app |
 | --- | --- | --- | --- |
@@ -247,6 +251,24 @@ lives on the server.
 They are not either/or. The CLI and your AI enter data fast, `iris view` lets
 you check and post it on screen, and the web app adds sharing and the server's
 history.
+
+## Glossary
+
+| Term | In a sentence | More |
+| --- | --- | --- |
+| Book | A folder holding one business's (or household's) records for one fiscal year | [Files are your books](#files-are-your-books) |
+| Journal (entry) | The record of one transaction; one file each | [Journals](#journals-your-transactions) |
+| Draft / posted | A journal's status. Reports include posted entries only | [Status](#status-the-lifecycle-of-an-entry) |
+| Post | To turn a draft into a posted entry (`iris post`) | [Status](#status-the-lifecycle-of-an-entry) |
+| Source document | A receipt, statement or other file an entry is based on, kept under `raw/` | [Source documents and cross-references](#raw-documents-and-cross-references) |
+| Overlay | A set of checks and calculations added to a book. `iris view` calls it a plugin; the unit you select is a package | [Region rules](#region-rules-the-overlay) |
+| Recipe | A calculation an overlay provides; its result is recorded with its inputs | [Region rules](#region-rules-the-overlay) |
+| Sync | Bringing the files on your computer and the cloud copy into line (`iris sync`) | [Sync](#sync-the-three-ways-to-work) |
+| Link | Tying a book folder on your computer to a cloud book | [Getting started](getting-started.md) |
+| Seal | Locking a year's records and recording who closed it and when (`iris seal`) | [Seals](#seals-closing-a-year-visibly) |
+| Reopen | Unlocking a sealed year so it can be amended (`iris reopen`) | [Seals](#seals-closing-a-year-visibly) |
+| Correction and deletion history | The server's record of every change to every file | [The durable history](#the-durable-history-correctiondeletion-record) |
+| MCP | A way for an AI app to call `iris` directly as a tool | [Bookkeeping with the CLI and your own LLM](cli-and-llm.md#one-time-setup-connect-your-ai) |
 
 Next: [Bookkeeping with the CLI and your own LLM](cli-and-llm.md),
 [Your books on this computer](iris-view.md) or

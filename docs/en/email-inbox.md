@@ -1,10 +1,13 @@
 # Receipts by email
 
 Every cloud book has a private receiving address. Email a receipt or invoice
-to it — or set up a forwarding rule from your own mailbox — and the message
-is decoded and filed into your book automatically. It's the fastest way to
-get supplier invoices, online-purchase receipts, and bank notifications into
-`raw/` without touching a scanner or the CLI.
+to it, or forward one from your own mailbox, and the message text and its
+attachments are saved into your book's `raw/` automatically. It gets supplier
+invoices, online-purchase receipts, and bank notifications into the book
+without a scanner or the CLI. Automatic forwarding rules, such as one in a
+corporate mailbox, are often quarantined; read the note under
+[Reviewing quarantined mail](#reviewing-quarantined-mail) before you set one
+up.
 
 ## Your book's receiving address
 
@@ -18,7 +21,7 @@ iris api inbox show <book-id>
 ```
 
 It looks like `k7f3x9q2m4p8w1r5@in.irisbooks.io` — random on purpose, so it
-can't be guessed and spammed. Treat it like a semi-secret: share it with the
+can't be guessed and spammed. Don't publish it; give it only to the
 suppliers and services whose mail you want in the book.
 
 ## What gets accepted
@@ -26,13 +29,14 @@ suppliers and services whose mail you want in the book.
 A message is only ingested when **all** of these hold:
 
 1. **The sender is on the book's allowlist** (see below).
-2. **The sending server checks out** — SPF, DKIM, and DMARC must all pass,
-   so a spoofed "From:" can't inject files into your book.
+2. **The sending server checks out** — the three checks that a sender is
+   genuine (SPF, DKIM, and DMARC) must all pass, so a message with a forged
+   "From:" never enters your book.
 3. **The virus scan is clean** — every message is scanned (GuardDuty malware
-   protection) before it's allowed anywhere near your book.
+   protection) before it is saved to your book.
 
-Everything else lands in the quarantine list instead — nothing is silently
-dropped.
+A message that fails any of these goes to the quarantine list. Nothing is
+dropped without a record.
 
 ## What lands in the book
 
@@ -46,14 +50,14 @@ raw/email/2026-07/a1b2c3d4e5f6g7h8/
 └── invoice-0042.pdf
 ```
 
-`email.md` carries the envelope (sender, date, subject, attachment list) as
-frontmatter, so your LLM can read the context and journal the attachments
-with an `attachments` entry whose `path` points at the exact file (see
-[Core concepts](concepts.md)). The files arrive locally on your next
-`iris sync`, like any other server-side change.
+`email.md` starts with the sender, date, subject and list of attachments, so
+your AI can read the context and write a journal that cites an attachment as
+its source document (the journal's `attachments` entry has a `path` that
+points at the file; see [Core concepts](concepts.md)). The files are saved to
+the cloud first and reach your folder on your next `iris sync`.
 
-Attachments over 10MB are skipped (noted in `email.md`); the original
-message is retained server-side as the audit copy.
+An attachment over 10MB is not saved, and `email.md` says so. The original
+message is kept on the server as the audit copy.
 
 ## Managing the sender allowlist
 
@@ -67,10 +71,10 @@ iris api inbox allow '*@amazon.co.jp' <book-id>     # any sender at a domain
 iris api inbox disallow '*@amazon.co.jp' <book-id>  # remove again
 ```
 
-Adding and removing require write access to the book (OWNER or BOOKKEEPER).
-Full flag listings are in the [CLI command reference](cli-reference.md).
-For a cloud-linked book you can also manage the address and allowlist in the
-[web app](web-app.md), under the book's **Settings → Inbound email**.
+Only the book's owner and bookkeepers can add or remove senders. Full flag
+listings are in the [CLI command reference](cli-reference.md). You can also
+see the address and manage the allowlist in the [web app](web-app.md), under
+the book's **Settings → Inbound email**.
 
 ## Reviewing quarantined mail
 
@@ -84,14 +88,14 @@ iris api inbox quarantine <book-id>
 
 | Reason | Meaning |
 | --- | --- |
-| `sender_not_allowlisted` | Sender matched no allowlist pattern. Allowlist it and re-send. |
+| `sender_not_allowlisted` | The sender is not on the allowlist. Add it and have the message sent again. |
 | `auth_fail` | SPF/DKIM/DMARC verification failed — possibly spoofed, or mangled by an auto-forwarding rule. |
-| `malware` | The virus scan found a threat. The message never touched your book. |
-| `scan_failed` | The scan could not complete (e.g. password-protected archive). |
-| `ingest_failed` | The message passed the gate but writing to the book failed. |
+| `malware` | The virus scan found a threat. The message was not saved to your book. |
+| `scan_failed` | The scan could not complete (e.g. password-protected archive). Remove the password and send it again. |
+| `ingest_failed` | The message met all three conditions, but saving it to the book failed. Send it again. |
 
-One caveat: **automatic** forwarding rules (e.g. a rule in a corporate
-mailbox that re-sends mail as the original sender) often break SPF, so those
-messages quarantine as `auth_fail` even when the sender is allowlisted.
-Forwarding manually from your own mail client works, because then the mail
-is authenticated as coming from you.
+Take care with **automatic** forwarding rules. A rule that re-sends mail as
+the original sender, as corporate mailboxes often do, usually fails the
+sending-server checks, so those messages are quarantined as `auth_fail` even
+when the sender is on the allowlist. Forwarding a message by hand from your
+own mail client works, because the mail is then checked as coming from you.

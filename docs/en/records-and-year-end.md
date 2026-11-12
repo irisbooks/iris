@@ -63,8 +63,10 @@ and you file them.
 
 ## Year-end close
 
-A book covers one fiscal year. Closing it has an accounting half and a
-compliance half, run in the book of the year you're closing:
+A book covers one fiscal year. Closing it has two parts: starting next
+year's book and carrying the balances forward (`iris yearend`), and locking
+the finished year (`iris seal`). Run both in the book of the year you are
+closing:
 
 ```bash
 iris yearend                                      # start the FY2026 book, with its opening balances
@@ -115,10 +117,13 @@ iris yearend          # refresh the FY2026 book's opening balances (while 2026 i
 iris seal 2025        # close the year again (supersedes the old seal)
 ```
 
-If the *next* year is already sealed too, `iris yearend` leaves its opening
-entry frozen as filed and tells you so — book the difference as a
-current-period correction (a prior-period adjustment) in the new book, or
-reopen that year as well.
+If the *next* year is already sealed too, `iris yearend` does not update its
+opening entry: it leaves the entry as filed and tells you so. You then have
+two options:
+
+- book the difference in the new book as a current-period correction (a
+  prior-period adjustment); or
+- reopen that year as well.
 
 The seal / reopen half also lives in the web app: the
 book's **Year-end** screen lists the book's fiscal year with its close state

@@ -1,11 +1,16 @@
 # Bookkeeping with the CLI and your own LLM
 
-This is the file-first way to keep your books: you bring your own
+This page describes the file-first way to keep your books: you bring your own
 AI assistant (Claude, Cursor, Copilot, or any MCP-capable agent), it reads and
 writes the book's files, and the `iris` CLI checks the work and calculates
-reports. Accounting records use Markdown with YAML frontmatter; configuration
-uses standalone YAML. Local `iris` works offline without an account; your
-chosen AI service may need its own internet connection.
+reports. Accounting records are Markdown files that start with a block of YAML
+fields (frontmatter); configuration is plain YAML. `iris` itself works offline
+without an account; your chosen AI service may need its own internet
+connection.
+
+On a first read, three sections are enough: [The mental model](#the-mental-model),
+[One-time setup: connect your AI](#one-time-setup-connect-your-ai) and
+[The everyday loop](#the-everyday-loop). Come back to the rest when you need it.
 
 ## CLI use and support
 
@@ -17,9 +22,9 @@ not guaranteed.
 
 ## The mental model
 
-Agree with your assistant what result you need to use or hand over before
-choosing setup: an entry, figures to review, or a source-backed summary for
-another person. If records are incomplete, a handoff note can still link the
+Before any setup, agree with your assistant what you need at the end: an
+entry, figures to review, or a source-backed summary to hand to another
+person. If records are incomplete, a handoff note can still link the
 sources, distinguish confirmed facts from proposed amounts, and list the open
 questions and next action. Ask the assistant to recommend a useful result if
 you are unsure.
@@ -54,6 +59,151 @@ stay with the records. `iris validate` checks record structure and selected
 rules. It does not verify calculations in chat or establish that evidence or
 a tax return is complete.
 
+## One-time setup: connect your AI
+
+If your assistant already has CLI execution and file access, it can work without
+MCP registration. Use `iris onboard` when you want an MCP integration or need
+to add missing local guide files.
+
+```bash
+iris onboard
+```
+
+`iris onboard` registers `iris mcp serve` (a small server that exposes the
+`iris` verbs as tools) with your MCP-capable assistants — Claude Code always,
+plus Claude Desktop, Codex, Cursor, Gemini CLI, and VS Code when they're
+installed — and writes a Claude Code skill. After that, your assistant can
+call `validate`, `diff`, `balance`, `report`, `status`, and — once you're
+signed in — `sync` directly, instead of guessing at the state of your books.
+
+Check what's wired up at any time with `iris onboard --status` (add `--json`
+for your AI). Re-running `iris onboard` is always safe — registrations update
+in place. To undo everything, `iris offboard` removes the registrations and
+the skill without touching your books or sign-in.
+
+This wiring is for the machine the book folder lives on. With a cloud-linked
+book you can also read its synced reports and records away from that machine.
+The remote connector is read-only; changes require the local setup. See
+[Your AI on the go (remote connector)](remote-connector.md).
+
+Every new book has an English `AGENTS.md` at its root: a concise working
+contract with the posting policy, integrity rules, a minimal journal and
+reference lookup. Local CLI/MCP creation and web/API creation use the same
+template. The file syncs with the book, and cloning preserves its contents.
+`README.md` briefly explains the folder; `CLAUDE.md` points agents to `AGENTS.md`.
+An Owner can customize the contract; changing it in the cloud requires Owner access.
+For an older local book, `iris onboard` adds missing entry files and preserves
+an existing `LLM-GUIDE.md` policy in `AGENTS.md`, without overwriting custom guides.
+
+> **Sandboxed assistants** (e.g. agents in a VM without the `iris` binary):
+> there is no bundled copy inside the book. If using host MCP, the host runs
+> `iris mcp serve` and the assistant calls its tools against the same folder.
+> For client work, the host connection must respect the client boundary
+> described under [Accountants: use a separate work folder for each client](#accountants-use-a-separate-work-folder-for-each-client).
+
+For Cowork's `.mcpb` extension, choose a **parent folder of books**, such as
+`~/IrisBooks`, with each book in its own immediate child folder. Give Cowork
+file access to the folder you will work in too. The extension can start with
+an empty parent: ask your assistant to create a book with `create_book`.
+It finds books with `list_books` and names the target book on every operation.
+Adding another child book requires no change to the global MCP settings.
+For manual setup, use `iris mcp serve --books-dir ~/IrisBooks`; `--book-path PATH`
+continues to serve a single book. See [MCP commands](cli-reference.md#iris-mcp).
+
+For accountant work, the parent must contain only one client's books, such
+as `~/IrisBooks/ClientA/2026` and `~/IrisBooks/ClientA/2027`. Configure that
+client's assistant connection to `~/IrisBooks/ClientA`, and check its cloud
+credentials separately. A separate chat alone does not restrict access.
+
+## The everyday loop
+
+This walks the four steps of [the mental model](#the-mental-model), with the
+commands for each.
+
+### 1. Share information with your AI
+
+You can attach a bank CSV, receipt scan or PDF invoice in chat, point to an
+accessible folder, or ask the AI to retrieve it with tools and access you
+grant. The AI can save the original under the book's `raw/`; you can also put
+files there yourself if you prefer. Subfolders by date or vendor are fine.
+For personal cash tracking, a reported balance and a short interview can be
+enough without a document.
+
+### 2. Ask your AI to process it
+
+Tell your assistant something like *"record this statement"* or
+*"help me catch up on my personal cash spending"*.
+Following `AGENTS.md`, it will:
+
+- For a document, read it in full and write a **parse cache** to
+  `notes/raw/<source>.md` — a durable table marking each row `journaled`,
+  `ignored`, or `deferred`. This means re-opening the same statement later
+  doesn't redo the work.
+- For an interview, save what you reported and any assumptions in the entry's
+  body or book notes.
+- Propose journals as `journals/YYYY-MM/…-NN.md` with `status: draft` at the
+  agreed detail level.
+- Record unresolved business questions or material unknowns in
+  `notes/open-questions.md`; make personal estimates and inferred categories explicit.
+
+### 3. Validate
+
+```bash
+iris validate
+```
+
+This checks every file: YAML parses, debits equal credits, accounts exist in
+your chart, dates are consistent, statuses are valid, and the rules of the
+overlays your book selected pass. Fix any errors — usually
+a missing account in the chart, or an unbalanced entry — and re-run. Your AI
+can do this loop for you.
+
+If `iris validate` ends with a note about files *blocked in the sync queue*,
+that's a server-side rejection, not a file problem — see
+[Troubleshooting](troubleshooting.md#sync-rejections-needs-attention).
+
+### 4. Review and read the books
+
+```bash
+iris balance                         # trial balance today (posted only)
+iris report pl --from 2026-04-01 --to 2026-06-30
+iris report bs --as-of 2026-06-30
+iris search --payee amazon --from 2026-04-01     # find entries
+iris references raw/2026-05-invoice.pdf                # what cites this document
+```
+
+Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
+routine file listing, reading, text searches and draft/note edits when the
+book folder is accessible. Keep operations within the selected book and run
+validation after bookkeeping edits. Local MCP is for accounting calculations,
+validation, authentication, sync and guarded workflows
+such as posting, seals, depreciation and year-end. Structured search and other
+inspection tools are optional helpers, useful for structured filters,
+derived closed status or when the client cannot access files directly.
+
+`iris search` and `iris references` remain available for structured offline views.
+
+To read the same reports and entries on screen, run `iris view` in the book
+folder. See [Your books on this computer](iris-view.md).
+
+### 5. Post the entry
+
+A `draft` entry stays out of your reports and balances until posted. When
+you're happy with one, post it:
+
+```bash
+iris post journals/2026-05/2026-05-04-example-com-01.md
+```
+
+`iris post` validates the file (non-empty, balanced), sets `status: posted`,
+and — if the book is linked to the cloud — syncs it. Use `--dry-run` to check
+without changing anything. You can also just edit the `status:` field by hand;
+`post` is the convenience that also balances-checks and syncs.
+
+You can also post from [`iris view`](iris-view.md): open the draft, read it and
+choose **Post**. That posts on this computer only, like `iris post --local`; a
+linked book carries it to the cloud at your next sync.
+
 ## Personal tracking can stay relaxed
 
 For everyday personal spending, keep as much detail as is useful to you.
@@ -70,7 +220,138 @@ keep assumptions in the entries or notes. These files also preserve decisions
 and questions for your next session or a different assistant. Optional sync
 adds a cloud mirror and server-side change history.
 
+## Accountants: use a separate work folder for each client
+
+Accountants should also prepare and validate work in book files with their
+own AI. Keep each client's books in a separate persistent folder. Give a
+dedicated assistant session or VM, such as a Cowork session for Client A,
+access only to Client A's folder. It can contain that client's books for
+several fiscal years; do not mount the firm's all-client parent folder.
+
+Clone existing shared books into that folder and sync through an authorized
+workflow. Read their guides and notes, prepare corrections, validate and
+follow the book's posting policy. Save context in the client's files so the
+next session can continue. Keep a persistent copy outside temporary VM storage.
+
+Check connected tools and credentials too. A shared host MCP server can have
+broader cloud access than its file root, and PAT roles do not limit a token
+to one client. Keep broad firm credentials and batch tools outside the client
+session; if needed, clone/sync separately and give the AI only the selected
+files and tools that cannot access other clients. Verify the actual boundary.
+
+Use the [web app](web-app.md) for reports, review, permitted approvals and
+history. It complements the accountant's file work.
+
+## Going online (cloud)
+
+Linking a local book to the cloud unlocks the web app, multi-device access,
+collaboration, period seals, and the durable history. The local
+file-first workflow above doesn't change — you simply gain `iris sync`.
+
+```bash
+iris api login            # browser sign-in; this device gets its own CLI session
+iris api whoami           # confirm the effective credential and API endpoint
+iris api books new        # create a cloud book…
+# …or link this folder to an existing one:
+iris api books link <book-id>
+iris sync                 # one explicit push + pull pass
+```
+
+`iris api login` needs the browser to be able to answer the computer running
+the CLI. For a remote or headless environment, or to approve in another
+browser profile, use `iris api login --device`: approve on your own device,
+then run `iris api login --device-complete` and check with `iris api whoami`.
+While the result says it is still waiting, you are not signed in yet. See [login modes and account profiles](cli-reference.md#iris-api-login).
+
+During browser approval, select the books this CLI may access. Enable
+**Allow creating books** to create your first book or next year's book: books
+created by this credential are automatically included with the same permissions.
+Books added later in any other way are not included. Every login mode uses the
+same book picker. Starting next year's book (`iris yearend`) still requires
+Owner on the source book and Full token scope.
+
+After that:
+
+- `iris sync` pushes your local changes and pulls anything new (e.g. entries
+  your accountant prepared and synced from their files). It reports per-file accept/reject.
+- `iris diff` shows exactly what *would* be pushed before you sync.
+- `iris api history --path journals/2026-05/...md <book-id>` shows the durable
+  correction/deletion record for a file.
+
+Sync stays **explicit** — it runs when you ask, never in the background.
+
+## Fixed assets and depreciation
+
+If you own depreciable assets, describe each one in `assets/YYYY/<name>.md`
+(acquisition cost, useful life, method). Then:
+
+```bash
+iris asset schedule                       # see each asset's depreciation plan
+iris asset depreciate --year 2026         # one year-end entry per asset
+iris asset depreciate --month 2026-05     # or that month's entries, if you close monthly
+```
+
+`iris asset depreciate` writes proposed entries (`status: draft`) you review
+and post like any other. The file format is in the
+[Book file-format reference](book-format-reference.md); a region's methods and
+rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
+
+### Depreciation your AI can't get wrong
+
+Straight-line iris computes itself. Methods whose rules a country sets — a
+declining-balance method that switches rate partway, for example — work
+differently: your AI looks up the rates and
+decides where the method switches, then hands the arithmetic to iris and records
+the finished table on the asset file under `schedule:`.
+
+Over the MCP connection your AI has these asset tools for this:
+
+| Tool | What it does |
+| --- | --- |
+| `asset_schedule` | the engine's per-asset figures — use these for filings verbatim |
+| `declining_table` | a declining-balance table at a rate you supply |
+| `flat_table` | a fixed charge per period until the asset is written down |
+| `straight_line_table` | a basis split evenly over N periods |
+| `list_recipes` / `run_recipe` | the region overlay's ready-made composition — preferred whenever one exists |
+
+The steps are the same whether the local MCP server is connected to one book
+or to a parent folder of books. Use `list_recipes` to discover canonical
+recipe IDs and schemas, then `run_recipe(recipe=..., params={...})` to
+preview. Add `apply=true` and a book-relative `out` to record the result;
+`out` alone still previews. When the server is connected to a parent folder,
+`book` is also required.
+
+The point is that your AI never multiplies a balance forward by hand — that's
+where arithmetic slips happen, and a slip that still adds up to the right total
+is one iris cannot detect. It composes exact tables instead. Better still, when
+a selected overlay has a **recipe** for the method (`list_recipes` shows it),
+it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
+order and records where the rows came from, so `iris validate` can replay them
+and catch an error such as a method switch that landed a year late. Composing by hand is the fallback
+for a method no recipe covers. See
+[`schedule:`](book-format-reference.md#schedule-recording-the-table-instead-of-computing-it)
+for the file format and what iris checks.
+
+## Exporting
+
+```bash
+iris export                 # journals.csv, trial-balance.csv, ledger-*.csv
+iris export --year 2026     # restrict to a fiscal year
+iris export assets          # per-asset depreciation schedule
+```
+
+CSVs are written UTF-8 with a BOM so Excel opens non-ASCII text, such as
+Japanese, correctly. A text cell (payee, memo, tags, account or asset name)
+that starts with `=`, `+`, `-` or `@` is written with a leading `'`, so a
+spreadsheet shows it as text
+instead of running it as a formula; amounts are never changed. For a
+cloud-linked book, `iris api history --all --json <book-id>` writes the
+book's — that year's — correction/deletion record as a file.
+
 ## Receipt detail, personal summaries and backfill
+
+This section is a detailed worked example: receipt-level records, a personal
+summary and a receipt found later, shown in actual files.
 
 Agree the detail level in `notes/workflow.md` before recording a period. Use
 receipt-level business records when that is the chosen policy; preserve original
@@ -407,100 +688,6 @@ Matching the bank alone would miss the personal cash difference; matching both
 cash accounts and total expense still would not prove that the sofa kept its
 own classification and source. These checks test detail as well as totals.
 
-## Accountants: use a separate work folder for each client
-
-Accountants should also prepare and validate work in book files with their
-own AI. Keep each client's books in a separate persistent folder. Give a
-dedicated assistant session or VM, such as a Cowork session for Client A,
-access only to Client A's folder. It can contain that client's books for
-several fiscal years; do not mount the firm's all-client parent folder.
-
-Clone existing shared books into that folder and sync through an authorized
-workflow. Read their guides and notes, prepare corrections, validate and
-follow the book's posting policy. Save context in the client's files so the
-next session can continue. Keep a persistent copy outside temporary VM storage.
-
-Check connected tools and credentials too. A shared host MCP server can have
-broader cloud access than its file root, and PAT roles do not limit a token
-to one client. Keep broad firm credentials and batch tools outside the client
-session; if needed, clone/sync separately and give the AI only the selected
-files and tools that cannot access other clients. Verify the actual boundary.
-
-Use the [web app](web-app.md) for reports, review, permitted approvals and
-history. It complements the accountant's file work.
-
-## One-time setup: connect your AI
-
-If your assistant already has CLI execution and file access, it can work without
-MCP registration. Use `iris onboard` when you want an MCP integration or need
-to add missing local guide files.
-
-```bash
-iris onboard
-```
-
-`iris onboard` registers `iris mcp serve` (a small server that exposes the
-`iris` verbs as tools) with your MCP-capable assistants — Claude Code always,
-plus Claude Desktop, Codex, Cursor, Gemini CLI, and VS Code when they're
-installed — and writes a Claude Code skill. After that, your assistant can
-call `validate`, `diff`, `balance`, `report`, `status`, and — once you're
-signed in — `sync` directly, instead of guessing at ledger state.
-
-Check what's wired up at any time with `iris onboard --status` (add `--json`
-for your AI). Re-running `iris onboard` is always safe — registrations update
-in place. To undo everything, `iris offboard` removes the registrations and
-the skill without touching your books or sign-in.
-
-This wiring is for the machine the book folder lives on. With a cloud-linked
-book you can also read its synced reports and records away from that machine.
-The remote connector is read-only; changes require the local setup. See
-[Your AI on the go (remote connector)](remote-connector.md).
-
-Every new book has an English `AGENTS.md` at its root: a concise working
-contract with the posting policy, integrity rules, a minimal journal and
-reference lookup. Local CLI/MCP creation and web/API creation use the same
-template. The file syncs with the book, and cloning preserves its contents.
-`README.md` briefly explains the folder; `CLAUDE.md` points agents to `AGENTS.md`.
-An Owner can customize the contract; changing it in the cloud requires Owner access.
-For an older local book, `iris onboard` adds missing entry files and preserves
-an existing `LLM-GUIDE.md` policy in `AGENTS.md`, without overwriting custom guides.
-
-> **Sandboxed assistants** (e.g. agents in a VM without the `iris` binary):
-> there is no bundled copy inside the book. If using host MCP, the host runs
-> `iris mcp serve` and the assistant calls its tools against the same folder.
-> For client work, the host connection must respect the client boundary above.
-
-For Cowork's `.mcpb` extension, choose a **parent folder of books**, such as
-`~/IrisBooks`, with each book in its own immediate child folder. Give Cowork
-file access to the folder you will work in too. The extension can start with
-an empty parent: ask your assistant to create a book with `create_book`.
-It finds books with `list_books` and names the target book on every operation.
-Adding another child book requires no change to the global MCP settings.
-For manual setup, use `iris mcp serve --books-dir ~/IrisBooks`; `--book-path PATH`
-continues to serve a single book. See [MCP commands](cli-reference.md#iris-mcp).
-
-For accountant work, the parent must contain only one client's books, such
-as `~/IrisBooks/ClientA/2026` and `~/IrisBooks/ClientA/2027`. Configure that
-client's assistant connection to `~/IrisBooks/ClientA`, and check its cloud
-credentials separately. A separate chat alone does not restrict access.
-
-## Online docs and optional downloads
-
-Your assistant reads the book's `AGENTS.md`, its current workflow summary and
-relevant questions/decisions. It can then use installed command help or tool
-schemas. `iris docs` lists bundled English topics; `iris docs <topic>` lists
-sections and sizes. `--section <id>` reads one; `--full` explicitly reads the
-chapter. Local MCP `read_docs` has equivalent `topic`, `section` and `full`
-selectors without a book argument. No login, download or network is required.
-
-For requested setup, use the [start guide](https://irisbooks.io/start/); current cloud authorization
-is in [cloud setup](https://irisbooks.io/start/cloud/). Older tools without bundled lookup can use
-the [docs index](https://irisbooks.io/llms.txt). The [complete AI manual](https://irisbooks.io/llms-full.txt) is optional.
-An optional Markdown cache belongs outside bookkeeping records, with source URL
-and release tag: `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
-Match `iris version` where available and search only needed sections. Use the
-book's selected overlays for its rules; reference material does not authorize actions.
-
 ## Check and update iris
 
 ```bash
@@ -530,202 +717,48 @@ Older binaries without `iris update` can be upgraded by rerunning the
 [installer](getting-started.md), then `iris onboard`. Ask before installing
 an update unless the user has already authorized it.
 
-## The everyday loop
+## Online docs and optional downloads
 
-### 1. Share information with your AI
+`iris` ships with its English manual, readable with no login, download or
+network:
 
-You can attach a bank CSV, receipt scan or PDF invoice in chat, point to an
-accessible folder, or ask the AI to retrieve it with tools and access you
-grant. The AI can save the original under the book's `raw/`; you can also put
-files there yourself if you prefer. Subfolders by date or vendor are fine.
-For personal cash tracking, a reported balance and a short interview can be
-enough without a document.
-
-### 2. Ask your AI to process it
-
-Tell your assistant something like *"record this statement"* or
-*"help me catch up on my personal cash spending"*.
-Following `AGENTS.md`, it will:
-
-- For a document, read it in full and write a **parse cache** to
-  `notes/raw/<source>.md` — a durable table marking each row `journaled`,
-  `ignored`, or `deferred`. This means re-opening the same statement later
-  doesn't redo the work.
-- For an interview, save what you reported and any assumptions in the entry's
-  body or book notes.
-- Propose journals as `journals/YYYY-MM/…-NN.md` with `status: draft` at the
-  agreed detail level.
-- Record unresolved business questions or material unknowns in
-  `notes/open-questions.md`; make personal estimates and inferred categories explicit.
-
-### 3. Validate
-
-```bash
-iris validate
-```
-
-This checks every file: YAML parses, debits equal credits, accounts exist in
-your chart, dates are consistent, statuses are valid, and the rules of the
-overlays your book selected pass. Fix any errors — usually
-a missing account in the chart, or an unbalanced entry — and re-run. Your AI
-can do this loop for you.
-
-If `iris validate` ends with a note about files *blocked in the sync queue*,
-that's a server-side rejection, not a file problem — see
-[Troubleshooting](troubleshooting.md#sync-rejections-needs-attention).
-
-### 4. Review and read the books
-
-```bash
-iris balance                         # trial balance today (posted only)
-iris report pl --from 2026-04-01 --to 2026-06-30
-iris report bs --as-of 2026-06-30
-iris search --payee amazon --from 2026-04-01     # find entries
-iris references raw/2026-05-invoice.pdf                # what cites this document
-```
-
-Use filesystem tools (`rg`/`grep`, `find`, `cat`, `sed`, or a file editor) for
-routine file listing, reading, text searches and draft/note edits when the
-book folder is accessible. Keep operations within the selected book and run
-validation after bookkeeping edits. Local MCP is for accounting calculations,
-validation, authentication, sync and guarded workflows
-such as posting, seals, depreciation and year-end. Structured search and other
-inspection tools are optional helpers, useful for structured filters,
-derived closed status or when the client cannot access files directly.
-
-`iris search` and `iris references` remain available for structured offline views.
-
-To read the same reports and entries on screen, run `iris view` in the book
-folder. See [Your books on this computer](iris-view.md).
-
-### 5. Promote to `posted`
-
-A `draft` entry stays out of your reports and balances until posted. When
-you're happy with one, promote it:
-
-```bash
-iris post journals/2026-05/2026-05-04-example-com-01.md
-```
-
-`iris post` validates the file (non-empty, balanced), sets `status: posted`,
-and — if the book is linked to the cloud — syncs it. Use `--dry-run` to check
-without changing anything. You can also just edit the `status:` field by hand;
-`post` is the convenience that also balances-checks and syncs.
-
-You can also post from [`iris view`](iris-view.md): open the draft, read it and
-choose **Post**. That posts on this computer only, like `iris post --local`; a
-linked book carries it to the cloud at your next sync.
-
-## Going online (cloud)
-
-Linking a local book to the cloud unlocks the web app, multi-device access,
-collaboration, period seals, and the durable history. The local
-file-first workflow above doesn't change — you simply gain `iris sync`.
-
-```bash
-iris api login            # browser sign-in; this device gets its own CLI session
-iris api whoami           # confirm the effective credential and API endpoint
-iris api books new        # create a cloud book…
-# …or link this folder to an existing one:
-iris api books link <book-id>
-iris sync                 # one explicit push + pull pass
-```
-
-Browser login needs a reachable callback. For remote/headless execution or
-approval in another browser profile, use `iris api login --device`, approve on
-your own device, then run `iris api login --device-complete` and `iris api whoami`.
-A waiting result is not authorization. See [login modes and account profiles](cli-reference.md#iris-api-login).
-
-During browser approval, select the books this CLI may access. Enable
-**Allow creating books** to create your first book or next year's book: books
-created by this credential are automatically included with the same permissions.
-Other later books are excluded. Callback, downloaded-file and device approval
-use the same picker. Year-end continuation still requires Owner on the source
-book and Full token scope.
-
-After that:
-
-- `iris sync` pushes your local changes and pulls anything new (e.g. entries
-  your accountant prepared and synced from their files). It reports per-file accept/reject.
-- `iris diff` shows exactly what *would* be pushed before you sync.
-- `iris api history --path journals/2026-05/...md <book-id>` shows the durable
-  correction/deletion record for a file.
-
-Sync stays **explicit** — it runs when you ask, never in the background.
-
-## Fixed assets and depreciation
-
-If you own depreciable assets, describe each one in `assets/YYYY/<name>.md`
-(acquisition cost, useful life, method). Then:
-
-```bash
-iris asset schedule                       # see each asset's depreciation plan
-iris asset depreciate --year 2026         # one year-end entry per asset
-iris asset depreciate --month 2026-05     # or that month's entries, if you close monthly
-```
-
-`iris asset depreciate` writes proposed entries (`status: draft`) you review
-and post like any other. The file format is in the
-[Book file-format reference](book-format-reference.md); a region's methods and
-rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
-
-### Depreciation your AI can't get wrong
-
-Straight-line iris computes itself. Methods whose rules a country sets — a
-declining-balance method that switches rate partway, for example — work
-differently: your AI looks up the rates and
-decides where the method switches, then hands the arithmetic to iris and records
-the finished table on the asset file under `schedule:`.
-
-Over the MCP connection your AI has these asset tools for this:
-
-| Tool | What it does |
+| Command | Shows |
 | --- | --- |
-| `asset_schedule` | the engine's per-asset figures — use these for filings verbatim |
-| `declining_table` | a declining-balance table at a rate you supply |
-| `flat_table` | a fixed charge per period until the asset is written down |
-| `straight_line_table` | a basis split evenly over N periods |
-| `list_recipes` / `run_recipe` | the region overlay's ready-made composition — preferred whenever one exists |
+| `iris docs` | the bundled topics |
+| `iris docs <topic>` | that topic's sections and their sizes |
+| `iris docs <topic> --section <id>` | one section |
+| `iris docs <topic> --full` | the whole chapter |
 
-Both MCP modes use `list_recipes` to discover canonical recipe IDs and schemas,
-then `run_recipe(recipe=..., params={...})` to preview. Add `apply=true` and a
-book-relative `out` to record the result; `out` alone still previews. Parent mode
-also requires `book`.
+Local MCP `read_docs` returns the same content through `topic`, `section` and
+`full`, and takes no book argument. Your assistant first reads the book's
+`AGENTS.md`, its current workflow summary and relevant questions and
+decisions, and then uses these docs alongside command help and tool schemas.
 
-The point is that your AI never multiplies a balance forward by hand — that's
-where arithmetic slips happen, and a slip that still adds up to the right total
-is one iris cannot detect. It composes exact tables instead. Better still, when
-a selected overlay has a **recipe** for the method (`list_recipes` shows it),
-it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
-order and records where the rows came from, so `iris validate` can replay them
-and catch a switch that landed a year late. Composing by hand is the fallback
-for a method no recipe covers. See
-[`schedule:`](book-format-reference.md#schedule-recording-the-table-instead-of-computing-it)
-for the file format and what iris checks.
+When you ask an assistant to set things up, give it the
+[start guide](https://irisbooks.io/start/); current cloud authorization is
+covered in [cloud setup](https://irisbooks.io/start/cloud/). Older tools that
+cannot read the bundled docs can use the
+[docs index](https://irisbooks.io/llms.txt). The
+[complete AI manual](https://irisbooks.io/llms-full.txt) is optional reference.
 
-## Exporting
-
-```bash
-iris export                 # journals.csv, trial-balance.csv, ledger-*.csv
-iris export --year 2026     # restrict to a fiscal year
-iris export assets          # per-asset depreciation schedule
-```
-
-CSVs are written UTF-8 with a BOM so Excel opens non-ASCII text, such as
-Japanese, correctly. A text cell (payee, memo, tags, account or asset name)
-that starts with `=`, `+`, `-` or `@` is written with a leading `'`, so a
-spreadsheet shows it as text
-instead of running it as a formula; amounts are never changed. For a
-cloud-linked book, `iris api history --all --json <book-id>` writes the
-book's — that year's — correction/deletion record as a file.
+If you keep a Markdown copy of the manual, store it outside the book and note
+its source URL and release tag:
+`https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
+Where you can, pick the release tag that matches `iris version`, and search
+only the sections you need. For the rules that apply to a book, check the
+overlays that book selects. Reading reference material does not authorize any
+action.
 
 ## A note on what *not* to do
 
 These rules keep your books trustworthy (your AI follows them too):
 
-- Don't mass-edit `posted` entries — record a correcting entry instead.
-- Don't hand-edit `compiled/` — it's regeneratable output.
-- Don't invent accounts inside a journal — add them to the chart first.
+- Don't mass-edit `posted` entries. It becomes impossible to tell what was
+  corrected. Record a correcting entry instead.
+- Don't hand-edit `compiled/`. It is regeneratable output, so the next
+  regeneration overwrites your edit.
+- Don't invent accounts inside a journal. `iris validate` reports an account
+  the chart doesn't have. Add it to the chart first.
 
 Next: the graphical side in [Using the web app](web-app.md), or the full
 command list in the [CLI command reference](cli-reference.md).

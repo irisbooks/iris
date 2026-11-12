@@ -10,7 +10,7 @@ Your book is a folder of Markdown and YAML files. The CLI works without an
 account; optional cloud sync adds web access and collaboration.
 
 > **New here?** Read [Getting started](getting-started.md) first, then
-> [Core concepts](concepts.md). Everything else is reference you can return to.
+> [Core concepts](concepts.md). Those two are enough to start; open the other pages when you need them.
 
 ## Who this manual is for
 
@@ -26,6 +26,13 @@ account; optional cloud sync adds web access and collaboration.
   separate assistant work folder/session for each client; the
   [web app](web-app.md) supports viewing and review.
 
+Your AI assistant can run the commands and edit the files, so you can start
+without being at home in a terminal or in double-entry bookkeeping. Look up
+unfamiliar terms in the [glossary](concepts.md#glossary). For anything this
+manual doesn't settle, ask in the
+[Discord community](https://discord.gg/wZDsv9gyb9); replies are not
+guaranteed.
+
 ## Table of contents
 
 1. [Getting started](getting-started.md) — install, create your first book,
@@ -33,7 +40,7 @@ account; optional cloud sync adds web access and collaboration.
 2. [Core concepts](concepts.md) — books, journals, accounts, status,
    reports, sync, seals.
 3. [Bookkeeping with the CLI and your own LLM](cli-and-llm.md) — the
-   file-first workflow (fully offline).
+   everyday file-first workflow (no account needed).
 4. [Your books on this computer (iris view)](iris-view.md) — read,
    post and edit your books on your computer, with no account.
 5. [Using the web app](web-app.md) — journals, reports, raw documents,
@@ -46,8 +53,8 @@ account; optional cloud sync adds web access and collaboration.
    history and search, returns and regional rules, year-end close.
    Regional rules themselves are documented by the [overlays](https://irisbooks.io/docs/en/overlays/).
 9. [CLI command reference](cli-reference.md) — every command and flag.
-10. [Book file-format reference](book-format-reference.md) — the on-disk
-    structure of a book.
+10. [Book file-format reference](book-format-reference.md) — the
+    folders and file formats of a book.
 11. [Troubleshooting](troubleshooting.md) — validation errors, sync
     rejections, conflicts.
 

@@ -241,7 +241,7 @@ only and save nothing.
 ## Several windows
 
 You can open several windows, on different folders or on the same one. Each
-window shows the book in its own address.
+window shows the book named in that window's own address (URL).
 
 If two windows change the same entry, the second save is refused with "This
 entry changed after you opened it" and your text stays in the box. Copy what you

@@ -89,11 +89,11 @@ The sidebar stays available on both global and book pages:
 - **Across books** contains **Dashboard** and **Net Worth**, for portfolio
   reports.
 - **My Books** lists each book with its fiscal year. Open a book to enter
-  its Overview; when switching from another book, the current section is
-  preserved and book-specific filters and resource selections are cleared.
-  The arrow expands its sections without changing the current page. One
-  book expands at a time, with Overview, Journals, Activity, five report
-  links, and management pages for Files, Accounts, Notes, Year-end and
+  its Overview; when you switch from one book to another, the same
+  kind of page opens in the new book (Journals, a report and so on), and the
+  filters and file selections from the previous book are cleared. The arrow
+  beside a book's name expands its sections without leaving the current page. One
+  book expands at a time, with Overview, Journals, Activity, the report links, and management pages for Files, Accounts, Notes, Year-end and
   Book settings.
 - **Closed books** groups closed and archived books. A direct link to one
   opens its group and sections automatically.
@@ -133,18 +133,25 @@ balance-sheet composition live in that book's **Overview**. Opening a book
 in the sidebar does not change the books included in portfolio reports;
 use each report's inclusion controls for that.
 
-Cross-book reports show their generation time. After syncing journals or recording
-prices, choose **Run aggregation** on the page you are viewing. Dashboard refreshes
-its P&L inputs and Net Worth generation together; the Net Worth page refreshes
-its own analytics file. Remote Net Worth reads
-that same Net Worth generation. Date and cash filters query the downloaded file
-locally. Changed book selections or reporting currency create a separate scope.
-Only synced data enters cloud generations. Net Worth keeps showing its last successful
-report while the next one is queued, running or waiting for an automatic retry.
-Repeated requests reuse that job. After success or failure, wait 60 seconds before
-starting another generation; the page shows the remaining wait. Failed refreshes
-retain the last completed figures and show a warning. The next daily generation
-is available after midnight UTC, once any current job and cooldown finish.
+Cross-book reports (the Dashboard and Net Worth) show data that is aggregated
+once a day, with the time it was generated. After you sync journals or record
+prices, choose **Run aggregation** on the page you are viewing to rebuild that
+page's data. On the Dashboard this refreshes both the P&L data and the Net
+Worth data; on the Net Worth page it refreshes the Net Worth data only. The
+remote connector's Net Worth reads the same result.
+
+Only data synced to the cloud is included. Changing the dates or the cash
+filter recalculates from the data already downloaded, without a new
+aggregation. Changing the selected books or the reporting currency starts a
+separate aggregation for that selection.
+
+While the next aggregation is queued, running or waiting for an automatic
+retry, Net Worth keeps showing the last successful report. Choosing **Run
+aggregation** again during that time reuses the job already in progress.
+After a run succeeds or fails, wait 60 seconds before starting another; the
+page shows the time left. If a refresh fails, the last completed figures stay
+on screen with a warning. The next daily aggregation becomes available after
+midnight UTC, once any running job and the wait have finished.
 
 If your books don't all use the same currency, set a base currency
 (`iris api config set --base-currency JPY`). The consolidated P&L then shows
@@ -157,6 +164,70 @@ the same price store Net Worth values your holdings from.
 A currency with no recorded rate shows an empty box, and books in that
 currency are listed separately rather than folded into the total — a missing
 rate stays visible instead of quietly changing the number.
+
+## Net Worth
+
+**Net Worth** adds up assets minus liabilities across your included books.
+The headline shows that net amount. The chart separately shows **asset valuation**
+as a line and **acquisition cost of remaining holdings** as a teal shaded area,
+with their difference above it. When cash is included, an ochre area stacks
+cash/book-value assets above holdings cost, and the combined total is labelled
+**Acquisition cost + cash/book-value assets**. The legend, tooltips and dated table
+show the two components separately. Buying holdings with existing cash changes
+the split without changing the combined cost. Acquisition cost is not cumulative
+deposits or realized profit. The cash checkbox changes the chart and the totals in the same way.
+Liabilities affect the Net Worth headline; they are not acquisition cost.
+Accounts marked `owner: true` and their descendants are excluded.
+
+The **Settings** tab chooses included books. Each annual book contributes only
+within its own fiscal year. `iris yearend` carries complete opening lots and
+costs into the next book, which works independently. Include earlier books for
+their historical periods; missing years remain blank. The year boundary adds
+no purchase or deposit.
+
+A cloud aggregation reads all the synced data as it stood at the moment the
+run started, and reuses that same data if it has to retry. An entry edited
+while the run is reading cannot leave a mix of old and new figures. To include
+later changes, sync and run the aggregation again.
+
+Prices are the observations you record, never future prices. Missing prices use
+book value and show a coverage warning. Missing acquisition basis or disposal
+policy leaves cost blank; book-value revaluations do not become acquisition cost.
+The chart samples weekly and includes the selected endpoint. Expand the date/value
+table for exact displayed observations, or download the DuckDB file for your own
+SQL and pivot analysis. Acquisition cost uses the ordinary posted ledger or a named Book’s accepted default native generation. Additional fields → Accepted financial view shows its identity; regenerating refuses stale acceptance.
+
+Expand **Additional fields** to inspect saved journal-line, asset or book-setting
+values in this report. Choose a record type, then use **Find fields** to list
+observed paths and record counts in 100-path pages. Optional path search is a
+literal, case-sensitive substring. Select a path such as `/tax/category` to
+inspect it. **Records** shows each original source and its value/type;
+an optional exact JSON filter distinguishes `100` from `"100"`. Results page
+through 100 records at a time. Long values preview the first 4,096 characters;
+download the report for the full values.
+
+**Group by value** shows typed groups, record counts and sums. Integer sums are
+exact; fractional sums marked `≈` are approximate. A value or sum outside the
+supported numeric range shows **Out of range**, retaining the original value.
+Strings, arrays and missing values are excluded from sums.
+The first 100 groups are shown. Large integers retain every digit, while a
+missing field stays distinct from an explicit `null`. These fields use the
+displayed report's included books and generation time. Sync and run aggregation
+to include later changes; older report files may also need regeneration.
+
+**Read field references** opens declarations and guidance from the current synced
+Book. For grouped results, explicitly select an included Book for reference help.
+These references may be newer than the frozen report. Book settings also offers
+the package overview: stored selection/settings, declared fields/tasks, exact
+guide sections and task examples. It shows the Book revision and read time.
+Unavailable metadata remains explicit. The cloud does not evaluate a
+package's compatibility, applicability or required-field conditions, and runs
+no validation or calculations. For those checks, and for changes you have not
+synced yet, work locally.
+
+No market data is fetched for you. Record prices, including FX, with `iris price
+add`; refresh after syncing them. Acquisition FX uses the acquisition date when
+available. These figures are a best-effort portfolio view.
 
 ## Journals
 
@@ -213,8 +284,8 @@ version for inspection; restore through permitted local/CLI operations.
 
 ## Reports
 
-Five reports, each with date/as-of filters and CSV export (the statements
-also have a "hide zero-balance rows" toggle):
+Every report has date (or as-of) filters and CSV export. The P&L and balance
+sheet also have a "hide zero-balance rows" toggle.
 
 - **General Ledger** — pick an account and see its full ledger for the period
   laid out like a paper ledger: date, description, corresponding account,
@@ -284,9 +355,9 @@ opening balance when a date filter is applied.
 The **Raw documents** browser is a two-pane view of everything under `raw/`.
 Select a file and it renders inline — images, PDFs, parsed CSV tables, or text.
 The **Cited by** panel shows which journals reference the document, so you can
-jump from a receipt straight to the entry that booked it. This reverse
-drill-down is the book's journal ↔ evidence audit trail: an auditor can walk
-from any receipt to the entries that booked it, and back.
+jump from a receipt straight to the entry that booked it. Together with
+the link from each entry to its documents, this lets an auditor walk between
+entries and evidence in either direction.
 
 ## Notes
 
@@ -324,16 +395,24 @@ the period close:
 Run `iris validate` locally before syncing and closing. Overlay checks and recipe
 replay run on local clients using Book-contained definitions; the cloud checks
 native accounting, access, posting, seals and revision consistency. A successful
-cloud preview or close does not certify Overlay validation or recipe replay.
+cloud preview or close therefore says nothing about Overlay validation or
+recipe replay: those run only on your computer.
+
 If `config/balance-assertions.yaml` is configured, the preview also compares its
 observations with the accepted synced ledger and evidence versions. Review recorded,
 observed and difference values; missing/changed evidence remains unresolved even
 when balances match. Correct the underlying records locally, sync and preview again.
-The server refuses close until those native observations pass. A stale/missing
-source-data error requires a server projection rebuild; repeated close attempts
-cannot repair it. Matching hashes establish source identity, not correct transcription
-or bank authenticity.
-Named-view close requires every declared view accepted against the current complete inputs with no draft source events. The preview lists the pinned generations. Close locks referenced evidence and calculations; unrelated incoming raw files remain writable.
+The server refuses close until those native observations pass.
+
+If, after syncing, the preview still reports stale or missing source data, the
+server has to rebuild it; trying to close again will not fix it. Matching
+hashes establish that a source is the same file, not that its figures were
+copied correctly or that it came from the bank.
+
+To close a book with named views, every declared view must be accepted against
+the current inputs, and no source entry may still be a draft. The preview
+lists the calculations the close will pin. Closing locks those calculations
+and the evidence they reference; other incoming raw files can still be added.
 
 Closing never removes anything: the year's files stay in the book.
 
@@ -479,69 +558,6 @@ Year-end continuation requires Full scope and Owner on the source book. A
 restricted Full token can list/revoke itself; other tokens remain manageable in
 the web app. Older unrestricted credentials retain their existing access;
 revoke and recreate them to narrow it.
-
-## Net Worth
-
-**Net Worth** adds up assets minus liabilities across your included books.
-The headline shows that net amount. The chart separately shows **asset valuation**
-as a line and **acquisition cost of remaining holdings** as a teal shaded area,
-with their difference above it. When cash is included, an ochre area stacks
-cash/book-value assets above holdings cost, and the combined total is labelled
-**Acquisition cost + cash/book-value assets**. The legend, tooltips and dated table
-show the two components separately. Buying holdings with existing cash changes
-the split without changing the combined cost. Acquisition cost is not cumulative
-deposits or realized profit. The checkbox applies to the chart and totals together.
-Liabilities affect the Net Worth headline; they are not acquisition cost.
-Accounts marked `owner: true` and their descendants are excluded.
-
-The **Settings** tab chooses included books. Each annual book contributes only
-within its own fiscal year. `iris yearend` carries complete opening lots and
-costs into the next book, which works independently. Include earlier books for
-their historical periods; missing years remain blank. The year boundary adds
-no purchase or deposit.
-
-Cloud generation reads current accepted DSQL projections in one consistent
-snapshot when the worker starts, then saves frozen inputs for retries. Journal
-edits during capture cannot mix old and new projections. Sync and run aggregation
-to include later changes.
-
-Prices are the observations you record, never future prices. Missing prices use
-book value and show a coverage warning. Missing acquisition basis or disposal
-policy leaves cost blank; book-value revaluations do not become acquisition cost.
-The chart samples weekly and includes the selected endpoint. Expand the date/value
-table for exact displayed observations, or download the DuckDB file for your own
-SQL and pivot analysis. Acquisition cost uses the ordinary posted ledger or a named Book’s accepted default native generation. Additional fields → Accepted financial view shows its identity; regenerating refuses stale acceptance.
-
-Expand **Additional fields** to inspect saved journal-line, asset or book-setting
-values in this report. Choose a record type, then use **Find fields** to list
-observed paths and record counts in 100-path pages. Optional path search is a
-literal, case-sensitive substring. Select a path such as `/tax/category` to
-inspect it. **Records** shows each original source and its value/type;
-an optional exact JSON filter distinguishes `100` from `"100"`. Results page
-through 100 records at a time. Long values preview the first 4,096 characters;
-download the report for the full values.
-
-**Group by value** shows typed groups, record counts and sums. Integer sums are
-exact; fractional sums marked `≈` are approximate. A value or sum outside the
-supported numeric range shows **Out of range**, retaining the original value.
-Strings, arrays and missing values are excluded from sums.
-The first 100 groups are shown. Large integers retain every digit, while a
-missing field stays distinct from an explicit `null`. These fields use the
-displayed report's included books and generation time. Sync and run aggregation
-to include later changes; older report files may also need regeneration.
-
-**Read field references** opens declarations and guidance from the current synced
-Book. For grouped results, explicitly select an included Book for reference help.
-These references may be newer than the frozen report. Book settings also offers
-the package overview: stored selection/settings, declared fields/tasks, exact
-guide sections and task examples. It shows the Book revision and read time.
-Unavailable metadata remains explicit. Cloud does not evaluate package
-compatibility, applicability, requiredness conditions, validation or calculations;
-use local context for those checks and unsynced changes.
-
-No market data is fetched for you. Record prices, including FX, with `iris price
-add`; refresh after syncing them. Acquisition FX uses the acquisition date when
-available. These figures are a best-effort portfolio view.
 
 ## For accountants — the daily shape
 

@@ -96,25 +96,28 @@ iris init [flags] <path>
 The interactive wizard, parent-MCP `create_book` and explicit Web/API creation
 use the same static planner. Personal setup selects the common package and
 household accounts; business setup selects the common and available regional
-packages. Exact copies are stored before the selecting config. The config's
+packages. The exact package copies are stored in the book before the config that
+selects them is written. The config's
 `creation` marker records the initial preset/version; edits, clone and year-end
 use the actual Book files without reapplying it. Setup guidance leaves tax
 applicability, evidence and account mappings for explicit decisions.
 Init also prints the selected/resolved package sources and up to three task
-links from the shared context resolver. Older sources without task metadata
-show that discovery limit; the output never invents a task from a newer release.
+links from the shared context resolver. An older package without task metadata says that its task list is limited;
+init never shows a newer release's task as if it belonged to the older one.
 
 For a fresh cloud book, `iris api books new --preset personal --name "Household"
 --fy 2026 --region JP` uses the same choice. `--chart` and `--language`
 are available for fresh creation. When connecting an existing local book, its
 actual config/chart/policy are retained and preset overrides are refused.
-Cloud retries retain their original server-owned seed bytes and hashes;
-starter attachment checks those files and their history before replacing the
-core config/chart/policy.
+A retried cloud creation keeps the seed files and hashes the server stored the
+first time. Before attaching, the server checks those seed files and their
+history, and only then replaces the cloud book's config, chart and policy
+with the local book's.
 
 ### iris clone
 
-Fetch a server book to disk (the lifecycle peer of `init`). Requires
+Download a cloud book to this computer. `iris init` creates a new book;
+`iris clone` fetches one that already exists in the cloud. Requires
 sign-in. Works immediately on a brand-new book created in the web app or
 with `iris api books new` outside a book folder — those are born with
 `config/book.yaml`, a starter chart of accounts and `AGENTS.md`. (A cloud book created
@@ -168,16 +171,24 @@ iris status [--json] [path]
 drafts could be counted, and `remoteDeleted` only when the server reports the
 book gone.
 
-`sealStatus` is offline, last-known data for this fiscal year. `closed` or
-`reopened` includes the active seal ID, original close time and superseded ID when
-known. `checkedAt` is the successful server read or close/reopen observation time;
-a failed refresh keeps the previous data and time. `unsealed` means the last
-complete read found no seal. Missing, corrupt, unbound or foreign-endpoint state
-is `unknown`, and `reason` says why and what refreshes it; an old closed flag
-can lack references/time. A clone reads the seals before it finishes. `local-only` has no
-cloud seal. `archive` describes the local archive marker, without claiming the
-live cloud is still closed. This command does not connect or log in. Run
-`iris sync` to refresh; local unsynced files may differ from the sealed sources.
+`sealStatus` is the last seal state this computer saw for the fiscal year.
+`iris status` never connects or logs in, so it shows saved data; run
+`iris sync` to refresh it.
+
+- `closed` and `reopened` include the active seal ID, the original close time
+  and the superseded seal ID when known; an old closed flag can lack the IDs
+  and time.
+- `unsealed` means the last complete read found no seal.
+- `unknown` means the saved state is missing, corrupt, unbound or from another
+  endpoint; `reason` says why and what refreshes it.
+- `checkedAt` is when a server read, a close or a reopen last succeeded; a
+  failed refresh keeps the previous data and time.
+- `local-only` is a local book with no cloud seal.
+- `archive` describes the local archive marker and does not claim the live
+  cloud is still closed.
+
+A clone reads the seals before it finishes. Local unsynced files may differ
+from the sealed sources.
 
 Live status includes selected/resolved package sources, up to three actual
 task links and context diagnostic counts. `packageContext` carries that compact
@@ -237,8 +248,8 @@ old year, fix it in the old book and run `iris yearend` again with the same
 no-op), and entries dated in the new year that appeared in the old book since
 are moved. The new book's config and notes are left as they are. Once the new
 year is sealed, its opening entry is frozen — a mismatch is reported with
-remedies, never silently rewritten. Unposted drafts dated in the closed year
-are warned about (they don't carry).
+remedies, never silently rewritten. Drafts still dated in the old year produce a warning; drafts are not carried
+forward.
 
 `<fiscal-year>` is optional — it defaults to the book's `fiscal_year`, and
 naming any other year is refused.
@@ -264,10 +275,10 @@ Close a fiscal year of the linked cloud book (a period seal). The server locks
 journals dated in the year or earlier (an earlier entry still changes the
 year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
 `raw/` and `notes/` remain writable. Local files can still be edited, but locked
-changes cannot sync; the year's files stay in your working tree. To amend a
-sealed year, run `iris reopen <fiscal-year>` — changes to the locked scope while
-reopened are flagged in the audit trail (`iris api history`) — then run
-`iris seal` again to close it (the new seal supersedes the old one).
+changes cannot sync; the year's files stay in your working tree. To amend a sealed year, run `iris reopen <fiscal-year>`. While the year is
+reopened, changes to the locked scope are flagged in the audit trail
+(`iris api history`). When you are done, run `iris seal` again to close the
+year; the new seal replaces the old one, and the old one stays in the history.
 `--dry-run` lists the files the seal would lock, without sealing. Sealing is
 **refused** while the year still contains drafts — a sealed year must be fully
 resolved. Post each draft if it belongs in the year, delete it if abandoned, or
@@ -276,9 +287,9 @@ change its date into an open year; `--dry-run` lists the blockers.
 Run `iris validate` locally before syncing and closing. Local clients check
 Overlay rules and replay recorded recipes using definitions retained in the Book;
 the cloud does not execute those definitions or certify that those checks passed.
-When `config/balance-assertions.yaml` is configured, `--dry-run` shows the native
-check's exact recorded/observed/difference values, scope and evidence status for
-the accepted synced sources. Unresolved balances or evidence block closing.
+When `config/balance-assertions.yaml` is configured, `--dry-run` runs the balance check on the synced data and shows the book
+balance, the observed balance, the difference, the scope and the evidence
+status. Unresolved balances or evidence block closing.
 Correct the source records or observations locally, review the evidence, sync,
 and preview again. Local unsynced changes are outside this preview. A missing or
 stale native source mirror after sync needs a server projection rebuild; seek
@@ -297,9 +308,8 @@ Unlock a sealed fiscal year for amendment. The seal is unlocked on the server
 (the year’s journals and `config/`, `assets/`, `filings/`, `compiled/` are
 locked until this runs; edits to that scope after reopening are permanently
 flagged as post-seal edits). `raw/` and `notes/` remain writable throughout.
-The year's files never
-left the working tree — sealing locks the year, it does not remove files —
-so there is nothing to restore: edit them directly, run `iris sync` to push
+Sealing locks the year; it does not remove files. The year's files are still
+in your working tree, so there is nothing to restore: edit them directly, run `iris sync` to push
 your edits, and `iris seal <fiscal-year>` to close the year again.
 
 ```bash
@@ -362,34 +372,49 @@ The path is relative to the book. Omitted `--book-path` finds the current book;
 omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
-Output is always JSON: `proposal` contains the complete Markdown, `allocations`
-lists quantities, costs (decimals, as the journal writes them), lots and effective methods, `balanced` names the line
-filled with the amount that balances the entry, `name` and `description` are
-the completion's own short name and account of what it calculates,
-`overlayName` names a Book's own layer, `policy` is the inventory policy applied
-with its description, `reasons` says by line why a proposal set a figure, and
-`revision` identifies the inputs and proposal. A completion that would leave the journal unchanged
+Output is always JSON, with these keys:
+
+- `proposal` — the complete proposed Markdown
+- `allocations` — quantities, costs (decimals, as the journal writes them),
+  lots and effective methods
+- `balanced` — the line filled with the amount that balances the entry
+- `name`, `description` — the completion's own short name and what it
+  calculates
+- `overlayName` — the name of the book's own layer
+- `policy` — the inventory policy applied, with its description
+- `reasons` — why the proposal set each figure, by line
+- `revision` — identifies the inputs and the proposal
+
+A completion that would leave the journal unchanged
 doesn't conflict with one that changes it. Preview writes nothing. `--apply` recalculates before
 writing and refuses a stale revision. It leaves the journal's status as it
 is and does not sync. Archived books and known sealed years refuse apply, and
 so does a posted journal while the book's posting approval is on.
 
 When nothing can be proposed, the command exits 1 and prints JSON with
-`refusal.reason` and `refusal.message`. The reasons are `completeSeveral` (more
-than one amount is `null`), `completeQuantity` (a quantity line needs its
-amount), `completeUnbalanced` (nothing is `null` and the amounts differ),
-`completeZero` (the missing amount would be zero), `completeSide` (the `null`
-amount is on the wrong side), `completeAccount` (an account isn't in the chart),
-`year` (the date is outside the fiscal year), `completeNone` (no selected
-completion applies), `completeConflict`, `completeNotChosen` and `completeOther`
-(the message carries the engine's reason). For `completeConflict`, the book's
+`refusal.reason` and `refusal.message`. `refusal.reason` is one of:
+
+- `completeSeveral` — more than one amount is `null`
+- `completeQuantity` — a quantity line needs its amount
+- `completeUnbalanced` — nothing is `null` and the amounts differ
+- `completeZero` — the missing amount would be zero
+- `completeSide` — the `null` amount is on the wrong side
+- `completeAccount` — an account isn't in the chart
+- `year` — the date is outside the fiscal year
+- `completeNone` — no selected completion applies
+- `completeConflict`, `completeNotChosen` — described below
+- `completeOther` — the message carries the engine's reason
+
+For `completeConflict`, the book's
 completions disagree: `choices` holds each one's full preview, and
 `--completion ID` takes the proposal of one of them, for preview and for
-`--apply`. With one proposal, `--completion` must name the completion that made
-it (`completeNotChosen` otherwise). Nothing chooses for you.
+`--apply`. When there is only one proposal and you pass `--completion`, it must name the
+completion that made that proposal; any other ID is refused with
+`completeNotChosen`. Nothing chooses for you.
 
-Packages with bindings v5 preparation points can first fill missing scalar
-concern fields through fixed classification/calculation stages. JSON includes
+A package that supports it (one with bindings v5 preparation points) can also
+fill missing extra fields before the amount is completed, classifying first
+and then calculating. JSON includes
 `preparationPlan` and `preparationTrace` with exact providers, consumed inputs
 and proposed values. Apply saves per-field provenance in `preparation_source`;
 ordinary `iris validate` can replay it from retained Book definitions. Preparation
@@ -464,8 +489,8 @@ See [the format and complete example](book-format-reference.md#balance-assertion
 
 ### iris allocation
 
-Calculate a dated gross expense's business/private split without a Book, login,
-evidence reads or writes. `--schema` gives the exact input contract. Amounts are
+Split a dated expense's full amount into its business and private parts. The
+command needs no book or login, reads no evidence and writes nothing. `--schema` gives the exact input contract. Amounts are
 strings, scale and rounding are explicit, and the whole charge period must fit
 one documented basis period. Results retain version/input identity and label
 evidence unchecked. Review sources and both Books' counterpart entries separately.
@@ -492,9 +517,10 @@ iris asset depreciate --year YYYY [path]      # one FY-total entry per asset, da
 
 Pick one cadence per fiscal year: `depreciate` refuses to write annual entries
 into a year that already has monthly ones, and vice versa (mixing them would
-double-count). The writer holds the working-tree lock and refuses a known sealed
-FY or a requested year outside a year-specific Book. The seal mirror is offline;
-missing information does not establish that the cloud period is open.
+double-count). While it writes, `depreciate` holds the working-tree lock. It refuses a year
+it knows is sealed, and a year other than the one the book covers. Its seal
+information is a local copy, so a year with no seal recorded locally may
+still be sealed in the cloud.
 For an explicit mixed-use manual pattern, keep gross depreciation once and
 record a separate private-use reclassification; see
 [the complete example](book-format-reference.md#mixed-use-equipment-with-a-full-acquisition-basis).
@@ -504,7 +530,10 @@ See [schedule limits](book-format-reference.md#schedule-recording-the-table-inst
 
 ### iris financial
 
-Prepare a named view without writing, review the JSON statements and generation identity, then retain that exact generation:
+Calculate a named accounting view, keep the result in the book and accept it.
+`prepare` first calculates without writing; review the statements and the
+generation ID in its JSON, then run it again with `--apply` to retain that
+exact generation:
 
 ```sh
 iris financial prepare --view management ./my-book
@@ -513,18 +542,37 @@ iris financial accept --generation GENERATION_ID ./my-book
 iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
 ```
 
-`prepare` defaults to the declared default view. A generation retains original source bytes, typed raw-evidence hashes, selected entries and native engine/state under `calculations/financial/`. Acceptance binds its exact identity; posting source journals is separate. Sources are never rewritten. Source membership, content, view definitions and evidence changes invalidate current acceptance. Historical generations remain available for native replay.
+`prepare` defaults to the declared default view. A generation is kept under `calculations/financial/`. It holds the original
+source documents, the hashes of the typed evidence under `raw/`, the
+calculated entries, and the version and state of the native engine.
+Acceptance applies to that exact generation ID; posting the source journals
+is a separate step. Sources are never rewritten. Source membership, content, view definitions and evidence changes invalidate current acceptance. Historical generations remain available for native replay.
 
 When human posting approval is enabled, retain and sync the draft, then use **Book settings → Accounting view acceptance** in Web. Only a current Owner/Bookkeeper browser session can accept there. Local acceptance records a local action, not an authenticated reviewer identity. Local MCP offers `preview_financial_ledger`, `retain_financial_ledger` (reviewed `revision`) and `accept_financial_ledger` (`generation`); parent mode also requires `book`.
 
-Local/cloud approved reports select one accepted view; comparison composition remains local and unapproved. Report exports include view, generation, horizon and unfinished-source scope. Net Worth/analytics use each Book's accepted default. Close requires every declared view final at one source revision and pins accepted cloud versions; SQLite schema 2 stores each view and its original generation separately, with default figures in ordinary tables. Reopening permits corrections; it does not alter an existing archive.
+Local/cloud approved reports select one accepted view; comparison composition remains local and unapproved. Report exports include view, generation, horizon and unfinished-source scope. Net Worth/analytics use each Book's accepted default. Closing a year requires every declared view to be final at the same source
+revision, and pins the accepted cloud versions. The year's SQLite archive
+(schema 2) stores each view and its original generation separately, with the
+default view's figures in the ordinary tables. Reopening permits corrections; it does not alter an existing archive.
 
-This contract runs fixed native inventory/current-year depreciation calculations. It does not evaluate regional Overlay recipes or establish filing eligibility. Selected-view opening replay/rollover, exceptional operations, periodic allocation and chart/rule variants remain unsupported. Complete capture is bounded to 1,024 source/reference paths, 512 KiB source text, 64 assets, 8,192 selected lines, 16 MiB per evidence file/128 MiB total evidence and a 1 MiB generation. History is bounded to 1,024 generations/64 MiB. Exceeding a bound refuses complete acceptance; inputs are never truncated.
+This contract runs fixed native inventory/current-year depreciation calculations. It does not evaluate regional Overlay recipes or establish filing eligibility. Selected-view opening replay/rollover, exceptional operations, periodic allocation and chart/rule variants remain unsupported. The limits are below. Exceeding one refuses complete acceptance; inputs are never truncated.
+
+| Item | Limit |
+| --- | --- |
+| Source/reference paths | 1,024 |
+| Source text | 512 KiB |
+| Assets | 64 |
+| Selected lines | 8,192 |
+| Evidence | 16 MiB per file, 128 MiB in total |
+| Generation | 1 MiB |
+| History | 1,024 generations, 64 MiB |
 
 ### iris context
 
-Accounting packages provide the fields, checks, calculations and guidance used
-by your Book. Read a compact task index, then request only the relevant task:
+Show what the book's selected accounting packages provide. An accounting
+package bundles the fields, checks, calculations and guidance your book uses.
+Run it bare for a compact task index, then request only the task and record
+you need:
 
 ```bash
 iris context [path]
@@ -623,8 +671,8 @@ entry identifies its path, zero-based journal line (`-1` for whole records),
 field and any raw `sourceView` declaration. This is a provenance inventory,
 not a resolved accounting view or a calculation. `retained` means verified
 source bytes are present; `will-retain` means apply will preserve the current
-local definition with its original parent pins. Availability, machine trust and
-successful replay are separate. Missing historical sources produce a warning;
+local definition with its original parent pins. A source being available, being trusted on this machine, and replaying
+successfully are three separate things. Missing historical sources produce a warning;
 selection does not repair them. The preview neither checks the ledger nor
 replays historical recipes, and does not rewrite recorded amounts or fields.
 
@@ -644,10 +692,18 @@ an available local write is not proof of current cloud permission or seal state.
 Preview creates no runtime/cache files and never connects to a service.
 
 The current writer refuses unresolved configuration views and YAML aliases or
-merges that would alter other settings. Preview also refuses incomplete input:
-at most 16 selected packages, 1,024 dependency files/64 MiB, 10,000 captured
-files/128 MiB, 2,048 recorded provenance entries, 64 affected provider identities
-and 2 MiB of preview JSON. Upgrade uses the same bounded source/impact review.
+merges that would alter other settings. Preview also refuses incomplete input. The limits are:
+
+| Item | Limit |
+| --- | --- |
+| Selected packages | 16 |
+| Dependency files | 1,024, 64 MiB |
+| Captured files | 10,000, 128 MiB |
+| Recorded provenance entries | 2,048 |
+| Affected provider identities | 64 |
+| Preview JSON | 2 MiB |
+
+Upgrade uses the same bounded source/impact review.
 An empty selection is never upgraded by region.
 
 #### Upgrade selected versions
@@ -666,16 +722,18 @@ release bytes into the distribution cache, while leaving all Book files unchange
 The preview includes planned `copies`, package `goldenTests`, dependency and
 retained-result impact, and `local_source` / `local_source_after` identities and
 trust. Fixture test success does not validate the owner's ledger or replay its
-recorded results. Scalar/plural selection formats and unrelated settings are
-preserved; local parent updates retain the original local content and parents.
+recorded results. The upgrade keeps the selection's form in `config/book.yaml` (a single pin or
+a list) and leaves unrelated settings alone. Before it updates the package a
+book's own layer builds on (its parent), it saves the layer's original content
+and parent versions.
 An active trusted layer keeps trust only for the reviewed parent change;
 untrusted layers stay inactive.
 
 Local MCP uses `preview_overlay_upgrade(to?)`, then `upgrade_overlays` with the
 same `to` and required `revision`; parent mode adds `book`. CLI `--revision`
-provides the same stale-review refusal. If a write fails, rollback restores only
-unchanged proposal-owned bytes and preserves intervening owner edits. Verified
-source copies may already have been retained. An interrupted trusted parent/pin
+provides the same stale-review refusal. If a write fails, the upgrade rolls back only what it wrote itself and nobody
+has changed since; edits made in the meantime are kept. Verified source copies
+may already have been saved before the failure. An interrupted trusted parent/pin
 mismatch blocks execution instead of substituting published policy; inspect it
 and make a fresh explicit review before continuing.
 
@@ -812,7 +870,8 @@ convention); `--from/--to` take arbitrary inclusive dates.
 (`fiscal_year` — a book is one year). Balances (`balance`, `tb`, `bs`,
 `ledger`) are as of today, where today is the date where the book is kept
 (the time zone of the book's region), or as of the year's last day once that year is
-over; `pl` and `sum` run from the year's first day to the same date. So last
+over; `pl` and `sum` run from the year's first day to that same date (today, or the
+year's last day once the year is over). So last
 year's book, opened in February to file its return, shows last year in full.
 Give only `--to` and the range starts on
 the first day of that date's fiscal year; give only `--from` and it runs
@@ -888,10 +947,11 @@ opening-balances entry (the entry tagged `opening-balance`), `none` when the
 entry has no other side. `opposite` lists the other side's lines as recorded;
 `sameSide` lists this side's other lines, which explain a row that differs
 from the other side's total (sales of 1,000 beside a shipping charge of 100
-when cash moved 1,100). Each list appears only when it says more than
-`counter`: `opposite` is left out when `counter.account` names its only line
-(that line's amount is the row's plus `sameSide`'s), and `sameSide` when the
-row is alone on its side. `balance` is the running balance *after* the row and
+when cash moved 1,100). Each list appears only when it adds something `counter` does not already say.
+`opposite` is left out when the other side has a single line and
+`counter.account` already names it; that line's amount equals this row's
+amount plus the `sameSide` amounts. `sameSide` is left out when the row is the
+only line on its side. `balance` is the running balance *after* the row and
 is never negative; `balanceSide` (`debit` or `credit`, absent at zero) says
 which side it stands on. A sales account stands on the credit side; cash on
 the credit side means something is wrong. `months` has each month's totals
@@ -912,9 +972,9 @@ the listing starts there.
 When the chart gives accounts a `section` (see
 [chart of accounts](book-format-reference.md#chart-of-accounts-configchart-of-accountsyaml)),
 `pl` and `bs` add `lines`: the statement laid out the way a set of accounts
-reads. Each row carries its `section`. A `section` line (`kind`) holds the
-`accounts` of one or more sections, with their total in the accounts' own
-direction (`type`; a line holding both income and expenses totals income
+reads. Each account row (`Balance`) also carries its `section`. In `lines`, a line
+whose `kind` is `section` groups one or more sections: `accounts` lists their
+accounts and `amount` is their total, in the accounts' own direction (`type`; a line holding both income and expenses totals income
 minus expenses). A `subtotal` line is the profit so far: sales minus cost of
 sales is gross profit, then operating profit, profit before tax and net
 income. Accounts with no section go in an `unclassified` line just before the
@@ -1015,8 +1075,9 @@ entries of $98.00 or more.
 
 ### iris references
 
-Cross-references for a path: for a document, the journals that cite it; for a
-journal, the documents it cites plus siblings.
+Show what cites a path and what it cites. For a document, list the journals
+that cite it. For a journal, list the documents it cites and the other
+journals that cite the same documents.
 
 ```bash
 iris references [--json] <path> [path]
@@ -1147,8 +1208,9 @@ iris diff --paths        # names + kind only
 
 ### iris conflicts
 
-When a push conflicts (409), the server version takes the canonical path and
-your version becomes a `.conflicted` sidecar.
+List and resolve sync conflicts. When a push conflicts (409), the server's
+version keeps the canonical path and your version is saved beside it as a
+`.conflicted` sidecar file.
 
 ```bash
 iris conflicts list [--json] [path]
@@ -1161,7 +1223,8 @@ sidecar, `iris sync`). See
 
 ### iris sync issues
 
-Manage the local queue of server-side rejections.
+List the files the server rejected, which are recorded on this computer, and
+mark them to be pushed again.
 
 ```bash
 iris sync issues list [--json] [path]              # show path + code + issues
@@ -1193,11 +1256,13 @@ iris networth history --books-dir ~/IrisBooks --months 12
 iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 ```
 
-Values posted local journals and the local price log without network access.
+Calculate net worth across several books, from posted local journals and the
+local price log, without network access.
 Select immediate child books of a parent folder or supply explicit book folders.
 Mixed currencies require `--currency`. Explicitly linked annual books form one
-continuous position history; successor openings must reconcile and replace prior
-checkpoints. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
+continuous position history; the next year's opening
+balances must reconcile with the previous year's closing position and then
+replace it, so nothing is counted twice. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
 Output is JSON. Cloud inclusion settings do not apply.
 
@@ -1205,8 +1270,8 @@ Output is JSON. Cloud inclusion settings do not apply.
 
 See the [complete fund example](book-format-reference.md#fund-units-partial-sales-and-dated-valuation) for per-10,000 NAV, actual units, independent cash checks and report freshness.
 
-Record/list unit prices offline, and sync them to the server. User-scoped (not
-stored in the book).
+Record and list unit prices offline, and sync them to the server. Prices
+belong to your user account and are not stored in the book.
 
 ```bash
 iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
@@ -1309,12 +1374,15 @@ Select historical books to include their historical periods. Missing years
 remain gaps; no relationship between books is stored or required.
 
 Acquisition cost is the cost of remaining holdings. It is separate from book
-value, cumulative contributions and realized profit. FIFO is the default;
-an explicit matching root inventory method overrides a persisted opening
-method. Moving average and specific identification are also supported, with
+value, cumulative contributions and realized profit. FIFO is the default. An inventory method set explicitly in the book's
+configuration for a matching holding takes precedence; otherwise the method
+recorded with the opening inventory carries over. Moving average and specific identification are also supported, with
 explicit lot selection required for specific disposals. Missing acquisition
 history or opening basis remains unknown. `inventory_method` states the
-effective method per position. Named Books use their current accepted default native generation. The artifact retains its view/generation identity; unaccepted or stale inputs refuse export.
+effective method per position. A Book with named views uses its default view's currently accepted
+generation, and the exported file records the view and generation ID. If that
+generation is unaccepted or its inputs have changed since, the export is
+refused.
 
 ## AI assistant integration
 
@@ -1449,9 +1517,8 @@ refuse archives and already-linked books. Inspect sync rejections and errors.
 
 After authorization, use `list_cloud_books`, then
 `clone_book(book="freelance-2026", cloud_book_id="bk_...")` into an absent/empty
-child. Do not call `create_book` first. Clone preserves synced files and policy,
-adds missing local guides and initializes sync state/snapshots before publishing
-the folder. Ordinary clones start clean; an older book missing `AGENTS.md` gains
+child. Do not call `create_book` first. Clone keeps the synced files and policy, adds any missing local guides, and
+sets up sync state and snapshots before the folder becomes available. Ordinary clones start clean; an older book missing `AGENTS.md` gains
 a contract that remains pending for its first sync.
 
 The result identifies the host path and book; `list_books` discovers it without
@@ -1523,7 +1590,7 @@ app under your Settings (avatar menu) → API tokens.
 
 ```bash
 iris api login
-iris api whoami     # check the credential and name its account
+iris api whoami     # check the credential, its source and its account
 iris api logout     # revoke this device's session and remove the token
 ```
 
@@ -1818,8 +1885,9 @@ iris api networth --book-id <book-id> [--as-of YYYY-MM-DD] [--json]
 `{ items, nextCursor, syncCursor, hasMore, userId }`; follow `nextCursor` using
 `--cursor` with the same filters. Page size is 1–1000. Each item includes its
 `revision`. Creation uses revision 0; correcting an existing cell requires
-`add --revision N` from the displayed row. A stale different edit fails with a
-conflict; identical value/source retries acknowledge the accepted row.
+`add --revision N` from the displayed row. A correction based on a stale revision that sets a different value fails with
+a conflict. Resending the same value and source is not a conflict: it returns
+the accepted row.
 
 `iris api networth` values one explicitly selected cloud book.
 Cloud cross-book totals, history, movers and inclusion settings were removed

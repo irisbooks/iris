@@ -118,8 +118,9 @@ stored in the Book at `config/overlay-packages/`. This store is separate from
 A package is **available** when its verified copy is in the Book, **enabled**
 when selected, and **applicable** only where its conditions match. Stored copies
 do not activate themselves. Omitted or empty selections enable no optional
-packages. Core accounting/structural checks remain active. Region never supplies a hidden
-selection. A missing or changed exact copy is diagnosed without substitution;
+packages. Core accounting/structural checks remain active. Region never selects a package for
+you. When the exact copy of a selected version is missing or changed, iris
+reports it and does not substitute another version;
 use `iris overlay install` explicitly to copy selected distribution versions.
 Cloud preserves these files/settings but never evaluates Overlay definitions.
 
@@ -129,11 +130,13 @@ body. Downloaded copies verify their release signature. The Book's stored bundle
 hash still binds its exact bytes. A fingerprint or signature never supplies a
 missing definition or enables a package by itself.
 
-Bindings v4 excludes journal workflow status and approval/closure metadata,
-including nested record data. Definitions that read `journal.status` or target
-lifecycle fields fail with an explicit compatibility error. Domain facts, such
-as an overlay's own settings, remain available. The host enforces posting
-permissions, seals and status-aware report inclusion.
+Bindings are the versioned set of inputs and functions iris passes to overlay
+definitions. Under Bindings v4, overlay definitions cannot read a journal's
+status or its approval and seal metadata, including inside nested records.
+Definitions that read `journal.status` or target lifecycle fields fail with an
+explicit compatibility error. Domain facts, such as an overlay's own settings,
+remain available. iris itself, not an overlay, decides who can post, which
+years are sealed and which statuses reports include.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
 A package can export `points.yaml` with a qualified point ID, interface version,
@@ -141,9 +144,16 @@ A package can export `points.yaml` with a qualified point ID, interface version,
 Providers use `derive/*.yaml` with `point` and `point_version`; they see only
 `inputs` and their typed `params`. Helpers stay private. Points use their owner's
 field schemas; a separate provider declares compatible owner package versions.
-Each point accepts one provider. Missing required providers, incompatible
-interfaces, competing providers, output conflicts and dependency cycles reject
-the selection. Optional points require an explicit `fallback: recorded`.
+Each point accepts one provider. A selection is rejected when any of these
+holds:
+
+- a required point has no provider;
+- interfaces are incompatible;
+- two providers compete for one point;
+- outputs conflict;
+- dependencies form a cycle.
+
+Optional points require an explicit `fallback: recorded`.
 Once a point applies, every declared input marked `required` in its schema
 must be present; the point's condition controls preparation applicability.
 
@@ -179,14 +189,24 @@ Local Overlay checks share a budget across the complete validation request,
 including field guards, private helper bodies, native ledger operations,
 derivation hints and recorded-result replay. The CLI uses one session for the
 whole Book; autocomplete and task-context requests also share their own session.
-Limits are 50,000,000 aggregate cost units, 1,000,000 expression evaluations,
-512 MiB of processed input and 10,000 issues totaling 1 MiB. Ordinary expressions
-have a 5,000,000 cost ceiling and 32,768 expanded nodes. Preparation retains its
-stricter limits above. Native tables and ledger groups are capped at 4,096 rows;
-ledger inputs at 100,000 lines; historical definition lookups at 64 identities.
-Native result conversion is limited to 256 KiB, 16 levels and 4,096 values;
-rendered messages to 16 KiB. Limits are checked before native table allocation
-and unbounded input/result expansion. Exhaustion reports an
+The limits are:
+
+| Item | Limit |
+| --- | --- |
+| Aggregate cost (whole validation) | 50,000,000 units |
+| Expression evaluations | 1,000,000 |
+| Processed input | 512 MiB |
+| Issues reported | 10,000, totaling 1 MiB |
+| Cost of one ordinary expression | 5,000,000 |
+| Expanded nodes | 32,768 |
+| Native tables and ledger groups | 4,096 rows |
+| Ledger inputs | 100,000 lines |
+| Historical definition lookups | 64 identities |
+| Native result conversion | 256 KiB, 16 levels, 4,096 values |
+| Rendered messages | 16 KiB |
+
+Preparation keeps its stricter limits above. Limits are checked before native
+table allocation and unbounded input/result expansion. Exhaustion reports an
 `overlay.checks-incomplete` error; `iris validate --apply` writes no proposals
 when any Overlay check cannot finish. Ordinary type/evaluation warnings remain
 distinct, and native accounting checks continue.
@@ -196,8 +216,9 @@ fixed `record_fields` relation, with the original book, path and line index.
 Values remain passive JSON, including large integers, nulls and arrays. Each
 extension object is limited to 256 KiB, 16 nested levels and 4,096 values; the
 compiler also saves original JSON text by field pointer, before numeric
-extraction can round tiny or wide values. This index is limited to 4 MiB before
+extraction can round tiny or wide values. This index of original text is limited to 4 MiB before
 escaping per object; total metadata, including the index, is limited to 64 MiB.
+
 Application-owned queries support
 bounded field reads, exact-value filters, typed groups and exact integer
 `SUM`/`COUNT`. Integer aggregation uses 38-digit decimal values and retains every
@@ -207,11 +228,82 @@ unavailable. Numeric strings are not coerced. Source values remain visible even
 when they cannot be summed. Filtering/grouping compares captured JSON text, so
 different number spellings can form separate groups. Plain JSON-form numeric
 extension scalars beyond YAML's native range retain their numeric text; quoted
-numbers remain strings, including after a local rewrite. Typed accounting
+numbers remain strings, including after a local rewrite.
+
+Typed accounting
 amounts retain their existing integer rules. Asset fields use `kind = 'asset'` and `line_index = -1`, one row per
 original asset. Cloud capture extracts them from accepted reference bytes
 without executing definitions. Arrays and objects remain one record and never
 multiply accounting rows.
+
+### Independent annual books and acquisition openings
+
+`iris yearend` writes complete opening inventory in the next book's
+`config/book.yaml`. Each book can be valued independently, without a link to
+an earlier book. Select earlier books only to include their own historical periods.
+
+```yaml
+opening_inventory:
+  - account: Assets:Fund
+    unit: FUND
+    method: fifo
+    quantity: 100
+    carrying_value: 1200000
+    acquisition_cost: 1000000
+    lots:
+      - id: original-purchase
+        date: 2025-11-01
+        quantity: 100
+        cost: 1000000
+```
+
+Amounts are written as journal files write them: money in the book currency
+(`1700.00` at `scale: 2`) and quantities at the unit's scale (`0.5`). Carrying
+value and acquisition cost are separate. Carrying value
+also disambiguates a native-currency cash residual from a unit holding in the
+same account. FIFO/specific openings retain original lots and their dates;
+moving-average openings use a quantity/cost pool without lots. A null acquisition
+cost means unknown. The opening journal still states the monetary/quantity
+balance and must reconcile with these fields within this book.
+Do not infer acquisition cost from a revalued opening amount.
+
+In a book you start with holdings bought before its fiscal year, write this
+entry yourself. Earlier purchases can't be journals in this book, since they
+fall outside its fiscal year, so list each remaining purchase as a lot: its own
+`id`, the original purchase `date` (on or before the fiscal year's first day),
+and the `quantity` and `cost` still held. The lots must add up to the
+entry's `quantity` and `acquisition_cost`, and the opening journal's line
+for the holding states the same quantity and amount. `iris networth` and `iris yearend` refuse an opening
+whose quantity or lots don't add up; `iris validate` doesn't check them. Under
+FIFO you may omit `lots`; the holding then counts as one lot dated the fiscal year's
+first day, and the original purchase dates are lost. Specific identification
+needs the lots. A moving-average opening lists no lots, only its total quantity
+and cost. Leave `acquisition_cost` null only when the cost is truly
+unknown.
+
+A book written by an earlier iris may hold `carrying_value_minor`,
+`acquisition_cost_minor`, `allocation_cost_minor` and lot `cost_minor`, with
+amounts and quantities as integers in the smallest unit. Such an entry still
+reads as written; use one form per entry. `iris yearend` writes the decimal form.
+
+Local comparisons and retained financial calculations allocate later disposals
+from these lots, or from the moving-average pool, using the method recorded
+here. They refuse, rather than estimate, in any of these cases:
+
+- an opening holding has no entry;
+- its acquisition cost is null;
+- its carrying value differs from its acquisition cost;
+- a view selects a different method.
+
+A different method needs its own opening state.
+
+Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics derives
+one from the fiscal year, journal path and original line index within this book’s
+inventory. Changing the book’s cloud ID does not change that lot ID.
+
+An opening can also hold `allocation_cost` and `allocation_policy`. A
+package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
+They never replace acquisition cost or recorded carrying value.
 
 ## Pin several published overlays
 
@@ -247,7 +339,8 @@ the latest release of every pinned member together.
 The function catalog holds common functions and each region's functions; the
 [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
 dependencies.
-Categories organize discovery/distribution; they are not activation switches.
+Categories only organize the catalog for browsing and distribution; you cannot
+switch a whole category on or off.
 Business setup selects the common functions and the region's available
 packages; personal setup selects the common functions. Existing Books keep their
 actual function pins, including off. Retired combined packages are removed
@@ -259,9 +352,9 @@ fetch or cascade. Balancing and inventory disposal are independent.
 
 Each function carries its necessary checks, fields, task, guide and executable
 examples. Native structural/double-entry checks stay active. Recipe invocation
-is explicit. Tax status, elections and eligibility remain confirmed facts; each
-package's docs state what it does not support. Earlier combined aggregate
-candidates are retired.
+is explicit. A package never infers tax status, elections or eligibility; you
+confirm them and record them as facts. Each package's docs state what it does
+not support.
 
 The binary carries a curated offline installation catalog. Other versions use
 signed GitHub downloads followed by explicit installation. Runtime and historical
@@ -394,8 +487,8 @@ type.
 
 Unknown settings, absent required rule inputs, wrong types and invalid choices
 are errors. Recipe invocation values override book defaults. Before a recipe
-runs, name selectors resolve to sorted exact references found in the journals;
-no match is an error. Those resolved inputs are saved in provenance. Replay
+runs, a selector that matches by name is replaced by the exact account
+references found in the journals, sorted; no match is an error. Those resolved inputs are saved in provenance. Replay
 uses the saved inputs even if book defaults later change, while changed
 journal figures still make a saved filing stale. A monthly-sales computation
 is a reusable example; it is not itself a statutory tax return.
@@ -536,6 +629,554 @@ completion; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe 
 and the inputs it needs. Preview and apply a completion with
 [`iris journal complete`](cli-reference.md#iris-journal-complete).
 
+## Balance assertions
+
+A balanced journal can still leave the bank ten yen wrong. Record an observed
+balance and compare it with the local ledger using `iris reconcile`. This is a
+read-only check; it never creates adjusting entries. Save observations in the
+optional `config/balance-assertions.yaml` file.
+
+For example, a posted ¥1,000 opening and ¥10 payment leave ¥990 in `Assets:Bank`.
+A statement saved as `raw/statement.csv` contains:
+
+```csv
+date,description,closing_balance
+2026-01-31,Month end,990
+```
+
+Use `iris hash raw/statement.csv` for the canonical source hash. This example's
+hash below belongs to exactly those bytes. Save the observation as:
+
+```yaml
+schema_version: 1
+assertions:
+  - id: bank-jan31
+    date: 2026-01-31
+    account: Assets:Bank
+    measure: amount
+    unit: JPY
+    scope: posted
+    expected: 990
+    evidence:
+      path: raw/statement.csv
+      sha: sha256:47413ca394cff9cf18438ee55b45076994c84426b511e06fe5daafc3d05847bd
+      locator: line 2 closing_balance
+```
+
+Run `iris reconcile` from the Book folder. It reports actual `990`, expected `990`
+and difference `0`. If both sides of the payment are mistakenly recorded as ¥20,
+double entry still balances, but reconciliation reports `980`, `990`, `-10`.
+`iris validate` also reports failed observations.
+
+- `date` is inclusive and must fall in the Book's fiscal year. Record opening
+  balances in that year; included journals from another year are refused.
+- `account` is one exact declared chart path, with no automatic child-account
+  rollup. Expected balances use its normal direction: assets/expenses are
+  debit-positive; liabilities/equity/income are credit-positive.
+- `measure: amount` uses the Book's currency and amount precision. For a foreign
+  denomination or fund units, use `measure: quantity` and that exact `unit`.
+  Quantity follows debit/credit direction and the unit's precision; it does not
+  use valuation prices. Missing quantities are not estimated.
+- `scope` defaults to `posted`. Choose `posted-and-drafts` explicitly for an
+  unapproved planning check. Expected values are natural decimal numbers or
+  quoted decimal text at the relevant precision; they are never rounded to fit.
+- Evidence requires a syncable `raw/` path, its `sha256:` hash and a locator such
+  as a physical CSV line or PDF page. Missing/changed bytes stay unverified even
+  when amounts match. Hash equality proves file identity, not bank authenticity
+  or correct transcription of the observation.
+
+The optional file supports at most 256 uniquely named observations. A missing file
+or an empty `assertions: []` checks none. Reads are bounded to 10,000 journals, 1,000,000 lines,
+16 MiB per evidence file and 128 MiB of input. The output revision binds the
+captured config, chart, assertions, journals and referenced evidence; it is not a
+cloud acceptance receipt. Sync/clone keep the declarations; config seals protect
+them. Rollover leaves them in the original Book so old observations are not
+reused next year. Storage alone does not evaluate observations. Cloud close
+previews run this same native check against accepted synced sources, and closing
+is refused for mismatches or unavailable/changed evidence. The check binds accepted
+source versions; it does not fetch an unpinned latest object or run Overlay code.
+If a preview reports missing/stale source data after sync, the server's projections
+need rebuilding before that Book can close. Financial ZIPs do not automatically
+include raw evidence. Cloud close checks every accepted native view separately. Local root-only reconciliation still refuses unresolved view sources.
+
+## Chart of accounts — `config/chart-of-accounts.yaml`
+
+If your book doesn't use accounting views (`views`), skip the next three
+paragraphs. A view holds an alternative accounting interpretation of the same
+records under a root `views` key. Config, chart, rule, journal and asset files
+are read after the selected view is resolved; a file whose root `views` is
+still unresolved is refused, including one supplied through a YAML merge. Edit
+the original document so the other views stay. Removing `views` loses the
+alternative interpretations. Replacing a journal through the structured API is
+refused too, because that API cannot preserve stored views.
+
+Cloud storage accepts bounded view-bearing `config/book.yaml`, journal and asset sources
+without executing Overlay code. Declare at most 16 Book views and one default;
+all variants must pass native parsing, balance, account/reference and sealed-period
+checks. Views share Book identity, fiscal bounds, currency, unit precision and host
+integrity settings. Journal lifecycle status belongs to the shared root and cannot
+be overridden in a payload. Sync and clone preserve the unresolved source.
+
+Web displays the default as an **unapproved view preview**. Human posting approves
+the exact shared source version, not its view-specific financial results. Named-view approved reports require separately retained native financial acceptance. See [financial generations](cli-reference.md#iris-financial). Close requires every declared view accepted and final; SQLite stores each separately and keeps the default in its ordinary tables.
+Adding declarations or changing the default while journal or asset view payloads exist requires
+a coherent rebuild and is currently refused. Referenced declarations cannot be removed.
+Chart and rule sources with their own `views` remain unsupported in cloud ingestion.
+
+```yaml
+schema_version: 1
+accounts:
+  - path: 資産:普通預金        # hierarchical, colon-separated; this is the identity
+    type: asset               # asset | liability | equity | income | expense
+    section: current          # optional — where the statements place it
+    cash: true                # optional — a cash account
+    code: "1010"              # optional external code
+    aliases: [bank, 銀行, Assets:Bank]
+    description: Sales are paid in here; card bills are paid from it   # optional — what the account is for
+  - path: 資産:普通預金:旧口座
+    type: asset
+    closed: 2026-06-30        # optional — the last day the account is used
+  - path: 負債:短期借入金
+    type: liability
+    section: current
+    cash_flow: financing      # optional — the cash flow category, when not the usual one
+  - path: 収益:売上
+    type: income
+    section: sales
+    aliases: [sales]
+  - path: 資本:引出金
+    type: equity
+    owner: true               # the owner's own money — left out of Net Worth
+  - path: 資本:元入金
+    type: equity
+    retained_earnings: true   # optional — where `iris yearend` folds net income
+  - path: 資産:建物減価償却累計額
+    type: asset
+    contra: 資産:建物          # optional — a contra account and what it is deducted from
+```
+
+The account's normal side is derived from its `type`. `aliases` let journals
+reference an account by another name or language. Add accounts here before
+referencing them in a journal.
+
+Reports list accounts in the order this file lists them: the trial balance,
+profit and loss, balance sheet, the account list and their CSV exports. List
+accounts in the order you want to read them, for example cash first and
+current before non-current. When an account has a `code`, reports show it: in
+the trial balance's code column and as `code` on each report row.
+
+With `strict_accounts: false`, a journal can use an account the chart doesn't
+list. Reports place it next to its closest relatives in the chart:
+
+- above the listed accounts beneath it, when it is their parent;
+- otherwise after the last listed account that shares the most leading path
+  segments with it, so `Assets:Commodities:SP500` follows `Assets:Commodities`
+  and that account's listed sub-accounts, and `Assets:Crypto` comes at the end
+  of the `Assets` accounts;
+- after every listed account when it shares no leading segment.
+
+`owner: true` marks the owner's personal draw and contribution accounts. They
+keep their type, so the balance sheet lays out as usual. But they hold the
+owner's own money moving in and out of the business, not something the
+business owns or owes, so [Net Worth](web-app.md#net-worth) leaves them out.
+When the chart uses sections, an owner account without a section gets its own
+line at the end of its side of the balance sheet; it is not listed as
+unclassified. An owner account you give a section goes in that section. [`iris yearend`](cli-reference.md#iris-yearend) does not carry them
+into the next year: their balances fold into the owner's capital, and each
+year starts them at zero.
+Starter charts that include such accounts set it.
+
+`retained_earnings: true` marks the equity account
+[`iris yearend`](cli-reference.md#iris-yearend) folds the year's net income
+into — 資本:元入金 for a sole proprietor, 純資産:繰越利益剰余金 for a company.
+At most one account may set it, and it must be `type: equity`; `iris validate`
+and the cloud refuse a chart that breaks either rule. When no account sets it,
+`iris yearend` uses the chart's only equity account, so the starter charts
+(which have exactly one) leave it out. Set it once your chart has more than
+one equity account.
+
+`contra` makes an account a contra account: an account that reduces
+another one, such as accumulated depreciation or an allowance for doubtful
+accounts. It names what the account is deducted from:
+
+- another account, as in `contra: 資産:建物` above. The balance sheet shows
+  it as a deduction under that account, which becomes a group totalling the
+  net;
+- or a parent path, such as `contra: 資産:有形固定資産`. It is deducted from
+  that group's total, after the group's accounts.
+
+A contra account keeps the type of what it reduces (`asset` above), so its
+balance stands on the other side. That is normal for it, not an error. Reports
+list it right after what it is deducted from, wherever the chart lists it, and
+each report row carries `contra`; the P&L and balance sheet also give the net
+(`contraNets`, see [`iris report`](cli-reference.md#iris-report)). `iris validate` and the cloud refuse a `contra` that names any of these:
+
+- the account itself, or one beneath it
+- something that is neither an account nor a parent of one
+- an account of another type
+- another contra account
+
+The starter charts include an accumulated depreciation account for each
+account they depreciate, such as `資産:工具器具備品減価償却累計額` with
+`contra: 資産:工具器具備品`, next to it and commented out wherever the asset
+is. An [asset file](#asset-files-assetsyyyymd) names it as its
+`accumulated_depreciation_account`.
+
+`section` places the account on the statements, so the profit and loss
+statement can show gross and operating profit and the balance sheet can
+separate current from non-current:
+
+| `section` | For | What goes there |
+|---|---|---|
+| `sales` | income | sales from your main business |
+| `cost_of_sales` | expenses | the direct cost of what you sold |
+| `operating` | income, expenses | running the business: rent, wages, supplies; other operating income |
+| `non_operating` | income, expenses | interest, dividends and other financing or investment items |
+| `extraordinary` | income, expenses | unusual one-off gains and losses |
+| `income_tax` | expenses | tax on profit |
+| `current` | assets, liabilities | used up, collected or paid within a year |
+| `non_current` | assets, liabilities | everything else: equipment, vehicles, long-term loans |
+
+An account without a section takes the one of the account its `contra`
+names, else the one of its nearest listed parent, so a section on
+`資産:固定資産` covers the accounts beneath it. Equity takes no section. An
+account the statements still can't place is shown as unclassified, outside
+every subtotal but net income, and `iris validate` gives a hint once the
+chart uses sections. A chart without any section keeps the plain statements.
+The starter charts set a section on every account except the owner's
+accounts and the holding account for entries not yet classified.
+
+`cash: true` marks a cash or bank account (asset accounts only). `cash_flow`
+(`operating`, `investing` or `financing`) sets the cash flow category of
+movements against the account. Set it only where the account's section would
+suggest a different category: short-term borrowings, for example, are current
+liabilities but financing. `cash` and `cash_flow` both carry down the way a
+section does: an account without its own takes the one of the account its
+`contra` names, else the one of its nearest listed parent, so an account
+listed beneath `Assets:Bank` is cash too. An account that isn't an asset is
+never cash, whatever its parent. `iris validate` and the cloud refuse an unknown section, a section of another type, `cash`
+on an account that isn't an asset, and an unknown `cash_flow`.
+
+`description` says what the account is for, in your own words: what goes
+here and what doesn't. The account list in the web app shows it, the entry
+editor in `iris view` shows it beside the account as you pick one, and the
+account list your AI reads includes it. It is the place for the rule you
+would tell a new bookkeeper. Nothing calculates with it.
+
+`closed` is the last day an account is used, such as a bank account you
+closed or a loan you repaid. Entries up to that day stay as they are.
+`iris validate` and the cloud warn about a line dated after it, and the entry
+editor in `iris view` stops offering the account for later dates. It is a
+warning, not a refusal, because a final interest payment can arrive after
+the account is closed. Keep the account in the chart while this year's
+entries use it. Once its balance is zero, you can leave it out of the next
+year's chart after [`iris yearend`](cli-reference.md#iris-yearend).
+
+## Asset files — `assets/YYYY/*.md`
+
+```yaml
+---
+schema_version: 1
+name: "MacBook Pro 16"
+category: equipment.computer       # free-form
+acquisition_date: 2026-04-15
+acquisition_cost: 480000
+salvage_value: 1
+useful_life_months: 48
+method: straight_line              # straight_line | declining_balance | expensed
+asset_account: "資産:工具器具備品"
+depreciation_expense_account: "費用:減価償却費"
+accumulated_depreciation_account: "資産:工具器具備品減価償却累計額"
+acquisition_journal: "[[2026-04-15-apple-01]]"   # optional wikilink
+schedule:                          # optional recorded table — see below
+  - period: 2027-03                # YYYY-MM, the month the charge lands
+    amount: 250000
+  - period: 2028-03
+    amount: 187500
+schedule_source:                   # present when an overlay recipe wrote the table — see below
+  overlay: example-declining@2026.10.1   # illustrative package
+  recipe: example-declining.schedule
+  bindings: 5
+  primitives: {declining_table: 2, flat_table: 2}
+  params: {cost: 480000, life: 4, rate: 0.500, start: 2027-03}
+disposal:                          # optional, until disposed
+  date: 2029-05-10
+  proceeds: 50000
+  journal: "[[2029-05-10-apple-disposal-01]]"
+---
+```
+
+Fields a selected overlay defines on an asset ride along untouched: iris keeps
+them on the file without interpreting them, and that overlay reads them.
+
+Book the purchase of an asset described here to its `asset_account` — an
+`expensed` one included — and let `iris asset depreciate` book the charges.
+For an `expensed` asset that is one charge: the whole cost, in the
+acquisition month. Booking the purchase straight to an expense account as
+well would count it twice.
+
+For `method: expensed`, omit `useful_life_months` or set it to `0`; a positive
+useful life is rejected. Leave `schedule` out too: the single acquisition-month
+charge is computed directly. `straight_line` and `declining_balance` require a
+positive `useful_life_months`.
+
+### `schedule:` — recording the table instead of computing it
+
+For straight-line assets you can leave `schedule` out: iris computes the charges
+from `useful_life_months`. An expensed asset must omit `schedule` and has one
+charge for the whole cost in its acquisition month, with no useful life.
+For anything else — a
+declining-balance method that switches rate or method partway, for
+example — the table is recorded on the file (`method: declining_balance`
+requires one), and iris uses it verbatim.
+
+Each row is a `period` (`YYYY-MM`) and an `amount`. Annual books write one row
+per fiscal year, dated the fiscal year's last month; month-by-month books write
+one row per month. Both work.
+
+Native calculation accepts at most 4,096 schedule rows and 4,096 useful-life
+months per asset. Table calculators check the derived row count and calendar
+range before allocating; no generated month may exceed year 9999. These are
+implementation limits, not tax rules. Local schedule, depreciation and asset
+export requests also stop at 4,096 asset files, 64 MiB of source or 100,000 total schedule rows.
+Asset files are bounded to 256 KiB and must be regular files. An invalid or
+excessive schedule fails the request; it never becomes a successful zero-valued
+summary or partial CSV. New recipe executions record table primitive version 2; retained
+version-1 records replay their original arithmetic within the same host limits.
+Replay never substitutes the latest version for missing or unknown provenance.
+
+MCP table tools take amounts the way the asset file writes them: decimal
+strings in the book currency (`"1500000"`, `"1234.56"`), with `scale` set to
+the destination Book's scale. A number is refused rather than guessed at. The
+result gives each row's `amount` and the `total` as decimal strings, with the
+YAML to paste, which reads back as the same amounts. The result reports the
+scale used.
+
+Your AI assistant builds the table for you. When a selected overlay has a
+**recipe** for the method (`list_recipes` shows it), it runs that with the
+published rates as inputs and the recipe composes the table and
+writes it, with its provenance, onto the file (`iris overlay recipe`, or the
+matching MCP tool). For a method no recipe covers it composes the arithmetic
+from the calculator tools (see [CLI and your AI](cli-and-llm.md)). Once
+written, the table is what the books, the reports and the CSV export all use.
+
+iris checks that the table is well-formed:
+
+- the rows are in order;
+- no amount is negative;
+- no row falls before the acquisition month, past the useful life or after
+  disposal;
+- the rows add up to `acquisition_cost` − `salvage_value` (on a disposed
+  asset, to no more than that; see
+  [Disposing of an asset](#disposing-of-an-asset)).
+
+The rows alone cannot show whether a switch landed in the right year.
+`schedule_source` (next section) checks that. On a hand-composed table, keep the
+rates you used on the file (any extra keys ride along untouched) so your
+accountant can check them against the published table.
+
+### `schedule_source:` — where the table came from, replayed
+
+When a recipe wrote the table, it also recorded its provenance: the overlay
+version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
+`config/overlays/`), the recipe, the engine versions it ran under, and the
+inputs you gave — the rates from the published table, the useful life, the
+first row's month. `iris validate` **replays** the recipe with those inputs and
+refuses the file if the recorded rows differ, so a switch that lands a year late fails even when the total is right. The inputs stay on the file for
+your accountant to check against the published table. A table without
+`schedule_source` is checked for shape only. Replay uses the exact recorded
+version retained inside the Book, even when it differs from the current
+selection. Embedded bodies and the download cache never substitute for a missing
+Book source. Missing definitions, changed local hashes and unavailable engine
+capabilities are reported explicitly.
+
+### Disposing of an asset
+
+Add the `disposal:` block with the date and the proceeds. Depreciation runs up
+to and including the disposal month at the same monthly charge as before —
+disposal ends the schedule, it does not speed it up. What is left of the cost
+at that point is the **book value at disposal**. `iris asset schedule` shows it
+as `DISPOSAL_NBV` and `iris export assets` as `disposal_nbv`, next to
+`accumulated`, the depreciation actually taken. The disposal journal removes
+the asset's cost and that accumulated depreciation, records the proceeds, and
+books the difference between the proceeds and the book value at disposal as a
+gain or a loss.
+
+A computed straight-line schedule stops at the disposal month by itself. A
+recorded table is never rewritten for you: delete the rows after the disposal
+month, and set the disposal-period row to the charge for the part of that year
+the asset was held. The table may then add up to less than
+`acquisition_cost` − `salvage_value`, never more. If a recipe wrote the table,
+`iris validate` still replays the rows before the disposal month; the
+disposal-period row is yours.
+
+## Filings — `filings/<recipe>.md`
+
+A filing records the figures a return is filed from. A figures recipe of
+a selected overlay sums the posted journals and combines them the way the
+return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
+records the result with the same provenance as a schedule. An illustrative
+filing:
+
+```yaml
+---
+schema_version: 1
+filing: example-sales-tax.summary
+period: {from: 2026-01-01, to: 2026-12-31}
+source:
+  overlay: example-sales-tax@2026.10.1   # illustrative package
+  recipe: example-sales-tax.summary
+  bindings: 5
+  params: {from: 2026-01-01, to: 2026-12-31}
+figures:
+  taxable_sales: 11000000
+  output_tax: 1000000
+  input_tax: 620000
+  payable: 380000
+  # …
+---
+(a readable table of the same figures)
+```
+
+`iris validate` re-runs the recipe over the journals and refuses a filing whose
+figures no longer follow from them — so a correction posted after you filed
+shows up as an error until you re-run the recipe (or revert the correction).
+Your AI fills the government form from `figures`; it never re-adds lines by
+hand. Filings sync and are sealed with the book, unlike `compiled/`.
+
+New local CLI/MCP filings record `source.journal_paths: book-relative-v1`.
+Their ledger paths and factual input hashes use Book-relative forward-slash
+paths, so copying or moving the whole Book preserves replay. The host writes
+this provenance; do not change it manually. Filings made without the field
+retain their original path convention. A legacy filing that hashed absolute
+paths still replays in its original location; after moving it, re-run and
+review the recipe to record portable provenance. Changed factual inputs and
+unknown path contracts still fail replay.
+
+## Your book's overlay layer — `config/overlays/` (optional)
+
+Published function packages are selected explicitly by `overlay:` or `overlays:`
+in `book.yaml`.
+A book may add its own layer on top:
+
+```text
+config/overlays/
+├── overlay.yaml        # id: book / extends: example-base@2026.10.1
+├── fields.yaml         # optional field types and choices
+├── functions.yaml      # optional shared expressions
+├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)
+├── recipes/*.yaml      # extra computations
+├── derive/*.yaml       # extra derived-value proposals
+└── tests/*.yaml        # golden cases — `iris overlay test` runs them
+```
+
+With multiple published pins, the layer's `extends` is a list containing all
+of them. Local expressions inherit the regional primary package's CEL helpers;
+other published packages keep their helpers private. An override of an existing
+rule, derivation or recipe keeps that item's package ID for `overlay_settings`.
+New book-local items use the reserved `book` settings key, independent of the
+published pins and the local manifest's ID:
+
+```yaml
+overlay_settings:
+  book:
+    rules:
+      local.memo:
+        params: {memo: invoice}  # a new rule declared in config/overlays/rules/
+```
+
+Use the declared item ID for rules/derivations and the short recipe name for
+new local recipe defaults. Published field definitions cannot be replaced by
+the book layer. When adding a required rule input, sync its book-local definition
+first, then its settings. Use the local reviewed upgrade to check the complete
+candidate selection, settings and matching `extends` before changing pins.
+It retains the original local definition and parents. Cloud stores these bounded
+sources without compiling or evaluating them. If an upgrade is interrupted and the trusted
+layer's parents no longer match the book's pins, local execution stops; inspect the retained sources and make a new
+explicit upgrade review before continuing.
+
+Rules and recipes are written in [CEL](https://cel.dev) expressions over the
+book's records — a language with no file or network access and a bounded cost,
+which is what makes it safe for your AI to write them. `iris validate` applies
+your trusted layer next to the explicitly selected published packages; cloud
+keeps native integrity and access guards without executing the layer. 
+
+Only the book's Owner can change these files. The first time
+a machine meets a version of this layer it shows the files and asks once
+(`iris overlay trust` records the answer); until then only the published
+overlay applies. `iris overlay list` and published MCP recipe tools remain
+available; the CLI and MCP `describe_overlay.issues` report
+`overlay.book-layer-untrusted`. Book-local settings are checked when the layer
+is trusted. A recipe from your layer records `book:<hash>` as its source,
+so a reviewer can see a schedule came from a book-specific recipe.
+
+The published
+overlays are open source (Apache-2.0) in the public
+[`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository. A layer
+that proves useful beyond one book can be proposed there as a pull request.
+
+Trust is machine-local and does not travel with a clone. A retained historical
+definition can be reviewed under `config/overlay-packages/local/HASH/` and trusted
+explicitly with `iris overlay trust --source book:HASH [path]`. This checks its
+exact content and original Book-contained parents without changing selection.
+Trusting today's layer does not grant trust to another historical hash; missing
+or changed retained sources remain unavailable for replay.
+
+## `config/rules.yaml` (optional)
+
+Human-curated hints your AI may use when categorizing; never enforced.
+
+```yaml
+schema_version: 1
+categorization:
+  - when:
+      payee_matches: "Amazon"
+      amount_max: 50000
+    propose:
+      account: "費用:消耗品費"
+      confidence: 0.85
+```
+
+## Parse caches — `notes/raw/<source>.md`
+
+When your AI parses a document under `raw/`, it writes a durable, normalized
+view here, mirroring the source path. Each row carries a status
+(`journaled` / `ignored` / `deferred`) so re-opening the same statement doesn't
+redo the work.
+
+```markdown
+---
+source: raw/2026-04-sbi.csv
+source_sha: <iris hash>
+parsed_at: 2026-05-11
+counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
+---
+
+## Rows
+| id | date       | description | amount | status    | target / reason                          |
+|----|------------|-------------|--------|-----------|------------------------------------------|
+| 1  | 2026-04-01 | Amazon JP   |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
+```
+
+Before reusing a parse cache, compare its `source_sha` with `iris hash` of the
+current source. If it changed, reconcile changed rows and existing journal
+links before importing further entries; preserve completed row state.
+
+## What syncs and what doesn't
+
+With cloud sync, `iris sync` mirrors the **syncable** files to the cloud:
+
+- **Synced:** `journals/`, `assets/`, `filings/`, `notes/` (including parse
+  caches), `AGENTS.md` (shared agent contract), `raw/` (verbatim bytes), `config/book.yaml`,
+  `config/chart-of-accounts.yaml`, `config/rules.yaml`,
+  `config/balance-assertions.yaml`, `config/overlays/`, `config/overlay-packages/`.
+- **Not synced:** `.iris/` (runtime state), `README.md` / `CLAUDE.md` (local entry files), and `compiled/` (regeneratable).
+- **Never synced below the book's root:** AI-agent instruction files (`CLAUDE.md`,
+  `AGENTS.md`, `GEMINI.md` and similar). Only the root `AGENTS.md` is shared,
+  so a collaborator can't slip instructions to your AI assistant through a note
+  or a source document. An emailed attachment with such a name is stored with
+  `.txt` added.
+
 ## Fund units, partial sales and dated valuation
 
 This complete synthetic management Book buys 100,000 whole fund units for
@@ -671,9 +1312,9 @@ so these observations are 1,234,500 and 1,500,000. Preserve the actual 100,000 /
 80,000 holdings quantities. The quotation denominator is not a quantity scale
 or a reason to shrink the units recorded in a journal.
 
-For this synthetic exercise, select a token-file path in a new empty temporary
-directory before capturing prices. Keep that selection for every command so
-the sample uses an isolated user price log. Within the sample Book:
+So that synthetic prices stay out of your own price log, first select a
+token-file path in a new empty temporary directory, and keep that selection
+for every command. Within the sample Book:
 
 ```bash
 export IRISBOOKS_TOKEN_FILE="$(mktemp -d)/token.json"
@@ -805,76 +1446,6 @@ or moving-average label is not a tax determination, and a unit symbol, a note
 or a successful validation does not establish an account's tax status. See
 your region's guide under [Overlays](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
 automatic product/regime classification remain outside this management example.
-
-## Balance assertions
-
-A balanced journal can still leave the bank ten yen wrong. Record an observed
-balance and compare it with the local ledger using `iris reconcile`. This is a
-read-only check; it never creates adjusting entries. Save observations in the
-optional `config/balance-assertions.yaml` file.
-
-For example, a posted ¥1,000 opening and ¥10 payment leave ¥990 in `Assets:Bank`.
-A statement saved as `raw/statement.csv` contains:
-
-```csv
-date,description,closing_balance
-2026-01-31,Month end,990
-```
-
-Use `iris hash raw/statement.csv` for the canonical source hash. This example's
-hash below belongs to exactly those bytes. Save the observation as:
-
-```yaml
-schema_version: 1
-assertions:
-  - id: bank-jan31
-    date: 2026-01-31
-    account: Assets:Bank
-    measure: amount
-    unit: JPY
-    scope: posted
-    expected: 990
-    evidence:
-      path: raw/statement.csv
-      sha: sha256:47413ca394cff9cf18438ee55b45076994c84426b511e06fe5daafc3d05847bd
-      locator: line 2 closing_balance
-```
-
-Run `iris reconcile` from the Book folder. It reports actual `990`, expected `990`
-and difference `0`. If both sides of the payment are mistakenly recorded as ¥20,
-double entry still balances, but reconciliation reports `980`, `990`, `-10`.
-`iris validate` also reports failed observations.
-
-- `date` is inclusive and must fall in the Book's fiscal year. Record opening
-  balances in that year; included journals from another year are refused.
-- `account` is one exact declared chart path, with no automatic child-account
-  rollup. Expected balances use its normal direction: assets/expenses are
-  debit-positive; liabilities/equity/income are credit-positive.
-- `measure: amount` uses the Book's currency and amount precision. For a foreign
-  denomination or fund units, use `measure: quantity` and that exact `unit`.
-  Quantity follows debit/credit direction and the unit's precision; it does not
-  use valuation prices. Missing quantities are not estimated.
-- `scope` defaults to `posted`. Choose `posted-and-drafts` explicitly for an
-  unapproved planning check. Expected values are natural decimal numbers or
-  quoted decimal text at the relevant precision; they are never rounded to fit.
-- Evidence requires a syncable `raw/` path, its `sha256:` hash and a locator such
-  as a physical CSV line or PDF page. Missing/changed bytes stay unverified even
-  when amounts match. Hash equality proves file identity, not bank authenticity
-  or correct transcription of the observation.
-
-The optional file supports at most 256 uniquely named observations. A missing file
-or an empty `assertions: []` checks none. Reads are bounded to 10,000 journals, 1,000,000 lines,
-16 MiB per evidence file and 128 MiB of input. The output revision binds the
-captured config, chart, assertions, journals and referenced evidence; it is not a
-cloud acceptance receipt. Sync/clone keep the declarations; config seals protect
-them. Rollover leaves them in the original Book so old observations are not
-reused next year. Storage alone does not evaluate observations. Cloud close
-previews run this same native check against accepted synced sources, and closing
-is refused for mismatches or unavailable/changed evidence. The check binds accepted
-source versions; it does not fetch an unpinned latest object or run Overlay code.
-If a preview reports missing/stale source data after sync, the server's projections
-need rebuilding before that Book can close. Financial ZIPs do not automatically
-include raw evidence. Cloud close checks every accepted native view separately. Local root-only reconciliation still refuses unresolved view sources.
 
 ## Business/private expense allocation
 
@@ -1064,9 +1635,10 @@ JPY 40,008 and closing carrying value JPY 200,041. `depreciate` writes a draft,
 not a posted journal. Review it under the Book's authority before posting.
 Its gross debit to depreciation expense and credit to accumulated depreciation
 must remain exactly once. Reruns preserve existing proposals; monthly and annual
-cadences cannot be mixed. A known sealed year, another active writer or a year
-outside this Book refuses new proposals. A missing seal mirror is not a live
-cloud-state check.
+cadences cannot be mixed. New proposals are refused when the year is known
+to be sealed, when another writer is active, or when the year is not this
+Book's. If the local copy of the seal state is missing, that is not a check of
+the cloud's current state.
 
 For the worked example, `raw/gross-depreciation.csv` is a retained compact snapshot
 of those native figures and the asset source hash. It is generated calculation
@@ -1322,13 +1894,20 @@ It does not select a latest ratio or invent proration. Obtain separately
 evidenced charge amounts for each period before calculating; the example does
 not establish a deductible percentage, legal expense allocation or tax-return
 mapping. For your region's evidence requirements, see its guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. Correcting an old
-source is a separate reviewed correction with its original identity retained.
+[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. To correct an old
+source, make a separate correction, review it, and keep the source's original
+identity.
 
 The checked complete example retains all original January files plus April
-sources and eight observations per Book. Checks bind
-the old bytes, new dated evidence, exact results, full cash movements and
-separate expense totals. A balanced retroactive 1/3 reallocation of January
+sources and eight observations per Book. The checks cover:
+
+- the January files are unchanged;
+- the new dated evidence;
+- the exact results;
+- the full cash movements;
+- each Book's expense total.
+
+A balanced retroactive 1/3 reallocation of January
 keeps bank reconciliation but fails the clearing and expense checks.
 
 ## Shared-household advances and refundable deposits
@@ -1500,546 +2079,14 @@ iris report pl --from 2026-01-01 --to 2026-12-31 /path/to/kei
 
 Expect income zero in each Book, expense 4,000/2,000, all deposit/clearing
 balances zero, and combined cash 294,000 = opening 300,000 − actual loss 6,000.
-The two-Book totals are a manual management check, not a new consolidation
-command. The complete checked example has five journals and ten evidence-backed
+The two-Book totals are a manual management check, there is no consolidation command. The complete checked example has five journals and ten evidence-backed
 observations per Book.
 It also checks balanced mistakes: deposit expensing, refund income, a missing
 counterparty bank movement, premature settlement and a repeated payout.
 Real agreements can assign different rights; do not copy these assumptions
 into a sole-tenant, business, disputed or otherwise different arrangement.
-For lease-source review, [MLIT's model lease and explanatory material](https://www.mlit.go.jp/jutakukentiku/house/jutakukentiku_house_tk3_000023.html)
-are a reference (checked October 24, 2026); they do not establish the particular
-joint claims or deduction shares assumed here.
-
-## Chart of accounts — `config/chart-of-accounts.yaml`
-
-Typed config, chart, rule, journal and asset readers refuse unresolved root
-`views`, including a key supplied through a YAML merge. Resolve the selected
-accounting view before typed decoding, and edit the original document to retain
-other payloads. Structured journal replacement also refuses stored views because
-its reduced DTO cannot preserve them. Removing `views` loses alternative data.
-
-Cloud storage accepts bounded view-bearing `config/book.yaml`, journal and asset sources
-without executing Overlay code. Declare at most 16 Book views and one default;
-all variants must pass native parsing, balance, account/reference and sealed-period
-checks. Views share Book identity, fiscal bounds, currency, unit precision and host
-integrity settings. Journal lifecycle status belongs to the shared root and cannot
-be overridden in a payload. Sync and clone preserve the unresolved source.
-
-Web displays the default as an **unapproved view preview**. Human posting approves
-the exact shared source version, not its view-specific financial results. Named-view approved reports require separately retained native financial acceptance. See [financial generations](cli-reference.md#iris-financial). Close requires every declared view accepted and final; SQLite stores each separately and keeps the default in its ordinary tables.
-Adding declarations or changing the default while journal or asset view payloads exist requires
-a coherent rebuild and is currently refused. Referenced declarations cannot be removed.
-Chart and rule sources with their own `views` remain unsupported in cloud ingestion.
-
-```yaml
-schema_version: 1
-accounts:
-  - path: 資産:普通預金        # hierarchical, colon-separated; this is the identity
-    type: asset               # asset | liability | equity | income | expense
-    section: current          # optional — where the statements place it
-    cash: true                # optional — a cash account
-    code: "1010"              # optional external code
-    aliases: [bank, 銀行, Assets:Bank]
-    description: Sales are paid in here; card bills are paid from it   # optional — what the account is for
-  - path: 資産:普通預金:旧口座
-    type: asset
-    closed: 2026-06-30        # optional — the last day the account is used
-  - path: 負債:短期借入金
-    type: liability
-    section: current
-    cash_flow: financing      # optional — the cash flow category, when not the usual one
-  - path: 収益:売上
-    type: income
-    section: sales
-    aliases: [sales]
-  - path: 資本:引出金
-    type: equity
-    owner: true               # the owner's own money — left out of Net Worth
-  - path: 資本:元入金
-    type: equity
-    retained_earnings: true   # optional — where `iris yearend` folds net income
-  - path: 資産:建物減価償却累計額
-    type: asset
-    contra: 資産:建物          # optional — a contra account and what it is deducted from
-```
-
-The account's normal side is derived from its `type`. `aliases` let journals
-reference an account by another name or language. Add accounts here before
-referencing them in a journal.
-
-Reports list accounts in the order this file lists them: the trial balance,
-profit and loss, balance sheet, the account list and their CSV exports. List
-accounts in the order you want to read them, for example cash first and
-current before non-current. When an account has a `code`, reports show it: in
-the trial balance's code column and as `code` on each report row.
-
-With `strict_accounts: false`, a journal can use an account the chart doesn't
-list. Reports place it next to its closest relatives in the chart:
-
-- above the listed accounts beneath it, when it is their parent;
-- otherwise after the last listed account that shares the most leading path
-  segments with it, so `Assets:Commodities:SP500` follows `Assets:Commodities`
-  and that account's listed sub-accounts, and `Assets:Crypto` comes at the end
-  of the `Assets` accounts;
-- after every listed account when it shares no leading segment.
-
-`owner: true` marks the owner's personal draw and contribution accounts. They
-keep their type, so the balance sheet lays out as usual, but they hold the
-owner's own money moving in and out of the business, not something the
-business owns or owes, so [Net Worth](web-app.md#net-worth) leaves them out.
-When the chart uses sections, the balance sheet lists them on their own line
-at the end of their side rather than as unclassified, unless you give them a
-section. [`iris yearend`](cli-reference.md#iris-yearend) does not carry them
-into the next year: their balances fold into the owner's capital, and each
-year starts them at zero.
-Starter charts that include such accounts set it.
-
-`retained_earnings: true` marks the equity account
-[`iris yearend`](cli-reference.md#iris-yearend) folds the year's net income
-into — 資本:元入金 for a sole proprietor, 純資産:繰越利益剰余金 for a company.
-At most one account may set it, and it must be `type: equity`; `iris validate`
-and the cloud refuse a chart that breaks either rule. When no account sets it,
-`iris yearend` uses the chart's only equity account, so the starter charts
-(which have exactly one) leave it out. Set it once your chart has more than
-one equity account.
-
-`contra` makes an account a contra account: an account that reduces
-another one, such as accumulated depreciation or an allowance for doubtful
-accounts. It names what the account is deducted from:
-
-- another account, as in `contra: 資産:建物` above. The balance sheet shows
-  it as a deduction under that account, which becomes a group totalling the
-  net;
-- or a parent path, such as `contra: 資産:有形固定資産`. It is deducted from
-  that group's total, after the group's accounts.
-
-A contra account keeps the type of what it reduces (`asset` above), so its
-balance stands on the other side. That is normal for it, not an error. Reports
-list it right after what it is deducted from, wherever the chart lists it, and
-each report row carries `contra`; the P&L and balance sheet also give the net
-(`contraNets`, see [`iris report`](cli-reference.md#iris-report)). `iris validate` and the cloud refuse a
-`contra` that names the account itself or one beneath it, names neither an
-account nor a parent of one, names an account of another type, or names
-another contra account.
-
-The starter charts include an accumulated depreciation account for each
-account they depreciate, such as `資産:工具器具備品減価償却累計額` with
-`contra: 資産:工具器具備品`, next to it and commented out wherever the asset
-is. An [asset file](#asset-files-assetsyyyymd) names it as its
-`accumulated_depreciation_account`.
-
-`section` places the account on the statements, so the profit and loss
-statement can show gross and operating profit and the balance sheet can
-separate current from non-current:
-
-| `section` | For | What goes there |
-|---|---|---|
-| `sales` | income | sales from your main business |
-| `cost_of_sales` | expenses | the direct cost of what you sold |
-| `operating` | income, expenses | running the business: rent, wages, supplies; other operating income |
-| `non_operating` | income, expenses | interest, dividends and other financing or investment items |
-| `extraordinary` | income, expenses | unusual one-off gains and losses |
-| `income_tax` | expenses | tax on profit |
-| `current` | assets, liabilities | used up, collected or paid within a year |
-| `non_current` | assets, liabilities | everything else: equipment, vehicles, long-term loans |
-
-An account without a section takes the one of the account its `contra`
-names, else the one of its nearest listed parent, so a section on
-`資産:固定資産` covers the accounts beneath it. Equity takes no section. An
-account the statements still can't place is shown as unclassified, outside
-every subtotal but net income, and `iris validate` gives a hint once the
-chart uses sections. A chart without any section keeps the plain statements.
-The starter charts set a section on every account except the owner's
-accounts and the holding account for entries not yet classified.
-
-`cash: true` marks a cash or bank account (asset accounts only). `cash_flow`
-(`operating`, `investing` or `financing`) sets the cash flow category of
-movements against the account when its section would suggest another, such
-as short-term borrowings, which are current but financing. Both carry down
-like a section: an account without its own takes the one of the account its
-`contra` names, else the one of its nearest listed parent, so an account
-listed beneath `Assets:Bank` is cash too. An account that isn't an asset is
-never cash, whatever its parent. `iris validate` and the cloud refuse an unknown section, a section of another type, `cash`
-on an account that isn't an asset, and an unknown `cash_flow`.
-
-`description` says what the account is for, in your own words: what goes
-here and what doesn't. The account list in the web app shows it, the entry
-editor in `iris view` shows it beside the account as you pick one, and the
-account list your AI reads includes it. It is the place for the rule you
-would tell a new bookkeeper. Nothing calculates with it.
-
-`closed` is the last day an account is used, such as a bank account you
-closed or a loan you repaid. Entries up to that day stay as they are.
-`iris validate` and the cloud warn about a line dated after it, and the entry
-editor in `iris view` stops offering the account for later dates. It is a
-warning, not a refusal, because a final interest payment can arrive after
-the account is closed. Keep the account in the chart while this year's
-entries use it. Once its balance is zero, you can leave it out of the next
-year's chart after [`iris yearend`](cli-reference.md#iris-yearend).
-
-## Asset files — `assets/YYYY/*.md`
-
-```yaml
----
-schema_version: 1
-name: "MacBook Pro 16"
-category: equipment.computer       # free-form
-acquisition_date: 2026-04-15
-acquisition_cost: 480000
-salvage_value: 1
-useful_life_months: 48
-method: straight_line              # straight_line | declining_balance | expensed
-asset_account: "資産:工具器具備品"
-depreciation_expense_account: "費用:減価償却費"
-accumulated_depreciation_account: "資産:工具器具備品減価償却累計額"
-acquisition_journal: "[[2026-04-15-apple-01]]"   # optional wikilink
-schedule:                          # optional recorded table — see below
-  - period: 2027-03                # YYYY-MM, the month the charge lands
-    amount: 250000
-  - period: 2028-03
-    amount: 187500
-schedule_source:                   # present when an overlay recipe wrote the table — see below
-  overlay: example-declining@2026.10.1   # illustrative package
-  recipe: example-declining.schedule
-  bindings: 5
-  primitives: {declining_table: 2, flat_table: 2}
-  params: {cost: 480000, life: 4, rate: 0.500, start: 2027-03}
-disposal:                          # optional, until disposed
-  date: 2029-05-10
-  proceeds: 50000
-  journal: "[[2029-05-10-apple-disposal-01]]"
----
-```
-
-JP-specific fields (用途区分, 特例, 償却資産税 flags) ride along opaquely and
-are read by the JP overlay.
-
-Book the purchase of an asset described here to its `asset_account` — an
-`expensed` one included — and let `iris asset depreciate` book the charges.
-For an `expensed` asset that is one charge: the whole cost, in the
-acquisition month. Booking the purchase straight to an expense account as
-well would count it twice.
-
-For `method: expensed`, omit `useful_life_months` or set it to `0`; a positive
-useful life is rejected. Leave `schedule` out too: the single acquisition-month
-charge is computed directly. `straight_line` and `declining_balance` require a
-positive `useful_life_months`.
-
-### `schedule:` — recording the table instead of computing it
-
-For straight-line assets you can leave `schedule` out: iris computes the charges
-from `useful_life_months`. An expensed asset must omit `schedule` and has one
-charge for the whole cost in its acquisition month, with no useful life.
-For anything else — a
-declining-balance method that switches rate or method partway, for
-example — the table is recorded on the file (`method: declining_balance`
-requires one), and iris uses it verbatim.
-
-Each row is a `period` (`YYYY-MM`) and an `amount`. Annual books write one row
-per fiscal year, dated the fiscal year's last month; month-by-month books write
-one row per month. Both work.
-
-Native calculation accepts at most 4,096 schedule rows and 4,096 useful-life
-months per asset. Table calculators check the derived row count and calendar
-range before allocating; no generated month may exceed year 9999. These are
-implementation limits, not tax rules. Local schedule, depreciation and asset
-export requests also stop at 4,096 asset files, 64 MiB of source or 100,000 total schedule rows.
-Asset files are bounded to 256 KiB and must be regular files. An invalid or
-excessive schedule fails the request; it never becomes a successful zero-valued
-summary or partial CSV. New recipe executions record table primitive version 2; retained
-version-1 records replay their original arithmetic within the same host limits.
-Replay never substitutes the latest version for missing or unknown provenance.
-
-MCP table tools take amounts the way the asset file writes them: decimal
-strings in the book currency (`"1500000"`, `"1234.56"`), with `scale` set to
-the destination Book's scale. A number is refused rather than guessed at. The
-result gives each row's `amount` and the `total` as decimal strings, with the
-YAML to paste, which reads back as the same amounts. The result reports the
-scale used.
-
-Your AI assistant builds the table for you. When a selected overlay has a
-**recipe** for the method (`list_recipes` shows it), it runs that with the
-published rates as inputs and the recipe composes the table and
-writes it, with its provenance, onto the file (`iris overlay recipe`, or the
-matching MCP tool). For a method no recipe covers it composes the arithmetic
-from the calculator tools (see [CLI and your AI](cli-and-llm.md)). Once
-written, the table is what the books, the reports and the CSV export all use.
-
-iris checks the table is well-formed — rows in order, no negatives, nothing
-before the acquisition month or past the useful life or after disposal, and the
-rows add up to `acquisition_cost` − `salvage_value` (on a disposed asset, no
-more than that — see [Disposing of an asset](#disposing-of-an-asset)). From the rows alone it
-cannot check that a switch landed in the right year — that is what
-`schedule_source` is for (next section). On a hand-composed table, keep the
-rates you used on the file (any extra keys ride along untouched) so your
-accountant can check them against the published table.
-
-### `schedule_source:` — where the table came from, replayed
-
-When a recipe wrote the table, it also recorded its provenance: the overlay
-version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
-`config/overlays/`), the recipe, the engine versions it ran under, and the
-inputs you gave — the rates from the published table, the useful life, the
-first row's month. `iris validate` **replays** the recipe with those inputs and
-refuses the file if the recorded rows differ, so a switch a year late no
-longer passes just because the total is right. The inputs stay on the file for
-your accountant to check against the published table. A table without
-`schedule_source` is checked for shape only. Replay uses the exact recorded
-version retained inside the Book, even when it differs from the current
-selection. Embedded bodies and the download cache never substitute for a missing
-Book source. Missing definitions, changed local hashes and unavailable engine
-capabilities are reported explicitly.
-
-### Disposing of an asset
-
-Add the `disposal:` block with the date and the proceeds. Depreciation runs up
-to and including the disposal month at the same monthly charge as before —
-disposal ends the schedule, it does not speed it up. What is left of the cost
-at that point is the **book value at disposal**. `iris asset schedule` shows it
-as `DISPOSAL_NBV` and `iris export assets` as `disposal_nbv`, next to
-`accumulated`, the depreciation actually taken. The disposal journal removes
-the asset's cost and that accumulated depreciation, records the proceeds, and
-books the difference between the proceeds and the book value at disposal as a
-gain or a loss.
-
-A computed straight-line schedule stops at the disposal month by itself. A
-recorded table is never rewritten for you: delete the rows after the disposal
-month, and set the disposal-period row to the charge for the part of that year
-the asset was held. The table may then add up to less than
-`acquisition_cost` − `salvage_value`, never more. If a recipe wrote the table,
-`iris validate` still replays the rows before the disposal month; the
-disposal-period row is yours.
-
-## Filings — `filings/<recipe>.md`
-
-The figures a return is filed from, as a recorded file. A figures recipe of
-a selected overlay sums the posted journals and combines them the way the
-return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
-records the result with the same provenance as a schedule. An illustrative
-filing:
-
-```yaml
----
-schema_version: 1
-filing: example-sales-tax.summary
-period: {from: 2026-01-01, to: 2026-12-31}
-source:
-  overlay: example-sales-tax@2026.10.1   # illustrative package
-  recipe: example-sales-tax.summary
-  bindings: 5
-  params: {from: 2026-01-01, to: 2026-12-31}
-figures:
-  taxable_sales: 11000000
-  output_tax: 1000000
-  input_tax: 620000
-  payable: 380000
-  # …
----
-(a readable table of the same figures)
-```
-
-`iris validate` re-runs the recipe over the journals and refuses a filing whose
-figures no longer follow from them — so a correction posted after you filed
-shows up as an error until you re-run the recipe (or revert the correction).
-Your AI fills the government form from `figures`; it never re-adds lines by
-hand. Filings sync and are sealed with the book, unlike `compiled/`.
-
-New local CLI/MCP filings record `source.journal_paths: book-relative-v1`.
-Their ledger paths and factual input hashes use Book-relative forward-slash
-paths, so copying or moving the whole Book preserves replay. The host writes
-this provenance; do not change it manually. Filings made without the field
-retain their original path convention. A legacy filing that hashed absolute
-paths still replays in its original location; after moving it, re-run and
-review the recipe to record portable provenance. Changed factual inputs and
-unknown path contracts still fail replay.
-
-## Your book's overlay layer — `config/overlays/` (optional)
-
-Published function packages are selected explicitly by `overlay:` or `overlays:`
-in `book.yaml`.
-A book may add its own layer on top:
-
-```text
-config/overlays/
-├── overlay.yaml        # id: book / extends: example-base@2026.10.1
-├── fields.yaml         # optional field types and choices
-├── functions.yaml      # optional shared expressions
-├── rules/*.yaml        # extra checks (an id matching a published rule overrides it)
-├── recipes/*.yaml      # extra computations
-├── derive/*.yaml       # extra derived-value proposals
-└── tests/*.yaml        # golden cases — `iris overlay test` runs them
-```
-
-With multiple published pins, the layer's `extends` is a list containing all
-of them. Local expressions inherit the regional primary package's CEL helpers;
-other published packages keep their helpers private. An override of an existing
-rule, derivation or recipe keeps that item's package ID for `overlay_settings`.
-New book-local items use the reserved `book` settings key, independent of the
-published pins and the local manifest's ID:
-
-```yaml
-overlay_settings:
-  book:
-    rules:
-      local.memo:
-        params: {memo: invoice}  # a new rule declared in config/overlays/rules/
-```
-
-Use the declared item ID for rules/derivations and the short recipe name for
-new local recipe defaults. Published field definitions cannot be replaced by
-the book layer. When adding a required rule input, sync its book-local definition
-first, then its settings. Use the local reviewed upgrade to check the complete
-candidate selection, settings and matching `extends` before changing pins.
-It retains the original local definition and parents. Cloud stores these bounded
-sources without compiling or evaluating them. An interrupted trusted parent/pin
-mismatch blocks local execution; inspect the retained sources and make a new
-explicit upgrade review before continuing.
-
-Rules and recipes are written in [CEL](https://cel.dev) expressions over the
-book's records — a language with no file or network access and a bounded cost,
-which is what makes it safe for your AI to write them. `iris validate` applies
-your trusted layer next to the explicitly selected published packages; cloud
-keeps native integrity and access guards without executing the layer. Only the
-book's Owner can change these files. The first time
-a machine meets a version of this layer it shows the files and asks once
-(`iris overlay trust` records the answer); until then only the published
-overlay applies. `iris overlay list` and published MCP recipe tools remain
-available; the CLI and MCP `describe_overlay.issues` report
-`overlay.book-layer-untrusted`. Book-local settings are checked when the layer
-is trusted. A recipe from your layer records `book:<hash>` as its source,
-so a reviewer can see a schedule came from a book-specific recipe. The published
-overlays are open source (Apache-2.0) in the public
-[`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository. A layer
-that proves useful beyond one book can be proposed there as a pull request.
-
-Trust is machine-local and does not travel with a clone. A retained historical
-definition can be reviewed under `config/overlay-packages/local/HASH/` and trusted
-explicitly with `iris overlay trust --source book:HASH [path]`. This checks its
-exact content and original Book-contained parents without changing selection.
-Trusting today's layer does not grant trust to another historical hash; missing
-or changed retained sources remain unavailable for replay.
-
-## `config/rules.yaml` (optional)
-
-Human-curated hints your AI may use when categorizing; never enforced.
-
-```yaml
-schema_version: 1
-categorization:
-  - when:
-      payee_matches: "Amazon"
-      amount_max: 50000
-    propose:
-      account: "費用:消耗品費"
-      confidence: 0.85
-```
-
-## Parse caches — `notes/raw/<source>.md`
-
-When your AI parses a document under `raw/`, it writes a durable, normalized
-view here, mirroring the source path. Each row carries a status
-(`journaled` / `ignored` / `deferred`) so re-opening the same statement doesn't
-redo the work.
-
-```markdown
----
-source: raw/2026-04-sbi.csv
-source_sha: <iris hash>
-parsed_at: 2026-05-11
-counts: { total: 47, journaled: 42, ignored: 3, deferred: 2 }
----
-
-## Rows
-| id | date       | description | amount | status    | target / reason                          |
-|----|------------|-------------|--------|-----------|------------------------------------------|
-| 1  | 2026-04-01 | Amazon JP   |  -5000 | journaled | journals/2026-04/2026-04-01-amazon-01.md |
-```
-
-Before reusing a parse cache, compare its `source_sha` with `iris hash` of the
-current source. If it changed, reconcile changed rows and existing journal
-links before importing further entries; preserve completed row state.
-
-## What syncs and what doesn't
-
-With cloud sync, `iris sync` mirrors the **syncable** files to the cloud:
-
-- **Synced:** `journals/`, `assets/`, `filings/`, `notes/` (including parse
-  caches), `AGENTS.md` (shared agent contract), `raw/` (verbatim bytes), `config/book.yaml`,
-  `config/chart-of-accounts.yaml`, `config/rules.yaml`,
-  `config/balance-assertions.yaml`, `config/overlays/`, `config/overlay-packages/`.
-- **Not synced:** `.iris/` (runtime state), `README.md` / `CLAUDE.md` (local entry files), and `compiled/` (regeneratable).
-- **Never synced inside a folder:** AI-agent instruction files (`CLAUDE.md`,
-  `AGENTS.md`, `GEMINI.md` and similar). Only the root `AGENTS.md` is shared,
-  so a collaborator can't slip instructions to your AI assistant through a note
-  or a source document. An emailed attachment with such a name is stored with
-  `.txt` added.
+For your region's model agreements and other reference material, see its
+guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md).
-
-### Independent annual books and acquisition openings
-
-`iris yearend` writes complete opening inventory in the next book's
-`config/book.yaml`. Each book can be valued independently, without a link to
-an earlier book. Select earlier books only to include their own historical periods.
-
-```yaml
-opening_inventory:
-  - account: Assets:Fund
-    unit: FUND
-    method: fifo
-    quantity: 100
-    carrying_value: 1200000
-    acquisition_cost: 1000000
-    lots:
-      - id: original-purchase
-        date: 2025-11-01
-        quantity: 100
-        cost: 1000000
-```
-
-Amounts are written as journal files write them: money in the book currency
-(`1700.00` at `scale: 2`) and quantities at the unit's scale (`0.5`). Carrying
-value and acquisition cost are separate. Carrying value
-also disambiguates a native-currency cash residual from a unit holding in the
-same account. FIFO/specific openings retain original lots and their dates;
-moving-average openings use a quantity/cost pool without lots. A null acquisition
-cost means unknown. The opening journal still states the monetary/quantity
-balance and must reconcile with these fields within this book.
-Do not infer acquisition cost from a revalued opening amount.
-
-In a book you start with holdings bought before its fiscal year, write this
-entry yourself. Earlier purchases can't be journals in this book, since they
-fall outside its fiscal year, so list each remaining purchase as a lot: its own
-`id`, the original purchase `date` (on or before the fiscal year's first day),
-and the `quantity` and `cost` still held. The lots must add up to the
-entry's `quantity` and `acquisition_cost`, and the opening journal's line
-for the holding states the same quantity and amount. `iris networth` and `iris yearend` refuse an opening
-whose quantity or lots don't add up; `iris validate` doesn't check them. Under
-FIFO you may omit `lots`; the holding then counts as one lot dated the fiscal year's
-first day, and the original purchase dates are lost. Specific identification
-needs the lots. A moving-average opening lists no lots, only its total quantity
-and cost. Leave `acquisition_cost` null only when the cost is truly
-unknown.
-
-A book written by an earlier iris may hold `carrying_value_minor`,
-`acquisition_cost_minor`, `allocation_cost_minor` and lot `cost_minor`, with
-amounts and quantities as integers in the smallest unit. Such an entry still
-reads as written; use one form per entry. `iris yearend` writes the decimal form.
-
-Local comparisons and retained financial calculations allocate later disposals
-from these lots, or from the moving-average pool, using the method recorded
-here. They refuse, rather than estimate, when an opening holding has no entry,
-a null acquisition cost or a carrying value that differs from its acquisition
-cost, or when a view selects a different method. A different method needs its
-own opening state.
-
-Explicit lot IDs are preserved. When a purchase omits its lot ID, analytics derives
-one from the fiscal year, journal path and original line index within this book’s
-inventory. Changing the book’s cloud ID does not change that lot ID.
-
-An opening can also hold `allocation_cost` and `allocation_policy`. A
-package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
-They never replace acquisition cost or recorded carrying value.
-
