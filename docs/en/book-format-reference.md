@@ -50,7 +50,10 @@ Notes:
   valid, and the separate numbering means they never collide. Current web and
   remote connector access cannot create journals; author changes locally and sync.
 - `.iris/` holds the local book ID and sync state; it's machine-local and
-  never synced.
+  never synced. It carries its own `.gitignore`, so if you keep the book in
+  git, none of it is committed. The book's root `.gitignore` leaves out
+  `.mcp.json` for the same reason: it records where iris and this book are
+  on this computer.
 
 ## `config/book.yaml`
 

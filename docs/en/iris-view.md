@@ -33,7 +33,9 @@ the page shows your files, and changes reach the cloud copy at your next sync.
 
 To open your books without a terminal or an AI, use the IrisBooks launcher.
 The installer adds it on a first install on a desktop. To add it yourself, or
-again after removing it:
+again after removing it, open **Settings → About** on the page and choose **Add
+to Applications** (**Add to the Start Menu** on Windows, **Add to the app menu**
+on Linux). Or run:
 
 ```bash
 iris view --add-launcher
@@ -44,6 +46,10 @@ iris view --add-launcher
 | macOS | **IrisBooks** in `~/Applications`. Find it with Spotlight, or drag it to the Dock. |
 | Windows | **IrisBooks** in the Start Menu. |
 | Linux | **IrisBooks** in your desktop's app menu. |
+
+Once it's added, **Settings → About** shows where it is. On a Mac, **Show in
+Finder** selects it, ready to drag to the Dock. On Windows, **Show in File
+Explorer** opens its folder; on Linux, **Open folder** does.
 
 The launcher opens the last folder you used, or asks which one. It holds no
 folder of its own, so one launcher reaches every folder. To set the folder it
