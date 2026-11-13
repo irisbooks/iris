@@ -114,6 +114,10 @@ iris init --name "Acme Design" --region JP --language en \
 Add `--sample` to seed ~40 demo entries you can explore and then delete. See
 [`iris init`](cli-reference.md#iris-init) for every flag.
 
+You can also make a book without the terminal. Open **IrisBooks** from your
+apps and choose **Create a book**. The page asks the same questions on one
+form. See [Create a book](iris-view.md#create-a-book).
+
 ### 3. Make the book your own
 
 First open `config/chart-of-accounts.yaml` and adjust the accounts to match
@@ -148,7 +152,10 @@ See
 
 If your assistant can already run commands and read and write this folder, no
 further setup is needed. It reads `AGENTS.md`, the working guide at the root
-of the book, before it starts.
+of the book, before it starts. If you use the Claude or ChatGPT desktop app,
+the book's **Overview** in `iris view` can start a session in the book's
+folder for you. See
+[Work on a book with your AI](iris-view.md#work-on-a-book-with-your-ai).
 
 MCP is a way for an AI app to call `iris` directly as a tool. To connect over
 MCP, or to add guide files the book is missing, run:

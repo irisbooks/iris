@@ -3,8 +3,9 @@
 `iris view` opens your books in the web app's screens, read straight from the
 book files on your computer. You can read reports and journals, post drafts,
 fix a draft, start a new entry or correct a posted one. It needs no account or
-network and uploads nothing. Changes are ordinary edits to your files, and a
-linked book carries them to the cloud at your next sync.
+network, and it sends nothing unless you sign in and sync (see
+[Sync with the cloud](#sync-with-the-cloud)). Changes are ordinary edits to your
+files, and a linked book carries them to the cloud at your next sync.
 
 ## Open it
 
@@ -66,6 +67,7 @@ A colored strip above the top bar names the folder you're in. Its menu holds:
 - **Recent folders**, to switch to one you've opened before.
 - **Choose a folder**, which opens your system's folder picker. Where there's
   no picker, type the path into **Folder path** and choose **Open**.
+- **Create a book**, to start a new one (see [Create a book](#create-a-book)).
 - **Color**: Green, Blue, Teal, Plum, Rust, Brown, Ochre or Charcoal.
 
 Choose a book's own folder, or a folder that holds several books. iris works
@@ -82,6 +84,53 @@ starting color, set `color` in `~/.config/irisbooks/settings.yaml`; see
 
 Language and appearance are kept per folder. The book's language applies the
 first time; after that, the language switch in the top bar decides.
+
+## Create a book
+
+You can start a new book from this page. Choose **Create a book**. When no
+folder is open, it's next to **Choose a folder**. When a folder is open, it's
+in the folder strip's menu. The form asks the same things as `iris init`:
+
+- the book's name, and whether it's for a business or a household
+- the region, the currency, the month the fiscal year starts, and the year the
+  book covers (one book holds one fiscal year)
+- the starting accounts, for a business book in a region that offers more
+  than one set
+- the book's language, used for account names and for the guide files your AI
+  reads
+- whether your AI posts entries that pass the checks, or leaves each one for
+  you to review and post (you can change this later in `AGENTS.md`)
+- whether to add about 40 sample entries, to see what a book looks like
+  (business books only)
+
+**Save in** is the folder the book goes in. It starts as
+`~/Documents/IrisBooks`, and you can choose another. The book gets its own
+folder there, named after the book. Once the book is made, the page opens the
+**Save in** folder and shows every book in it. That way, next year's book from
+`iris yearend` appears beside this one. **Save in** can't be a book's folder,
+or a folder inside a book.
+
+Creating a book doesn't connect to the cloud. So even when you're signed in, a
+book made here starts with the standard units only. A book made with `iris init`
+also gets the default units saved in your account.
+
+## Work on a book with your AI
+
+If the Claude or ChatGPT desktop app is installed on this computer, each book's
+**Overview** shows a button for it: **Open in Claude** or **Open in ChatGPT**.
+The button starts a new session in that app, working in the book's folder.
+
+The first message is already written for you. It asks the AI to read
+`AGENTS.md` and help with the book. If the book is new, it asks to start with
+the chart of accounts and the opening balances. Check the message, change it
+if you like, then send it.
+
+Claude asks you to confirm the folder each time, even a folder you've trusted
+before.
+
+The AI works on the files in the book's folder and runs `iris` there, as if
+you had started it in that folder yourself. To connect other AI apps, see
+[Connect your AI assistant](getting-started.md#4-connect-your-ai-assistant).
 
 ## What you can see
 
@@ -101,8 +150,8 @@ is no **Run aggregation** step. As everywhere, reports count posted entries
 only.
 
 Screens that need the cloud copy aren't here: **Activity**, deleted journals,
-**Year-end**, book settings, an entry's **History**, and adding a book. Use the
-web app for those.
+**Year-end**, book settings and an entry's **History**. Use the web app for
+those.
 
 ## Posting drafts
 
@@ -112,7 +161,8 @@ Open a draft, read it, and choose **Post**. To post several, select them in
 
 Posting changes only `status: draft` to `status: posted`, the same as
 `iris post --local`, and never syncs. On a linked book the page says "Posted on
-this computer. It reaches the cloud at your next sync."
+this computer. It reaches the cloud at your next sync." When you're signed in,
+**Sync now** beside it syncs the book.
 
 A post is refused, and the file left as it was, when:
 
@@ -255,6 +305,74 @@ If two windows change the same entry, the second save is refused with "This
 entry changed after you opened it" and your text stays in the box. Copy what you
 need, then choose **Reload the entry** to see the other window's change.
 
+## Sync with the cloud
+
+Once you sign in, the page can sync a book with its cloud copy, put a book
+online, and download a book from the cloud. Until then it shows none of this,
+only a way to sign in.
+
+### Sign in
+
+Open **Settings → IrisBooks account** and choose **Sign in to IrisBooks**. The
+sign-in page opens in your browser, and this page updates when you finish
+there. It's the same sign-in as `iris api login`, so the CLI and your AI's
+tools on this computer use it too, and **Sign out** here signs them out as
+well. If `IRIS_API_TOKEN` is set where IrisBooks runs, that token is used, and
+you sign in or out by changing it.
+
+If the cloud stops accepting the sign-in because it expired or was revoked,
+the page goes back to showing only **Sign in**.
+
+### Sync a book
+
+A linked book's **Overview** has a **Cloud copy** card.
+
+- **Changed on this computer since the last sync** lists the files you or your
+  AI added, changed or deleted, and updates as the files change. **Show** shows
+  a file's changes line by line. The list is worked out on your computer
+  without contacting the cloud.
+- **Check the cloud** asks the cloud what a sync would do, without doing it:
+  the changes it would bring here, and the files changed both here and in the
+  cloud. Nothing is sent or downloaded.
+- **Sync now** sends this computer's changes and brings the cloud's, the same
+  as `iris sync`.
+
+Tick **Check the cloud automatically** to have the page check on its own when a
+book's Overview opens and when you come back to the window, at most every five
+minutes. It stays off until you tick it. The setting is yours on this computer,
+so it covers every folder you open.
+
+Before a sync sends evidence files, or a book's files for the first time, the
+card reminds you that data sent to IrisBooks must not contain a
+government-issued personal identification number.
+
+### When a file changed in both places
+
+If a file changed here and in the cloud since the last sync, a sync keeps the
+cloud's version in the file and sets this computer's aside. The card lists
+these files under **Changed here and in the cloud**, and nothing syncs until
+each one is settled. **Compare** shows the two versions. Then choose **Keep this
+computer's**, which puts your version back and syncs it, or **Keep the
+cloud's**, which drops yours. This is the same as `iris conflicts resolve`.
+
+Files the cloud refused, such as an entry it couldn't read, are listed with the
+reason. Fix them, then sync again.
+
+### Put a book online
+
+A book with no cloud copy shows **Put this book online** on its Overview.
+Choosing it makes a cloud book from the book's settings, links this folder to
+it, and syncs every file. The files stay in this folder. The book's address in
+the page changes, because a linked book is known by its cloud ID.
+
+### Download a book from the cloud
+
+Choose **Download from the cloud** in the folder strip's menu, or next to
+**Choose a folder** when no folder is open. Pick one of the books you own or
+were invited to, and where to save it. The book gets a folder of its own there,
+named after the book and its year. The page then opens the folder you saved in
+and shows every book in it. This is the same as `iris clone`.
+
 ## Updates
 
 **Settings → About** shows which version of `iris` is running. Choose **Check
@@ -277,7 +395,10 @@ download. A development build can't update itself.
 
 - The page is served by `iris` at `127.0.0.1` on this computer. It reads only
   the book files and needs no account. It sends nothing anywhere, except the
-  version check described in [Updates](#updates) when you ask for it.
+  version check described in [Updates](#updates) when you ask for it, and,
+  once you sign in, what you sync, check or download as described in
+  [Sync with the cloud](#sync-with-the-cloud). Your sign-in stays with `iris`;
+  the page itself never holds it.
 - `iris view` signs your browser in with a one-time link that it never prints.
 - The window uses a browser profile of its own with extensions turned off, so a
   browser extension can't read your books through it. A tab in your everyday
