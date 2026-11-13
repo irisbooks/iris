@@ -1562,8 +1562,8 @@ Page: https://irisbooks.io/docs/en/iris-view/
 `iris view` opens your books in the web app's screens, read straight from the
 book files on your computer. You can read reports and journals, post drafts,
 fix a draft, start a new entry or correct a posted one. It needs no account or
-network, and it sends nothing unless you sign in and sync (see
-[Sync with the cloud](#sync-with-the-cloud)). Changes are ordinary edits to your
+network, and it contacts the cloud only when you sign in and use the cloud
+features (see [Sync with the cloud](#sync-with-the-cloud)). Changes are ordinary edits to your
 files, and a linked book carries them to the cloud at your next sync.
 
 ## Open it
@@ -1584,9 +1584,9 @@ bar and no extensions. Without either browser it opens in your default
 browser; `--tab` asks for that on purpose. On a Mac, the window appears as
 Google Chrome or Microsoft Edge in the Dock and the app switcher.
 
-`iris view` returns at once. The page keeps working until you close it. When a
-book in the folder also syncs with the cloud, the top bar says **Local copy**:
-the page shows your files, and changes reach the cloud copy at your next sync.
+`iris view` returns at once. The page keeps working until you close it. It
+always shows the files on this computer; for a book that also syncs with the
+cloud, changes reach the cloud copy at your next sync.
 
 ## The launcher
 
@@ -1623,7 +1623,8 @@ move `iris` somewhere else, add the launcher again.
 
 A colored strip above the top bar names the folder you're in. Its menu holds:
 
-- **Recent folders**, to switch to one you've opened before.
+- **Recent folders**, to switch to one you've opened before. The **×** beside
+  a folder takes it off the list; the folder and its books stay as they are.
 - **Choose a folder**, which opens your system's folder picker. Where there's
   no picker, type the path into **Folder path** and choose **Open**.
 - **Create a book**, to start a new one (see [Create a book](#create-a-book)).
@@ -1636,8 +1637,9 @@ The color is there so you can tell folders apart at a glance, for example one
 client's books from another's. A folder of books keeps its color in its own
 `.irisbooks/settings.yaml`, so it looks the same wherever that folder is opened.
 A single book's color is kept on this computer, because the book's own files
-sync. A folder you haven't colored gets a color from its path, so different
-folders usually look different from the start. To give every folder the same
+sync, and removing that book from **Recent folders** forgets it. A folder you
+haven't colored gets a color from its path, so different folders usually look
+different from the start. To give every folder the same
 starting color, set `color` in `~/.config/irisbooks/settings.yaml`; see
 [prices and settings for a folder of books](https://irisbooks.io/docs/en/cli-reference/#prices-and-settings-for-a-folder-of-books).
 
@@ -1691,6 +1693,10 @@ The AI works on the files in the book's folder and runs `iris` there, as if
 you had started it in that folder yourself. To connect other AI apps, see
 [Connect your AI assistant](https://irisbooks.io/docs/en/getting-started/#4-connect-your-ai-assistant).
 
+The card with these buttons is also in **Book settings**. Choose **Hide** to
+take it off the Overview of every book, in every folder; to bring it back, tick
+**Show on every book's Overview** in Book settings.
+
 ## What you can see
 
 These screens work as they do in [the web app](https://irisbooks.io/docs/en/web-app/), with figures
@@ -1701,6 +1707,11 @@ calculated by `iris` from your files:
   **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
 - **Plugins**, which only this page has (see below).
+- **Book settings**, which here shows the book's folder, with a button that
+  opens it in Finder or File Explorer, and holds the cards for working on the
+  book with your AI and for its cloud copy. The web app's book settings
+  (members, email inbox, posting approval) belong to the cloud copy and stay
+  there.
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
   one. They include every book in the folder.
 
@@ -1709,8 +1720,7 @@ is no **Run aggregation** step. As everywhere, reports count posted entries
 only.
 
 Screens that need the cloud copy aren't here: **Activity**, deleted journals,
-**Year-end**, book settings and an entry's **History**. Use the web app for
-those.
+**Year-end** and an entry's **History**. Use the web app for those.
 
 ## Posting drafts
 
@@ -1872,19 +1882,26 @@ only a way to sign in.
 
 ### Sign in
 
-Open **Settings → IrisBooks account** and choose **Sign in to IrisBooks**. The
+Choose **Sign in to IrisBooks**. It's in **Settings → IrisBooks account** and in
+a book's **Book settings**, and on the Overview of a book with a cloud copy. The
 sign-in page opens in your browser, and this page updates when you finish
-there. It's the same sign-in as `iris api login`, so the CLI and your AI's
-tools on this computer use it too, and **Sign out** here signs them out as
-well. If `IRIS_API_TOKEN` is set where IrisBooks runs, that token is used, and
-you sign in or out by changing it.
+there. If the sign-in page doesn't come up, for example because it opened
+behind this window, choose **Open the sign-in page**. If signing in times out or
+doesn't finish, choose **Sign in to IrisBooks** again.
+
+This is the same sign-in as `iris api login`: the CLI and your AI's tools on
+this computer use it, and **Sign out** here signs them out too. If
+`IRIS_API_TOKEN` is set where IrisBooks runs, that token is used instead. To
+sign in or out here, remove `IRIS_API_TOKEN` from that environment.
 
 If the cloud stops accepting the sign-in because it expired or was revoked,
-the page goes back to showing only **Sign in**.
+the page goes back to showing only **Sign in to IrisBooks**.
 
 ### Sync a book
 
-A linked book's **Overview** has a **Cloud copy** card.
+A book linked to the cloud (one you [put online](#put-a-book-online) or
+[downloaded](#download-a-book-from-the-cloud)) has a **Cloud copy** card on its
+Overview and in Book settings.
 
 - **Changed on this computer since the last sync** lists the files you or your
   AI added, changed or deleted, and updates as the files change. **Show** shows
@@ -1898,24 +1915,36 @@ A linked book's **Overview** has a **Cloud copy** card.
 
 Tick **Check the cloud automatically** to have the page check on its own when a
 book's Overview opens and when you come back to the window, at most every five
-minutes. It stays off until you tick it. The setting is yours on this computer,
+minutes. It only checks; it never syncs. The setting is yours on this computer,
 so it covers every folder you open.
 
 Before a sync sends evidence files, or a book's files for the first time, the
 card reminds you that data sent to IrisBooks must not contain a
 government-issued personal identification number.
 
+If the card can't load, it says why, with **Try again**. If a sync reports
+files it couldn't send or changes it couldn't save, sync again.
+
+As with the AI card, **Hide** takes the card off every book's Overview, and
+Book settings keeps it.
+
 ### When a file changed in both places
 
 If a file changed here and in the cloud since the last sync, a sync keeps the
 cloud's version in the file and sets this computer's aside. The card lists
-these files under **Changed here and in the cloud**, and nothing syncs until
-each one is settled. **Compare** shows the two versions. Then choose **Keep this
-computer's**, which puts your version back and syncs it, or **Keep the
-cloud's**, which drops yours. This is the same as `iris conflicts resolve`.
+these files under **Changed here and in the cloud**. The same sync still
+carries the other files, but nothing more syncs until each one is settled.
+**Compare** shows the two versions. Then choose one:
+
+- **Keep this computer's** puts this computer's version back and syncs it.
+- **Keep the cloud's** deletes this computer's version. This can't be undone.
+
+The choice does what `iris conflicts resolve` does. To combine both versions by
+hand instead, see [Sync conflicts](https://irisbooks.io/docs/en/troubleshooting/#sync-conflicts).
 
 Files the cloud refused, such as an entry it couldn't read, are listed with the
-reason. Fix them, then sync again.
+reason. Fix them, then sync again. See
+[Sync rejections](https://irisbooks.io/docs/en/troubleshooting/#sync-rejections-needs-attention).
 
 ### Put a book online
 
@@ -1930,7 +1959,7 @@ Choose **Download from the cloud** in the folder strip's menu, or next to
 **Choose a folder** when no folder is open. Pick one of the books you own or
 were invited to, and where to save it. The book gets a folder of its own there,
 named after the book and its year. The page then opens the folder you saved in
-and shows every book in it. This is the same as `iris clone`.
+and shows every book in it. Downloading here does the same as `iris clone`.
 
 ## Updates
 
@@ -1977,9 +2006,9 @@ container isn't the user's: from there, ask the user to open IrisBooks from
 their launcher or run `iris view` on their own computer. On the user's own
 computer, offer once to run `iris view --add-launcher` so they can open the
 books later without you; ask first, because it adds an app to their system.
-Signed in, the page also syncs, puts a book online and downloads cloud books,
-using the same host session as `iris api login`; a user who finds a browser
-sign-in easier can sign in there under Settings → IrisBooks account.
+Once the user signs in, the page also syncs, puts a book online and downloads
+cloud books, using the same sign-in as `iris api login`; a user who finds a
+browser sign-in easier can sign in there under Settings → IrisBooks account.
 
 # Using the web app
 
