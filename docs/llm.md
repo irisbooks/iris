@@ -1554,9 +1554,10 @@ Page: https://irisbooks.io/docs/en/iris-view/
 
 `iris view` opens your books in the web app's screens, read straight from the
 book files on your computer. You can read reports and journals, post drafts,
-fix a draft, start a new entry or correct a posted one. It needs no account or
-network and uploads nothing. Changes are ordinary edits to your files, and a
-linked book carries them to the cloud at your next sync.
+fix a draft, start a new entry or correct a posted one. It needs no account and
+uploads nothing, and apart from a one-time download for **Net Worth** it works
+without a network. Changes are ordinary edits to your files, and a linked book
+carries them to the cloud at your next sync.
 
 ## Open it
 
@@ -1641,6 +1642,13 @@ calculated by `iris` from your files:
 - **Plugins**, which only this page has (see below).
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
   one. They include every book in the folder.
+
+The first time you open **Net Worth**, `iris` downloads the engine that draws
+its charts (about 8 MB) from the IrisBooks release it came from, checks it
+against a checksum built into `iris`, and keeps it on this computer. After
+that the screen works offline, including after an update that keeps the same
+engine. Without a connection that first time, the screen says so; choose
+**Retry** once you're online.
 
 When you or your AI change a file, the page updates within a few seconds. There
 is no **Run aggregation** step. As everywhere, reports count posted entries
@@ -1822,8 +1830,10 @@ download. A development build can't update itself.
 ## Privacy and stopping
 
 - The page is served by `iris` at `127.0.0.1` on this computer. It reads only
-  the book files and needs no account. It sends nothing anywhere, except the
-  version check described in [Updates](#updates) when you ask for it.
+  the book files and needs no account. It sends nothing anywhere. It goes
+  online only for the version check described in [Updates](#updates) when you
+  ask for it, and for the one-time **Net Worth** download described in
+  [What you can see](#what-you-can-see).
 - `iris view` signs your browser in with a one-time link that it never prints.
 - The window uses a browser profile of its own with extensions turned off, so a
   browser extension can't read your books through it. A tab in your everyday
@@ -4907,8 +4917,12 @@ no update needed); exit 1 means failure; exit 2 means invalid arguments.
 No implicit network checks occur during book operations. `iris view`'s
 **Settings → About** runs the same check and install when the person asks, or
 daily once they tick its automatic check. `IRIS_DL_BASE`
-selects the download base (default `https://irisbooks.io/dl`); the release
-signature is always checked against the built-in key, without requiring
+selects the download base (default `https://irisbooks.io/dl`). The default
+base serves the newest release; a file it doesn't serve, such as an older
+version, comes from the releases repository at
+`https://github.com/irisbooks/iris/releases` instead, and the installers do the
+same. A base you set with `IRIS_DL_BASE` has no such fallback. Either way the
+release signature is always checked against the built-in key, without requiring
 `minisign` to be installed. A failed verification preserves the old executable.
 No downgrade or development-build replacement is automatic.
 

@@ -1964,8 +1964,12 @@ no update needed); exit 1 means failure; exit 2 means invalid arguments.
 No implicit network checks occur during book operations. `iris view`'s
 **Settings → About** runs the same check and install when the person asks, or
 daily once they tick its automatic check. `IRIS_DL_BASE`
-selects the download base (default `https://irisbooks.io/dl`); the release
-signature is always checked against the built-in key, without requiring
+selects the download base (default `https://irisbooks.io/dl`). The default
+base serves the newest release; a file it doesn't serve, such as an older
+version, comes from the releases repository at
+`https://github.com/irisbooks/iris/releases` instead, and the installers do the
+same. A base you set with `IRIS_DL_BASE` has no such fallback. Either way the
+release signature is always checked against the built-in key, without requiring
 `minisign` to be installed. A failed verification preserves the old executable.
 No downgrade or development-build replacement is automatic.
 
