@@ -3050,8 +3050,11 @@ installation. Command placement does not imply that it is offline.
   and `update` also use the network.
 
 Run `iris <command> --help` or `iris help <command>` for current invocation
-details. Help works offline without a book or login, writes to stdout and exits
-0. Flags may precede or follow arguments; `--` makes the remaining arguments
+details. `iris help --all` prints every command's help page in one read;
+`iris help --all report` prints only the pages at and under that command. Add
+`--json` to get the same pages as data: each page's text, its flags (name,
+whether it takes a value) and its subcommands. Help works offline without a
+book or login, writes to stdout and exits 0. Flags may precede or follow arguments; `--` makes the remaining arguments
 literal. Boolean values use `--flag=true` or `--flag=false`.
 
 Calculations and repairs (`journal complete`, `organize`, `financial prepare`,
