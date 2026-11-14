@@ -171,8 +171,8 @@ irisbooks.io, in your browser. Everything else on the page works offline.
 ## Posting drafts
 
 Open a draft, read it, and choose **Post**. To post several, select them in
-**Journals**, choose **Review selected journals**, read each one, then choose
-**Approve reviewed sources**.
+**Journals**, choose **Review and post**, read each one, then choose
+**Post these journals**.
 
 Posting changes only `status: draft` to `status: posted`, the same as
 `iris post --local`, and never syncs. On a linked book the page says "Posted on
@@ -391,7 +391,8 @@ sync still carries the other files, but nothing more syncs until each one is
 settled. **Compare** shows the two versions. Then choose one:
 
 - **Keep this computer's** puts this computer's version back and syncs it.
-- **Keep the cloud's** deletes this computer's version. This can't be undone.
+- **Keep the cloud's** deletes this computer's version, after asking you to
+  confirm. This can't be undone.
 
 The choice does what `iris conflicts resolve` does. To combine both versions by
 hand instead, see [Sync conflicts](troubleshooting.md#sync-conflicts).

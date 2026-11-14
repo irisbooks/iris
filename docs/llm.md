@@ -1730,8 +1730,8 @@ irisbooks.io, in your browser. Everything else on the page works offline.
 ## Posting drafts
 
 Open a draft, read it, and choose **Post**. To post several, select them in
-**Journals**, choose **Review selected journals**, read each one, then choose
-**Approve reviewed sources**.
+**Journals**, choose **Review and post**, read each one, then choose
+**Post these journals**.
 
 Posting changes only `status: draft` to `status: posted`, the same as
 `iris post --local`, and never syncs. On a linked book the page says "Posted on
@@ -1950,7 +1950,8 @@ sync still carries the other files, but nothing more syncs until each one is
 settled. **Compare** shows the two versions. Then choose one:
 
 - **Keep this computer's** puts this computer's version back and syncs it.
-- **Keep the cloud's** deletes this computer's version. This can't be undone.
+- **Keep the cloud's** deletes this computer's version, after asking you to
+  confirm. This can't be undone.
 
 The choice does what `iris conflicts resolve` does. To combine both versions by
 hand instead, see [Sync conflicts](https://irisbooks.io/docs/en/troubleshooting/#sync-conflicts).
@@ -2063,7 +2064,8 @@ Accounts start with email + password. From the sign-in screen you can:
 - **Sign up** (when open) — submit your email and password, then confirm with
   the verification code emailed to you.
 - **Reset a password** via "Forgot password" — request a code, then set a new
-  password.
+  password. If the code doesn't arrive or has expired, send a new one from the
+  same step.
 
 These screens have a language switch in the top-right corner (labeled
 "日本語" / "English") in case your browser's language was guessed wrong.
@@ -2292,9 +2294,9 @@ and the filters fold behind a **Filters** button. From here you:
   attached source documents (click through to the document), the line-item
   table with debits/credits and totals, and the narrative body.
 - **Approve a draft** — read the **Source for review** on its detail page, then
-  choose **Post**. Bulk approval first displays each selected source; then choose
-  **Approve reviewed sources**. Approval binds those exact versions; changed
-  sources must be reviewed again.
+  choose **Post**. For several, **Review and post** first displays each selected
+  source; then choose **Post these journals**. Approval binds those exact
+  versions; changed sources must be reviewed again.
 
 Create, edit, delete and restore records through local files and permitted CLI/API
 operations. Web records are read-only except for the reviewed `draft → posted`
