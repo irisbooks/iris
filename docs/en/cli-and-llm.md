@@ -744,7 +744,7 @@ cannot read the bundled docs can use the
 If you keep a Markdown copy of the manual, store it outside the book and note
 its source URL and release tag:
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
-Where you can, pick the release tag that matches `iris version`, and search
+Where you can, pick the release tag that matches `iris --version`, and search
 only the sections you need. For the rules that apply to a book, check the
 overlays that book selects. Reading reference material does not authorize any
 action.

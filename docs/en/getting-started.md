@@ -43,7 +43,7 @@ Path B.
 
 ### 1. Check for `iris`
 
-Run `iris version`. If it prints a version, `iris` is already installed: use
+Run `iris --version`. If it prints a version, `iris` is already installed: use
 it, and run `iris update` when you want the latest release. Otherwise install
 it as below.
 
@@ -70,7 +70,7 @@ your apps, so you can open your books without a terminal (see
 that. Updates never add it. Confirm the installed version with:
 
 ```bash
-iris version
+iris --version
 ```
 
 If `iris` still isn't found, open a new terminal or use the absolute executable

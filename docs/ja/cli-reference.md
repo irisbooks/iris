@@ -15,13 +15,15 @@
   `--local` を選ばない限り翌年度のクラウド帳簿を作成・同期します。
   `price sync`、パッケージのダウンロード、`update` も通信します。
 
-最新の使い方は `iris <command> --help` または `iris help <command>` で確認できます。
-`iris help --all` は全コマンドのヘルプを一度に表示し、`iris help --all report` は
-そのコマンドと配下のページだけを表示します。`--json` を付けると、同じページを
-データとして返します（各ページの本文、フラグの名前と値を取るかどうか、サブコマンド）。
+コマンドのフラグと引数は、お使いのバージョンの `iris <command> --help` が基準です。
+このリファレンスでは、動作、出力の形、複数のコマンドにまたがる手順を説明します。
+`--full` を付けると、そのページと配下のページをまとめて表示します
+（`iris report --help --full`。`iris --help --full` は全コマンド）。`--json` を付けると、
+ページをデータとして返します（各ページの本文、フラグの名前と値を取るかどうか、サブコマンド）。
 ヘルプは帳簿・ログイン・通信なしで動き、標準出力に表示して終了コード 0 を返します。
 フラグは引数の前後どちらにも置けます。`--` 以降はフラグとして解釈しません。
 真偽値を明示する場合は `--flag=true` または `--flag=false` と書きます。
+`--json false` のように値を分けて書くと、この書き方を示してエラーになります。
 
 計算・修復（`journal complete`・`organize`・`financial prepare`・`overlay recipe`、
 `validate` の導出値）は、`--apply` を付けたときだけ書き込みます。レシピには
@@ -31,10 +33,10 @@
 残高を繰り越します。今年度のロックは別途 `seal` で行い、修正時は `reopen` で
 解除します。
 
-`report`・`balance`・`reconcile`・`allocation`・`context`・`financial`・
-`journal complete`・`networth`・`analytics export` は常に JSON を出力します。
-ほかの参照コマンドでは、各ヘルプに記載された `--json` を使えます。
-`sync issues list`・`conflicts list`・`api config show` も対応しています。
+コマンドは結果をテキストで表示します。多くのコマンドは `--json` を付けると、同じ結果を
+1つの JSON として出力します。テキストはその JSON から作るので、両者は同じ値を同じ名前で
+持ちます。値は `名前: 値`、レコードの一覧は金額を右にそろえた表、入れ子のレコードは
+字下げで表します。`allocation --schema` は入力の JSON Schema を出力します。
 結果は標準出力、エラーは標準エラー出力に出します。終了コードは成功が 0、
 処理・検証の失敗が 1、引数・設定の誤りが 2、同期の切断が 3 です。
 
@@ -44,8 +46,7 @@
 `seal --dry-run`、計算結果の書き込みは `validate --apply`・
 `financial prepare --apply`・`overlay recipe --out PATH --apply` を使います。
 
-多くのコマンドは `--json` で機械可読な結果を1つ出し、レポートは常に JSON を
-出します。JSON を出すコマンドには共通の約束があります。日付は `YYYY-MM-DD` の文字列、
+`--json` で出力する結果には共通の約束があります。日付は `YYYY-MM-DD` の文字列、
 出力は2スペースインデントで整形されます。**金額は帳簿通貨の10進数の文字列**で、
 仕訳ファイルと同じ書き方です（`"54.99"`、¥1,200 なら `"1200"`）。結果から写した
 数字は、そのまま仕訳やコマンドの引数に戻せます。金額を含む結果は `currency` と
@@ -258,7 +259,7 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | 
 親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
 
 `--dry-run` は、期首残高の仕訳、移動する仕訳、クラウド操作のプレビューと、繰越から
-除外される下書きの件数を JSON で表示します。ファイルやクラウドには書き込みません。
+除外される下書きの件数を表示します（`--dry-run --json` なら JSON）。ファイルやクラウドには書き込みません。
 
 ### iris seal
 
@@ -356,7 +357,7 @@ iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-s
 `--view` の省略時は既定のビューを使います。ビューを指定すると、そのビューの
 行だけを更新し、共通の行と他のビューを保持します。
 
-出力は常に JSON で、次のキーを返します。
+結果には次のキーが入ります（`--json` なら JSON）。
 
 - `proposal` — 提案する仕訳の Markdown 全文
 - `allocations` — 数量、原価（仕訳と同じ10進数）、ロット、適用方法
@@ -375,7 +376,7 @@ iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-s
 オンの帳簿では、記帳済の仕訳にも適用できません。
 
 提案できないときは終了コード1で、`refusal.reason` と `refusal.message` を
-含む JSON を出力します。理由（`refusal.reason`）は次のいずれかです。
+含む拒否の内容を出力します。理由（`refusal.reason`）は次のいずれかです。
 
 - `completeSeveral` — `null` の金額が複数ある
 - `completeQuantity` — 数量のある行には金額が必要
@@ -398,7 +399,7 @@ iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-s
 パッケージが対応していれば（Bindings v5 の定義があるパッケージ）、金額の補完の前に、
 未記入の追加フィールドも埋められます。分類、計算の順に処理します。埋められるのは値が
 1つのフィールドだけで、元の仕訳の貸借が一致している必要があります。
-JSON の `preparationPlan` と `preparationTrace` に、計算元の固定バージョン、
+結果の `preparationPlan` と `preparationTrace` に、計算元の固定バージョン、
 使った入力、提案した値を返します。適用時はフィールドごとの計算情報を
 `preparation_source` に保存し、`iris validate` で帳簿内の定義から再計算できます。
 記入済みの値は保持します。同じプレビューとリビジョンによる適用確認を、
@@ -463,7 +464,7 @@ Markdown 本文を残します。YAML の字下げは変わることがあるた
 iris reconcile [--json] [path]
 ```
 
-JSON には、`config/balance-assertions.yaml` に記録した残高の1件ごとに、帳簿上の残高、
+結果には、`config/balance-assertions.yaml` に記録した残高の1件ごとに、帳簿上の残高、
 資料上の残高、差額、元資料のファイルが記録時と同じかどうかが入ります。不一致、資料の不足・変更、入力エラーがあれば終了コードは1です。
 ファイルがない場合や一覧が空の場合は、照合するものはありません。書き換えや記帳は行わず、
 `iris validate` でも同じ失敗を報告します。クラウドで年度を締めるときも、同期済みのデータで同じ照合を行います。一致しない残高が
@@ -514,7 +515,7 @@ iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末�
 ### iris financial
 
 名前付きの会計ビューを計算し、その結果を帳簿に保存して承認するためのコマンドです。
-まず `prepare` で、何も書き込まずに計算します。出力された JSON の集計額と識別子を
+まず `prepare` で、何も書き込まずに計算します。出力された結果の集計額と識別子を
 確認してから、`--apply` を付けてその計算結果を保存します。
 
 ```sh
@@ -557,7 +558,7 @@ iris context [path]
 iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
-出力は常にJSONです。`--json` も受け付けますが、出力は変わりません。繰り返し指定
+テキストで表示し、`--json` を付けると JSON で出力します。繰り返し指定
 できる `--view` や帳簿フォルダを指定する `--book-path` を含め、対応する全フラグは
 `--help` で確認できます。
 
@@ -785,9 +786,12 @@ iris view --remove-launcher
 
 `--add-launcher` は、Dock・スタートメニュー・アプリメニュー用の IrisBooks
 ランチャーを1つ追加します。ランチャーはフォルダを持ちません。一緒に指定した
-フォルダは最初に開くだけで、`--currency` は指定できません。`--status --json`
-は `running`・`folder`・`books` を出力します。これを含め、どの出力にも
-サインイン用のリンクは含まれません。
+フォルダは最初に開くだけで、`--currency` は指定できません。`--status` は
+画面を表示している `iris` のバージョンも示します。`--status --json` は
+`running`・`folder`・`books` を、動いている間は `version` も出力します。
+画面を表示しているのがこの `iris` より古いものなら `binaryVersion` も加わり、
+次の `iris view` で置き換わります。これを含め、どの出力にもサインイン用の
+リンクは含まれません。
 
 ### iris balance
 
@@ -817,16 +821,15 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
 すべてのレポートコマンドと `iris balance` は、`--include-drafts` を付けると下書きも含めて
 集計します（例: `iris report pl --include-drafts`）。付けなければ下書きは除外します。
 `--include-drafts` を付けて `--mode` を省略した場合は、読み取り専用の比較モードに
-なります。JSON には、実際に使ったモードと、下書きを含めたかどうかが入ります。
+なります。結果には、実際に使ったモードと、下書きを含めたかどうかが入ります。
 `--mode approved --include-drafts` の併用はできません。比較モードでは在庫原価と
 減価償却もファイルを変更せずに計算します。名前付きビューの承認済みレポートは、
 現在の入力に対して承認された計算結果を使います。
 
-レポートの出力は **JSON** です（金額は帳簿通貨の10進数の文字列）。クラウドのレスポンスには、
-リビジョンや鮮度などの追加情報が含まれる場合があります。
-テキストの表で出力するモードはありません。日本語の勘定科目名では端末で列がそろわず、
-AI はもともと JSON を読むためです。人が読むための整形表示は Web アプリが受け持ちます。
-互換性のため `--json` フラグは受け付けます（no-op）。
+レポートはテキストで表示します。計算書の数字を順に並べ、行は金額を右にそろえた表にし、
+日本語の勘定科目名でも列がそろいます。`--json` を付けると JSON（金額は帳簿通貨の
+10進数の文字列）で出力します。数字を処理するときはこちらを読みます。クラウドの
+レスポンスには、リビジョンや鮮度などの追加情報が含まれる場合があります。
 
 `report sum` は、記帳済の仕訳明細を指定したキーでグループ化し、グループごとの借方・貸方・
 純額と明細数を返します（例: `--by sales.channel,month --year 2026`）。キーには `account`、
@@ -1201,7 +1204,7 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 翌年度の期首残高を使うので、二重には加算しません。翌年度がない場合も最後の保有残高を引き継ぎます。
 下書きは除外します。価格がない保有は簿価を使い、`unpriced` に示します。
 帳簿のコピーを二重に数えないよう、重複するフォルダ・帳簿 ID は拒否します。
-出力は JSON です。クラウドの集計対象設定は使いません。
+テキストで表示し、`--json` を付けると JSON で出力します。クラウドの集計対象設定は使いません。
 
 ### iris price
 
@@ -1731,7 +1734,7 @@ iris api inbox quarantine [--json] <book-id>
 ### iris api balance / holdings / history
 
 ```bash
-iris api balance [--as-of YYYY-MM-DD] <book-id>              # サーバー側試算表（JSON 出力）
+iris api balance [--as-of YYYY-MM-DD] [--json] <book-id>     # サーバー側試算表
 iris api holdings [--as-of YYYY-MM-DD] [--json] <book-id>    # 単位ごとの純ポジション
 iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id> # 訂正・削除の履歴
 ```
@@ -1850,10 +1853,11 @@ JSON には `version`・`source: "bundled"`・`language: "en"`・`words` と、�
 帳簿の指定は不要です。トピックだけなら節の一覧、`full=true` なら章の全文です。
 オフライン資料の参照先には `iris docs` コマンドを示し、MCP でも同じ topic と section を使えます。
 
-### iris version
+### iris --version
 
 ```bash
-iris version
+iris --version          # iris 0.3.31
+iris --version --json   # {"version": "0.3.31"}
 ```
 
 ### iris update
@@ -1892,7 +1896,7 @@ Windows で使用中のファイルを置き換えられない場合は、MCP �
 
 iris そのものをこのマシンから削除します。削除するのは次のものです。
 
-- iris バイナリ
+- iris がインストールした場所の iris バイナリと、実行中の iris
 - サインイン情報とローカル設定（`~/.config/irisbooks`）。CLI セッションは、削除の前に
   サーバー側で失効させます
 - Claude Code スキル
@@ -1900,7 +1904,8 @@ iris そのものをこのマシンから削除します。削除するのは次
 - `iris onboard --install-path` が追加した PATH 設定
 - [`iris view --add-launcher`](#iris-view) が追加した IrisBooks ランチャー
 動いている `iris view` は先に終了します。実行前に、このマシンで見つかった削除対象の
-正確な一覧を必ず表示し、確認を求めます。
+正確な一覧を必ず表示し、確認を求めます。パッケージマネージャーで入れたものなど、
+iris がインストールしたものではない `PATH` 上の `iris` は、名前を表示するだけで削除しません。
 
 帳簿には一切触れません。帳簿はあなたのファイルであり、iris を削除してもそのまま残ります。フォルダ独自の
 `.irisbooks/` も残ります。帳簿内の

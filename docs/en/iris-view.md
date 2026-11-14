@@ -148,9 +148,11 @@ calculated by `iris` from your files:
   **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
 - **Plugins**, which only this page has (see below).
+- **Sync**, which only this page has, for a book linked to the cloud (see
+  [Sync a book](#sync-a-book)).
 - **Book settings**, which here shows the book's folder, with a button that
-  opens it in Finder or File Explorer, and holds the cards for working on the
-  book with your AI and for its cloud copy. The web app's book settings
+  opens it in Finder or File Explorer, the card for working on the book with
+  your AI, and whether the book has a cloud copy. The web app's book settings
   (members, email inbox, posting approval) belong to the cloud copy and stay
   there.
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
@@ -162,6 +164,9 @@ only.
 
 Screens that need the cloud copy aren't here: **Activity**, deleted journals,
 **Year-end** and an entry's **History**. Use the web app for those.
+
+The **help** icon at the top right opens this page of the manual on
+irisbooks.io, in your browser. Everything else on the page works offline.
 
 ## Posting drafts
 
@@ -324,7 +329,8 @@ only a way to sign in.
 ### Sign in
 
 Choose **Sign in to IrisBooks**. It's in **Settings → IrisBooks account** and in
-a book's **Book settings**, and on the Overview of a book with a cloud copy. The
+a book's **Book settings**, and on the Overview and **Sync** page of a book with
+a cloud copy. The
 sign-in page opens in your browser, and this page updates when you finish
 there. If the sign-in page doesn't come up, for example because it opened
 behind this window, choose **Open the sign-in page**. If signing in times out or
@@ -341,41 +347,48 @@ the page goes back to showing only **Sign in to IrisBooks**.
 ### Sync a book
 
 A book linked to the cloud (one you [put online](#put-a-book-online) or
-[downloaded](#download-a-book-from-the-cloud)) has a **Cloud copy** card on its
-Overview and in Book settings.
+[downloaded](#download-a-book-from-the-cloud)) has a **Sync** page, listed
+under the book in the sidebar. The book's Overview has a **Cloud copy** card
+that says how many changes are waiting, with **Sync now** and **Open Sync**.
 
-- **Changed on this computer since the last sync** lists the files you or your
-  AI added, changed or deleted, and updates as the files change. **Show** shows
-  a file's changes line by line. The list is worked out on your computer
+The Sync page has:
+
+- **Sync now**, at the top, which sends this computer's changes and brings the
+  cloud's, the same as `iris sync`.
+- **Changed on this computer since the last sync**, the files you or your AI
+  added, changed or deleted. The list updates as the files change. **Show**
+  shows a file's changes line by line. The list is worked out on your computer
   without contacting the cloud.
-- **Check the cloud** asks the cloud what a sync would do, without doing it:
-  the changes it would bring here, and the files changed both here and in the
-  cloud. Nothing is sent or downloaded.
-- **Sync now** sends this computer's changes and brings the cloud's, the same
-  as `iris sync`.
+- **In the cloud**, what a sync would bring here. **Check the cloud** asks the
+  cloud what a sync would do, without doing it: the changes it would bring
+  here, and the files changed both here and in the cloud. Nothing is sent or
+  downloaded.
 
-Tick **Check the cloud automatically** to have the page check on its own when a
-book's Overview opens and when you come back to the window, at most every five
-minutes. It only checks; it never syncs. The setting is yours on this computer,
-so it covers every folder you open.
+To have the page check on its own when a book's Overview or Sync page opens and
+when you come back to the window, at most every five minutes, tick **Check the
+cloud automatically** in **Settings → IrisBooks account**. It only checks; it
+never syncs. The setting is yours on this computer, so it covers every book in
+every folder you open.
 
 Before a sync sends evidence files, or a book's files for the first time, the
-card reminds you that data sent to IrisBooks must not contain a
-government-issued personal identification number.
+page reminds you, next to **Sync now**, that data sent to IrisBooks must not
+contain a government-issued personal identification number.
 
-If the card can't load, it says why, with **Try again**. If a sync reports
-files it couldn't send or changes it couldn't save, sync again.
+If the page can't load the book's sync status, it says why, with **Try again**.
+If a sync reports files it couldn't send or changes it couldn't save, sync
+again.
 
-As with the AI card, **Hide** takes the card off every book's Overview, and
-Book settings keeps it.
+As with the AI card, **Hide** takes the **Cloud copy** card off every book's
+Overview. The Sync page stays, and Book settings has the switch that brings the
+card back.
 
 ### When a file changed in both places
 
 If a file changed here and in the cloud since the last sync, a sync keeps the
-cloud's version in the file and sets this computer's aside. The card lists
-these files under **Changed here and in the cloud**. The same sync still
-carries the other files, but nothing more syncs until each one is settled.
-**Compare** shows the two versions. Then choose one:
+cloud's version in the file and sets this computer's aside. The Sync page
+lists these files first, under **Changed here and in the cloud**. The same
+sync still carries the other files, but nothing more syncs until each one is
+settled. **Compare** shows the two versions. Then choose one:
 
 - **Keep this computer's** puts this computer's version back and syncs it.
 - **Keep the cloud's** deletes this computer's version. This can't be undone.
@@ -383,13 +396,14 @@ carries the other files, but nothing more syncs until each one is settled.
 The choice does what `iris conflicts resolve` does. To combine both versions by
 hand instead, see [Sync conflicts](troubleshooting.md#sync-conflicts).
 
-Files the cloud refused, such as an entry it couldn't read, are listed with the
-reason. Fix them, then sync again. See
+Files the cloud refused, such as an entry it couldn't read, are listed on the
+Sync page with the reason. Fix them, then sync again. See
 [Sync rejections](troubleshooting.md#sync-rejections-needs-attention).
 
 ### Put a book online
 
-A book with no cloud copy shows **Put this book online** on its Overview.
+A book with no cloud copy shows **Put this book online** on its Overview and in
+Book settings.
 Choosing it makes a cloud book from the book's settings, links this folder to
 it, and syncs every file. The files stay in this folder. The book's address in
 the page changes, because a linked book is known by its cloud ID.
@@ -408,7 +422,13 @@ and shows every book in it. Downloading here does the same as `iris clone`.
 for updates** to ask irisbooks.io for the latest version. If a newer one is out,
 choose **Update to …**: `iris` downloads it, checks its signature and checksum,
 replaces itself, and restarts the page, which reloads on its own. If the check
-fails, the version you have stays in place.
+fails, the version you have stays in place. The version is also at the bottom of
+the sidebar; choose it to open **Settings → About**.
+
+When you ask for help, choose **Copy details** in **Settings → About** and paste
+the result: it holds the version of `iris`, your system and the page's
+language, and no folder, book or account. If a screen fails, its error message
+offers the same button, with the error added.
 
 Tick **Check automatically** to have the page ask at most once a day while it's
 open. An **Update available** label then appears at the top of the page when
@@ -419,6 +439,13 @@ If your AI app runs IrisBooks for you, restart that app after updating so it
 uses the new version too. A copy installed as an extension in your AI app is
 updated from that app's extension settings; the About section links to the
 download. A development build can't update itself.
+
+A book that a newer version of `iris` worked on still opens, and shows what your
+version can read. A notice names the book, and the version at the bottom of the
+sidebar reads **update needed**. Until you update, the page doesn't post or
+change entries a newer version wrote, doesn't change anything in a book whose
+settings a newer version wrote, and plugins newer than your version don't check
+the book.
 
 ## Privacy and stopping
 
@@ -435,7 +462,7 @@ download. A development build can't update itself.
 
 The page stops by itself about five minutes after you close the last window.
 `iris view --stop` stops it now, and `iris view --status` says whether it's
-running. A page left open after that says "This view has closed. Open IrisBooks
+running and which version of `iris` serves it. A page left open after that says "This view has closed. Open IrisBooks
 again."
 
 Next: [Using the web app](web-app.md).

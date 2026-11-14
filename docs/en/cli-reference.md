@@ -15,13 +15,15 @@ installation. Command placement does not imply that it is offline.
   the next cloud book unless `--local` is chosen. `price sync`, package downloads
   and `update` also use the network.
 
-Run `iris <command> --help` or `iris help <command>` for current invocation
-details. `iris help --all` prints every command's help page in one read;
-`iris help --all report` prints only the pages at and under that command. Add
-`--json` to get the same pages as data: each page's text, its flags (name,
-whether it takes a value) and its subcommands. Help works offline without a
-book or login, writes to stdout and exits 0. Flags may precede or follow arguments; `--` makes the remaining arguments
-literal. Boolean values use `--flag=true` or `--flag=false`.
+`iris <command> --help` is the source for a command's flags and arguments in
+the version you run; this reference explains behaviour, output shapes and
+procedures that span commands. Add `--full` for the page and every page under
+it in one read (`iris report --help --full`; `iris --help --full` is every
+command). Add `--json` to get the pages as data: each page's text, its flags
+(name, whether it takes a value) and its subcommands. Help works offline
+without a book or login, writes to stdout and exits 0. Flags may precede or follow arguments; `--` makes the remaining arguments
+literal. Boolean values use `--flag=true` or `--flag=false`; a separate value
+(`--json false`) is refused with that hint.
 
 Calculations and repairs (`journal complete`, `organize`, `financial prepare`,
 `overlay recipe`, and derived values in `validate`) write only with `--apply`.
@@ -31,10 +33,11 @@ Recipes also need `--out PATH`; retained financial calculations need the reviewe
 it. `yearend` carries balances into the next book; `seal` separately locks
 the current year, and `reopen` unlocks it for amendments.
 
-`report`, `balance`, `reconcile`, `allocation`, `context`, `financial`,
-`journal complete`, `networth` and `analytics export` always emit JSON. Other
-inspection commands document their optional `--json`; `sync issues list`,
-`conflicts list` and `api config show` support it. Successful data goes to stdout;
+Commands print their result as text; most accept `--json` to print the same
+result as one JSON document instead. The text is rendered from that JSON, so
+both hold the same values under the same names: values as `name: value`, lists
+of records as aligned tables with amounts on the right, nested records
+indented. `allocation --schema` prints its request's JSON Schema. Successful data goes to stdout;
 errors go to stderr. Exit 0 means success, 1 an operation/check failure, 2 invalid
 arguments/setup, and 3 a terminal sync disconnect.
 
@@ -44,8 +47,7 @@ selectors use `--book-path`; the former ambiguous `--book` flag is removed.
 Closing previews use `seal --dry-run`; calculation writes use `validate
 --apply`, `financial prepare --apply`, and `overlay recipe --out PATH --apply`.
 
-Most commands accept `--json` for one machine-readable result, and reports
-always print JSON. Commands that emit JSON share one convention: dates are
+Results printed with `--json` share one convention: dates are
 `YYYY-MM-DD` strings, and the document is pretty-printed with a two-space
 indent. **Amounts are decimal strings in the book currency**, written the way
 journal files write them (`"54.99"`; `"1200"` for ¥1,200), so a figure you
@@ -269,8 +271,9 @@ cannot be combined with `--local`. Re-running against the same linked successor
 verifies its cloud settings and seals, then refreshes it. The successor syncs
 successfully before the old linked book syncs its removals.
 
-`--dry-run` returns a JSON preview of opening balances, moves and cloud
-actions, plus the count of unposted drafts excluded. It writes nothing.
+`--dry-run` prints a preview of opening balances, moves and cloud actions, plus
+the count of unposted drafts excluded (`--dry-run --json` prints it as JSON). It
+writes nothing.
 
 ### iris seal
 
@@ -375,7 +378,7 @@ The path is relative to the book. Omitted `--book-path` finds the current book;
 omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
-Output is always JSON, with these keys:
+The result has these keys (as JSON with `--json`):
 
 - `proposal` — the complete proposed Markdown
 - `allocations` — quantities, costs (decimals, as the journal writes them),
@@ -394,7 +397,7 @@ writing and refuses a stale revision. It leaves the journal's status as it
 is and does not sync. Archived books and known sealed years refuse apply, and
 so does a posted journal while the book's posting approval is on.
 
-When nothing can be proposed, the command exits 1 and prints JSON with
+When nothing can be proposed, the command exits 1 and prints the refusal:
 `refusal.reason` and `refusal.message`. `refusal.reason` is one of:
 
 - `completeSeveral` — more than one amount is `null`
@@ -417,7 +420,7 @@ completion that made that proposal; any other ID is refused with
 
 A package that supports it (one with bindings v5 preparation points) can also
 fill missing extra fields before the amount is completed, classifying first
-and then calculating. JSON includes
+and then calculating. The result includes
 `preparationPlan` and `preparationTrace` with exact providers, consumed inputs
 and proposed values. Apply saves per-field provenance in `preparation_source`;
 ordinary `iris validate` can replay it from retained Book definitions. Preparation
@@ -482,7 +485,7 @@ statement's closing balance, a cash count — against the book, offline.
 iris reconcile [--json] [path]
 ```
 
-The JSON shows, for each observation, the recorded and observed balance, the
+The result shows, for each observation, the recorded and observed balance, the
 difference and whether its evidence file still matches. Exit 1 means a
 mismatch, missing or changed evidence, or invalid input. Without the file, or
 with an empty list, there is nothing to check. Nothing is rewritten or posted;
@@ -535,7 +538,7 @@ See [schedule limits](book-format-reference.md#schedule-recording-the-table-inst
 
 Calculate a named accounting view, keep the result in the book and accept it.
 `prepare` first calculates without writing; review the statements and the
-generation ID in its JSON, then run it again with `--apply` to retain that
+generation ID in its result, then run it again with `--apply` to retain that
 exact generation:
 
 ```sh
@@ -582,7 +585,7 @@ iris context [path]
 iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
-Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
+Prints text; `--json` prints JSON. `--help` lists every
 supported flag, including repeatable `--view` and the explicit `--book-path` selector.
 
 The task must exist in the exact selected Book package. Older releases report
@@ -818,8 +821,11 @@ different currencies, like `reporting_currency` in
 
 `--add-launcher` adds one IrisBooks launcher for the Dock, Start Menu or app
 menu. It holds no folder: a folder named with it only opens first, and
-`--currency` is refused there. `--status --json` prints `running`, `folder` and
-`books`; neither it nor any other output includes the sign-in link.
+`--currency` is refused there. `--status` names the version of `iris` serving
+the page. `--status --json` prints `running`, `folder` and `books`, and while it
+runs `version`; `binaryVersion` appears when the server is an older `iris` than
+this one, which the next `iris view` replaces. Neither it nor any other output
+includes the sign-in link.
 
 ### iris balance
 
@@ -848,18 +854,17 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
 
 Every report command and `iris balance` accepts `--include-drafts` to preview
 draft entries. This selects read-only comparison mode when `--mode` is omitted;
-for example, `iris report pl --include-drafts`. The JSON identifies the effective
+for example, `iris report pl --include-drafts`. The result identifies the effective
 mode and whether draft sources are included. Without the flag, drafts are excluded.
 Explicit `--mode approved --include-drafts` is rejected. Comparison mode also
 calculates inventory and depreciation without writing files; approved named-view
 reports use the current accepted financial generation.
 
-Report output is **JSON** (amounts as decimal strings in the book currency). Cloud responses may
-include additional revision or freshness metadata. There is no text-table mode:
-terminal column alignment is
-unreliable for Japanese account names, your AI consumes JSON anyway, and the
-web app is the formatted view for humans. A `--json` flag is still accepted
-as a no-op for compatibility.
+Reports print as text: the statement's figures in order, its rows as tables
+with amounts aligned on the right, account names in any script lined up. With
+`--json` they print JSON (amounts as decimal strings in the book currency), the
+form to read when you process the figures. Cloud responses may include
+additional revision or freshness metadata.
 
 `report sum` groups posted journal lines by the keys you choose — `account`,
 `unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one an
@@ -1267,7 +1272,7 @@ continuous position history; the next year's opening
 balances must reconcile with the previous year's closing position and then
 replace it, so nothing is counted twice. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
-Output is JSON. Cloud inclusion settings do not apply.
+Prints text; `--json` prints JSON. Cloud inclusion settings do not apply.
 
 ### iris price
 
@@ -1818,7 +1823,7 @@ iris api inbox quarantine [--json] <book-id>
 ### iris api balance / holdings / history
 
 ```bash
-iris api balance [--as-of YYYY-MM-DD] <book-id>              # server-side trial balance (JSON output)
+iris api balance [--as-of YYYY-MM-DD] [--json] <book-id>     # server-side trial balance
 iris api holdings [--as-of YYYY-MM-DD] [--json] <book-id>    # per-unit net positions
 iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id> # durable correction/deletion record
 ```
@@ -1941,10 +1946,11 @@ without a book selector. A topic defaults to its outline; `full=true` opts into
 the complete chapter. Offline cross-references show `iris docs` commands; use
 the same topic and section with MCP.
 
-### iris version
+### iris --version
 
 ```bash
-iris version
+iris --version          # iris 0.3.31
+iris --version --json   # {"version": "0.3.31"}
 ```
 
 ### iris update
@@ -1984,13 +1990,16 @@ Older binaries without this command use the installer to upgrade first.
 
 ### iris uninstall
 
-Remove iris itself from this machine: the iris binaries, your sign-in and
+Remove iris itself from this machine: the iris binaries where iris installs
+them and the one you run, your sign-in and
 local config (`~/.config/irisbooks` — the CLI session is revoked server-side
 first), the Claude Code skill, machine-level MCP registrations (Claude
 Desktop, Codex CLI), the PATH entry from `iris onboard --install-path`, and
 the IrisBooks launcher from [`iris view --add-launcher`](#iris-view). A running
 `iris view` is stopped first. It always prints the exact list of what it found
-on this machine and asks for confirmation before deleting anything.
+on this machine and asks for confirmation before deleting anything. Another
+`iris` on your `PATH` that iris did not install, such as one from a package
+manager, is named but not deleted.
 
 Your books are never touched — they are plain files you own — and neither is a
 folder's own `.irisbooks/`. Per-book agent

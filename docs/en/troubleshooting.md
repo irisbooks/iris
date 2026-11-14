@@ -43,7 +43,7 @@ The shell cannot find `iris` on its `PATH`. Check in this order:
 1. Which machine or VM is running the command? It may not be the one where
    `iris` was installed.
 2. If you have just installed it, open a new terminal.
-3. If it is still not found, run `iris version` using the absolute executable
+3. If it is still not found, run `iris --version` using the absolute executable
    path the installer printed.
 
 Install only if `iris` is actually missing; see [getting started](getting-started.md).

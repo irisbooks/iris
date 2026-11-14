@@ -731,7 +731,7 @@ AI に導入を頼むときは[開始ガイド](https://irisbooks.io/start/)を�
 マニュアルの Markdown を手元に保存する場合は、帳簿の外に置き、取得元の URL と
 リリースタグを控えておきます。取得元は
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md` です。
-`<release-tag>` は、できれば `iris version` が表示するバージョンに合わせます。読むときは、
+`<release-tag>` は、できれば `iris --version` が表示するバージョンに合わせます。読むときは、
 必要な節だけを検索します。その帳簿に適用されるルールは、帳簿で選択しているオーバーレイで
 確認してください。資料に書かれているからといって、その操作が許可されたことには
 なりません。

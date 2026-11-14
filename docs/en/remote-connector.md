@@ -135,7 +135,10 @@ validation run before the change is synced.
 | Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence upload |
 
 You can set up both. An assistant that can use both is told to prefer the
-local one, because it also sees edits you have not synced yet.
+local one, because it also sees edits you have not synced yet. When the
+assistant can run `iris` on the computer that holds your book and you are
+signed in, the CLI also reaches the cloud copy, so it does not need the
+connector at all.
 
 ## Disconnecting
 

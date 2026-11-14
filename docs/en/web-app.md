@@ -109,8 +109,9 @@ On a phone, use the top-left menu button for the same navigation.
 
 The top-right **Settings** gear opens account settings, and the **language**
 icon switches between English and Japanese. Its tooltip names the language
-you will switch to ("日本語" / "English"). Both icons stay visible on global,
-book and first-run pages.
+you will switch to ("日本語" / "English"). The **help** icon beside them opens
+this manual in a new tab. The icons stay visible on global, book and first-run
+pages.
 
 Your **avatar** (top right) opens the account menu from anywhere: your
 **Settings** (see below), a language switch, and log out. The language

@@ -61,7 +61,7 @@ authorization guidance. Japanese pages remain online.
 
 `/llms-full.txt` is this manual in one English file. Release-tagged copies are
 at `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`;
-prefer the tag matching `iris version`. Keep any downloaded copy outside the
+prefer the tag matching `iris --version`. Keep any downloaded copy outside the
 bookkeeping records, record its source URL and release tag, search only the
 relevant sections and refresh it after CLI or overlay changes. If a reference
 is unavailable, say which one you use and check the installed help rather than
@@ -236,7 +236,7 @@ Path B.
 
 ### 1. Check for `iris`
 
-Run `iris version`. If it prints a version, `iris` is already installed: use
+Run `iris --version`. If it prints a version, `iris` is already installed: use
 it, and run `iris update` when you want the latest release. Otherwise install
 it as below.
 
@@ -269,7 +269,7 @@ your apps, so you can open your books without a terminal (see
 that. Updates never add it. Confirm the installed version with:
 
 ```bash
-iris version
+iris --version
 ```
 
 If `iris` still isn't found, open a new terminal or use the absolute executable
@@ -1508,7 +1508,7 @@ an update unless the user has already authorized it.
 For assistants: for `installKind: mcpb`, reinstall the matching bundle at
 `downloadURL` through the client's extension settings, keeping the books parent
 folder, then restart. Older binaries without `iris update` need the
-installer; compare `iris version` with
+installer; compare `iris --version` with
 `https://irisbooks.io/dl/latest/version.txt` first. Keep local bookkeeping
 available when the release server cannot be reached.
 
@@ -1539,7 +1539,7 @@ cannot read the bundled docs can use the
 If you keep a Markdown copy of the manual, store it outside the book and note
 its source URL and release tag:
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
-Where you can, pick the release tag that matches `iris version`, and search
+Where you can, pick the release tag that matches `iris --version`, and search
 only the sections you need. For the rules that apply to a book, check the
 overlays that book selects. Reading reference material does not authorize any
 action.
@@ -1707,9 +1707,11 @@ calculated by `iris` from your files:
   **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
 - **Plugins**, which only this page has (see below).
+- **Sync**, which only this page has, for a book linked to the cloud (see
+  [Sync a book](#sync-a-book)).
 - **Book settings**, which here shows the book's folder, with a button that
-  opens it in Finder or File Explorer, and holds the cards for working on the
-  book with your AI and for its cloud copy. The web app's book settings
+  opens it in Finder or File Explorer, the card for working on the book with
+  your AI, and whether the book has a cloud copy. The web app's book settings
   (members, email inbox, posting approval) belong to the cloud copy and stay
   there.
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
@@ -1721,6 +1723,9 @@ only.
 
 Screens that need the cloud copy aren't here: **Activity**, deleted journals,
 **Year-end** and an entry's **History**. Use the web app for those.
+
+The **help** icon at the top right opens this page of the manual on
+irisbooks.io, in your browser. Everything else on the page works offline.
 
 ## Posting drafts
 
@@ -1883,7 +1888,8 @@ only a way to sign in.
 ### Sign in
 
 Choose **Sign in to IrisBooks**. It's in **Settings → IrisBooks account** and in
-a book's **Book settings**, and on the Overview of a book with a cloud copy. The
+a book's **Book settings**, and on the Overview and **Sync** page of a book with
+a cloud copy. The
 sign-in page opens in your browser, and this page updates when you finish
 there. If the sign-in page doesn't come up, for example because it opened
 behind this window, choose **Open the sign-in page**. If signing in times out or
@@ -1900,41 +1906,48 @@ the page goes back to showing only **Sign in to IrisBooks**.
 ### Sync a book
 
 A book linked to the cloud (one you [put online](#put-a-book-online) or
-[downloaded](#download-a-book-from-the-cloud)) has a **Cloud copy** card on its
-Overview and in Book settings.
+[downloaded](#download-a-book-from-the-cloud)) has a **Sync** page, listed
+under the book in the sidebar. The book's Overview has a **Cloud copy** card
+that says how many changes are waiting, with **Sync now** and **Open Sync**.
 
-- **Changed on this computer since the last sync** lists the files you or your
-  AI added, changed or deleted, and updates as the files change. **Show** shows
-  a file's changes line by line. The list is worked out on your computer
+The Sync page has:
+
+- **Sync now**, at the top, which sends this computer's changes and brings the
+  cloud's, the same as `iris sync`.
+- **Changed on this computer since the last sync**, the files you or your AI
+  added, changed or deleted. The list updates as the files change. **Show**
+  shows a file's changes line by line. The list is worked out on your computer
   without contacting the cloud.
-- **Check the cloud** asks the cloud what a sync would do, without doing it:
-  the changes it would bring here, and the files changed both here and in the
-  cloud. Nothing is sent or downloaded.
-- **Sync now** sends this computer's changes and brings the cloud's, the same
-  as `iris sync`.
+- **In the cloud**, what a sync would bring here. **Check the cloud** asks the
+  cloud what a sync would do, without doing it: the changes it would bring
+  here, and the files changed both here and in the cloud. Nothing is sent or
+  downloaded.
 
-Tick **Check the cloud automatically** to have the page check on its own when a
-book's Overview opens and when you come back to the window, at most every five
-minutes. It only checks; it never syncs. The setting is yours on this computer,
-so it covers every folder you open.
+To have the page check on its own when a book's Overview or Sync page opens and
+when you come back to the window, at most every five minutes, tick **Check the
+cloud automatically** in **Settings → IrisBooks account**. It only checks; it
+never syncs. The setting is yours on this computer, so it covers every book in
+every folder you open.
 
 Before a sync sends evidence files, or a book's files for the first time, the
-card reminds you that data sent to IrisBooks must not contain a
-government-issued personal identification number.
+page reminds you, next to **Sync now**, that data sent to IrisBooks must not
+contain a government-issued personal identification number.
 
-If the card can't load, it says why, with **Try again**. If a sync reports
-files it couldn't send or changes it couldn't save, sync again.
+If the page can't load the book's sync status, it says why, with **Try again**.
+If a sync reports files it couldn't send or changes it couldn't save, sync
+again.
 
-As with the AI card, **Hide** takes the card off every book's Overview, and
-Book settings keeps it.
+As with the AI card, **Hide** takes the **Cloud copy** card off every book's
+Overview. The Sync page stays, and Book settings has the switch that brings the
+card back.
 
 ### When a file changed in both places
 
 If a file changed here and in the cloud since the last sync, a sync keeps the
-cloud's version in the file and sets this computer's aside. The card lists
-these files under **Changed here and in the cloud**. The same sync still
-carries the other files, but nothing more syncs until each one is settled.
-**Compare** shows the two versions. Then choose one:
+cloud's version in the file and sets this computer's aside. The Sync page
+lists these files first, under **Changed here and in the cloud**. The same
+sync still carries the other files, but nothing more syncs until each one is
+settled. **Compare** shows the two versions. Then choose one:
 
 - **Keep this computer's** puts this computer's version back and syncs it.
 - **Keep the cloud's** deletes this computer's version. This can't be undone.
@@ -1942,13 +1955,14 @@ carries the other files, but nothing more syncs until each one is settled.
 The choice does what `iris conflicts resolve` does. To combine both versions by
 hand instead, see [Sync conflicts](https://irisbooks.io/docs/en/troubleshooting/#sync-conflicts).
 
-Files the cloud refused, such as an entry it couldn't read, are listed with the
-reason. Fix them, then sync again. See
+Files the cloud refused, such as an entry it couldn't read, are listed on the
+Sync page with the reason. Fix them, then sync again. See
 [Sync rejections](https://irisbooks.io/docs/en/troubleshooting/#sync-rejections-needs-attention).
 
 ### Put a book online
 
-A book with no cloud copy shows **Put this book online** on its Overview.
+A book with no cloud copy shows **Put this book online** on its Overview and in
+Book settings.
 Choosing it makes a cloud book from the book's settings, links this folder to
 it, and syncs every file. The files stay in this folder. The book's address in
 the page changes, because a linked book is known by its cloud ID.
@@ -1967,7 +1981,13 @@ and shows every book in it. Downloading here does the same as `iris clone`.
 for updates** to ask irisbooks.io for the latest version. If a newer one is out,
 choose **Update to …**: `iris` downloads it, checks its signature and checksum,
 replaces itself, and restarts the page, which reloads on its own. If the check
-fails, the version you have stays in place.
+fails, the version you have stays in place. The version is also at the bottom of
+the sidebar; choose it to open **Settings → About**.
+
+When you ask for help, choose **Copy details** in **Settings → About** and paste
+the result: it holds the version of `iris`, your system and the page's
+language, and no folder, book or account. If a screen fails, its error message
+offers the same button, with the error added.
 
 Tick **Check automatically** to have the page ask at most once a day while it's
 open. An **Update available** label then appears at the top of the page when
@@ -1978,6 +1998,13 @@ If your AI app runs IrisBooks for you, restart that app after updating so it
 uses the new version too. A copy installed as an extension in your AI app is
 updated from that app's extension settings; the About section links to the
 download. A development build can't update itself.
+
+A book that a newer version of `iris` worked on still opens, and shows what your
+version can read. A notice names the book, and the version at the bottom of the
+sidebar reads **update needed**. Until you update, the page doesn't post or
+change entries a newer version wrote, doesn't change anything in a book whose
+settings a newer version wrote, and plugins newer than your version don't check
+the book.
 
 ## Privacy and stopping
 
@@ -1994,11 +2021,11 @@ download. A development build can't update itself.
 
 The page stops by itself about five minutes after you close the last window.
 `iris view --stop` stops it now, and `iris view --status` says whether it's
-running. A page left open after that says "This view has closed. Open IrisBooks
+running and which version of `iris` serves it. A page left open after that says "This view has closed. Open IrisBooks
 again."
 
 For assistants: `iris view` returns at once and never prints the sign-in link;
-`--status --json` reports `{running, folder, books}`. Open it when the user
+`--status --json` reports `{running, folder, books, version}`. Open it when the user
 wants to look at the books themselves, for example to review and post the
 drafts you prepared, not on every task. Local MCP offers the same as `open_view`,
 with no arguments, in single-book and parent modes. A browser in your VM or
@@ -2123,8 +2150,9 @@ On a phone, use the top-left menu button for the same navigation.
 
 The top-right **Settings** gear opens account settings, and the **language**
 icon switches between English and Japanese. Its tooltip names the language
-you will switch to ("日本語" / "English"). Both icons stay visible on global,
-book and first-run pages.
+you will switch to ("日本語" / "English"). The **help** icon beside them opens
+this manual in a new tab. The icons stay visible on global, book and first-run
+pages.
 
 Your **avatar** (top right) opens the account menu from anywhere: your
 **Settings** (see below), a language switch, and log out. The language
@@ -2863,7 +2891,10 @@ locally rather than looking for a write path.
 | Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence upload |
 
 You can set up both. An assistant that can use both is told to prefer the
-local one, because it also sees edits you have not synced yet.
+local one, because it also sees edits you have not synced yet. When the
+assistant can run `iris` on the computer that holds your book and you are
+signed in, the CLI also reaches the cloud copy, so it does not need the
+connector at all.
 
 ## Disconnecting
 
@@ -3049,13 +3080,15 @@ installation. Command placement does not imply that it is offline.
   the next cloud book unless `--local` is chosen. `price sync`, package downloads
   and `update` also use the network.
 
-Run `iris <command> --help` or `iris help <command>` for current invocation
-details. `iris help --all` prints every command's help page in one read;
-`iris help --all report` prints only the pages at and under that command. Add
-`--json` to get the same pages as data: each page's text, its flags (name,
-whether it takes a value) and its subcommands. Help works offline without a
-book or login, writes to stdout and exits 0. Flags may precede or follow arguments; `--` makes the remaining arguments
-literal. Boolean values use `--flag=true` or `--flag=false`.
+`iris <command> --help` is the source for a command's flags and arguments in
+the version you run; this reference explains behaviour, output shapes and
+procedures that span commands. Add `--full` for the page and every page under
+it in one read (`iris report --help --full`; `iris --help --full` is every
+command). Add `--json` to get the pages as data: each page's text, its flags
+(name, whether it takes a value) and its subcommands. Help works offline
+without a book or login, writes to stdout and exits 0. Flags may precede or follow arguments; `--` makes the remaining arguments
+literal. Boolean values use `--flag=true` or `--flag=false`; a separate value
+(`--json false`) is refused with that hint.
 
 Calculations and repairs (`journal complete`, `organize`, `financial prepare`,
 `overlay recipe`, and derived values in `validate`) write only with `--apply`.
@@ -3065,10 +3098,11 @@ Recipes also need `--out PATH`; retained financial calculations need the reviewe
 it. `yearend` carries balances into the next book; `seal` separately locks
 the current year, and `reopen` unlocks it for amendments.
 
-`report`, `balance`, `reconcile`, `allocation`, `context`, `financial`,
-`journal complete`, `networth` and `analytics export` always emit JSON. Other
-inspection commands document their optional `--json`; `sync issues list`,
-`conflicts list` and `api config show` support it. Successful data goes to stdout;
+Commands print their result as text; most accept `--json` to print the same
+result as one JSON document instead. The text is rendered from that JSON, so
+both hold the same values under the same names: values as `name: value`, lists
+of records as aligned tables with amounts on the right, nested records
+indented. `allocation --schema` prints its request's JSON Schema. Successful data goes to stdout;
 errors go to stderr. Exit 0 means success, 1 an operation/check failure, 2 invalid
 arguments/setup, and 3 a terminal sync disconnect.
 
@@ -3078,8 +3112,7 @@ selectors use `--book-path`; the former ambiguous `--book` flag is removed.
 Closing previews use `seal --dry-run`; calculation writes use `validate
 --apply`, `financial prepare --apply`, and `overlay recipe --out PATH --apply`.
 
-Most commands accept `--json` for one machine-readable result, and reports
-always print JSON. Commands that emit JSON share one convention: dates are
+Results printed with `--json` share one convention: dates are
 `YYYY-MM-DD` strings, and the document is pretty-printed with a two-space
 indent. **Amounts are decimal strings in the book currency**, written the way
 journal files write them (`"54.99"`; `"1200"` for ¥1,200), so a figure you
@@ -3106,7 +3139,7 @@ their documented spelling.
 For assistants: allocation results also carry `businessAmount` and
 `privateAmount`. A balance row's `net` is always numeric, `0` for a cleared
 account; with `type` it follows the account's native direction, without it it
-is `debits - credits`. Parse the JSON; human-readable text is not a contract.
+is `debits - credits`. Read results with `--json`; the text layout is for people and is not a contract.
 
 ## Books and fiscal years
 
@@ -3308,8 +3341,9 @@ cannot be combined with `--local`. Re-running against the same linked successor
 verifies its cloud settings and seals, then refreshes it. The successor syncs
 successfully before the old linked book syncs its removals.
 
-`--dry-run` returns a JSON preview of opening balances, moves and cloud
-actions, plus the count of unposted drafts excluded. It writes nothing.
+`--dry-run` prints a preview of opening balances, moves and cloud actions, plus
+the count of unposted drafts excluded (`--dry-run --json` prints it as JSON). It
+writes nothing.
 
 ### iris seal
 
@@ -3414,7 +3448,7 @@ The path is relative to the book. Omitted `--book-path` finds the current book;
 omitted `--view` uses its default view. A selected view receives its own lines,
 leaving shared lines and other views intact.
 
-Output is always JSON, with these keys:
+The result has these keys (as JSON with `--json`):
 
 - `proposal` — the complete proposed Markdown
 - `allocations` — quantities, costs (decimals, as the journal writes them),
@@ -3433,7 +3467,7 @@ writing and refuses a stale revision. It leaves the journal's status as it
 is and does not sync. Archived books and known sealed years refuse apply, and
 so does a posted journal while the book's posting approval is on.
 
-When nothing can be proposed, the command exits 1 and prints JSON with
+When nothing can be proposed, the command exits 1 and prints the refusal:
 `refusal.reason` and `refusal.message`. `refusal.reason` is one of:
 
 - `completeSeveral` — more than one amount is `null`
@@ -3456,7 +3490,7 @@ completion that made that proposal; any other ID is refused with
 
 A package that supports it (one with bindings v5 preparation points) can also
 fill missing extra fields before the amount is completed, classifying first
-and then calculating. JSON includes
+and then calculating. The result includes
 `preparationPlan` and `preparationTrace` with exact providers, consumed inputs
 and proposed values. Apply saves per-field provenance in `preparation_source`;
 ordinary `iris validate` can replay it from retained Book definitions. Preparation
@@ -3521,7 +3555,7 @@ statement's closing balance, a cash count — against the book, offline.
 iris reconcile [--json] [path]
 ```
 
-The JSON shows, for each observation, the recorded and observed balance, the
+The result shows, for each observation, the recorded and observed balance, the
 difference and whether its evidence file still matches. Exit 1 means a
 mismatch, missing or changed evidence, or invalid input. Without the file, or
 with an empty list, there is nothing to check. Nothing is rewritten or posted;
@@ -3581,7 +3615,7 @@ See [schedule limits](https://irisbooks.io/docs/en/book-format-reference/#schedu
 
 Calculate a named accounting view, keep the result in the book and accept it.
 `prepare` first calculates without writing; review the statements and the
-generation ID in its JSON, then run it again with `--apply` to retain that
+generation ID in its result, then run it again with `--apply` to retain that
 exact generation:
 
 ```sh
@@ -3628,7 +3662,7 @@ iris context [path]
 iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
-Output is always JSON; `--json` is accepted as a no-op. `--help` lists every
+Prints text; `--json` prints JSON. `--help` lists every
 supported flag, including repeatable `--view` and the explicit `--book-path` selector.
 
 The task must exist in the exact selected Book package. Older releases report
@@ -3864,8 +3898,11 @@ different currencies, like `reporting_currency` in
 
 `--add-launcher` adds one IrisBooks launcher for the Dock, Start Menu or app
 menu. It holds no folder: a folder named with it only opens first, and
-`--currency` is refused there. `--status --json` prints `running`, `folder` and
-`books`; neither it nor any other output includes the sign-in link.
+`--currency` is refused there. `--status` names the version of `iris` serving
+the page. `--status --json` prints `running`, `folder` and `books`, and while it
+runs `version`; `binaryVersion` appears when the server is an older `iris` than
+this one, which the next `iris view` replaces. Neither it nor any other output
+includes the sign-in link.
 
 ### iris balance
 
@@ -3894,18 +3931,17 @@ iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
 
 Every report command and `iris balance` accepts `--include-drafts` to preview
 draft entries. This selects read-only comparison mode when `--mode` is omitted;
-for example, `iris report pl --include-drafts`. The JSON identifies the effective
+for example, `iris report pl --include-drafts`. The result identifies the effective
 mode and whether draft sources are included. Without the flag, drafts are excluded.
 Explicit `--mode approved --include-drafts` is rejected. Comparison mode also
 calculates inventory and depreciation without writing files; approved named-view
 reports use the current accepted financial generation.
 
-Report output is **JSON** (amounts as decimal strings in the book currency). Cloud responses may
-include additional revision or freshness metadata. There is no text-table mode:
-terminal column alignment is
-unreliable for Japanese account names, your AI consumes JSON anyway, and the
-web app is the formatted view for humans. A `--json` flag is still accepted
-as a no-op for compatibility.
+Reports print as text: the statement's figures in order, its rows as tables
+with amounts aligned on the right, account names in any script lined up. With
+`--json` they print JSON (amounts as decimal strings in the book currency), the
+form to read when you process the figures. Cloud responses may include
+additional revision or freshness metadata.
 
 `report sum` groups posted journal lines by the keys you choose — `account`,
 `unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one an
@@ -4313,7 +4349,7 @@ continuous position history; the next year's opening
 balances must reconcile with the previous year's closing position and then
 replace it, so nothing is counted twice. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
-Output is JSON. Cloud inclusion settings do not apply.
+Prints text; `--json` prints JSON. Cloud inclusion settings do not apply.
 
 ### iris price
 
@@ -4927,7 +4963,7 @@ iris api inbox quarantine [--json] <book-id>
 ### iris api balance / holdings / history
 
 ```bash
-iris api balance [--as-of YYYY-MM-DD] <book-id>              # server-side trial balance (JSON output)
+iris api balance [--as-of YYYY-MM-DD] [--json] <book-id>     # server-side trial balance
 iris api holdings [--as-of YYYY-MM-DD] [--json] <book-id>    # per-unit net positions
 iris api history [--path PATH] [--from D] [--to D] [--all] [--limit N] [--json] <book-id> # durable correction/deletion record
 ```
@@ -5050,10 +5086,11 @@ without a book selector. A topic defaults to its outline; `full=true` opts into
 the complete chapter. Offline cross-references show `iris docs` commands; use
 the same topic and section with MCP.
 
-### iris version
+### iris --version
 
 ```bash
-iris version
+iris --version          # iris 0.3.31
+iris --version --json   # {"version": "0.3.31"}
 ```
 
 ### iris update
@@ -5093,13 +5130,16 @@ Older binaries without this command use the installer to upgrade first.
 
 ### iris uninstall
 
-Remove iris itself from this machine: the iris binaries, your sign-in and
+Remove iris itself from this machine: the iris binaries where iris installs
+them and the one you run, your sign-in and
 local config (`~/.config/irisbooks` — the CLI session is revoked server-side
 first), the Claude Code skill, machine-level MCP registrations (Claude
 Desktop, Codex CLI), the PATH entry from `iris onboard --install-path`, and
 the IrisBooks launcher from [`iris view --add-launcher`](#iris-view). A running
 `iris view` is stopped first. It always prints the exact list of what it found
-on this machine and asks for confirmation before deleting anything.
+on this machine and asks for confirmation before deleting anything. Another
+`iris` on your `PATH` that iris did not install, such as one from a package
+manager, is named but not deleted.
 
 Your books are never touched — they are plain files you own — and neither is a
 folder's own `.irisbooks/`. Per-book agent
@@ -7358,7 +7398,7 @@ The shell cannot find `iris` on its `PATH`. Check in this order:
 1. Which machine or VM is running the command? It may not be the one where
    `iris` was installed.
 2. If you have just installed it, open a new terminal.
-3. If it is still not found, run `iris version` using the absolute executable
+3. If it is still not found, run `iris --version` using the absolute executable
    path the installer printed.
 
 Install only if `iris` is actually missing; see [getting started](https://irisbooks.io/docs/en/getting-started/).
