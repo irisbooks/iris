@@ -1693,9 +1693,9 @@ The AI works on the files in the book's folder and runs `iris` there, as if
 you had started it in that folder yourself. To connect other AI apps, see
 [Connect your AI assistant](https://irisbooks.io/docs/en/getting-started/#4-connect-your-ai-assistant).
 
-The card with these buttons is also in **Book settings**. Choose **Hide** to
-take it off the Overview of every book, in every folder; to bring it back, tick
-**Show on every book's Overview** in Book settings.
+The card with these buttons is also in **Book settings**. Choose **Hide** on the
+Overview's card to take it off the Overview of every book, in every folder; to
+bring it back, tick **Show on every book's Overview** in Book settings.
 
 ## What you can see
 
@@ -1710,10 +1710,10 @@ calculated by `iris` from your files:
 - **Sync**, which only this page has, for a book linked to the cloud (see
   [Sync a book](#sync-a-book)).
 - **Book settings**, which here shows the book's folder, with a button that
-  opens it in Finder or File Explorer, the card for working on the book with
-  your AI, and whether the book has a cloud copy. The web app's book settings
-  (members, email inbox, posting approval) belong to the cloud copy and stay
-  there.
+  opens it in Finder or File Explorer, the **Work on this book with your AI**
+  card, and whether the book has a cloud copy. The web app's book settings
+  (**Book access**, **Inbound email**, **Posting approval**) belong to the cloud
+  copy and stay there.
 - **Dashboard** and **Net Worth** across books, when the folder holds more than
   one. They include every book in the folder.
 
@@ -1857,7 +1857,7 @@ anything.
 ## Prices and currencies
 
 **Net Worth** values your holdings with the prices recorded on this computer,
-and with the folder's own prices if it has them. **Settings** lists them. To
+and with the folder's own prices if it has them. **Settings → Price history** lists them. To
 record a price or exchange rate, ask your assistant or run
 [`iris price add`](https://irisbooks.io/docs/en/cli-reference/#iris-price); add `--books-dir` to record it
 for the folder.
@@ -1938,8 +1938,8 @@ If a sync reports files it couldn't send or changes it couldn't save, sync
 again.
 
 As with the AI card, **Hide** takes the **Cloud copy** card off every book's
-Overview. The Sync page stays, and Book settings has the switch that brings the
-card back.
+Overview. The Sync page stays. To bring the card back, tick
+**Show on every book's Overview** in Book settings.
 
 ### When a file changed in both places
 
@@ -1980,7 +1980,7 @@ and shows every book in it. Downloading here does the same as `iris clone`.
 **Settings → About** shows which version of `iris` is running. Choose **Check
 for updates** to ask irisbooks.io for the latest version. If a newer one is out,
 choose **Update to …**: `iris` downloads it, checks its signature and checksum,
-replaces itself, and restarts the page, which reloads on its own. If the check
+replaces itself and restarts IrisBooks; the page reloads on its own. If the check
 fails, the version you have stays in place. The version is also at the bottom of
 the sidebar; choose it to open **Settings → About**.
 
@@ -1991,7 +1991,7 @@ offers the same button, with the error added.
 
 Tick **Check automatically** to have the page ask at most once a day while it's
 open. An **Update available** label then appears at the top of the page when
-there's a newer version. Nothing installs until you choose **Update**. The
+there's a newer version. Nothing installs until you choose **Update to …**. The
 setting is yours on this computer, so it covers every folder you open.
 
 If your AI app runs IrisBooks for you, restart that app after updating so it
