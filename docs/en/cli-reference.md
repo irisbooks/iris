@@ -447,8 +447,8 @@ book owner turned on **posting approval** (web app → Settings), posting is
 web-only: `iris post` refuses locally and the server rejects any pushed
 status flip with `APPROVAL_REQUIRED`.
 Web approval displays the stored source and submits only `status: posted` with
-that reviewed file's hash. Bulk approval first displays up to 32 selected
-sources and uses those same hashes. A changed file requires a fresh review;
+that reviewed file's hash. Bulk approval first displays every selected
+source and uses those same hashes. A changed file requires a fresh review;
 approval never fetches and posts an unseen replacement. Ordinary browser record
 creation, editing, deletion and recovery are unavailable. Make corrections in a
 local client under the owner's posting policy.

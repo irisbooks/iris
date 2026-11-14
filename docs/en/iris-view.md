@@ -172,7 +172,7 @@ irisbooks.io, in your browser. Everything else on the page works offline.
 
 Open a draft, read it, and choose **Post**. To post several, select them in
 **Journals**, choose **Review selected journals**, read each one, then choose
-**Approve reviewed sources**. You can review up to 32 at a time.
+**Approve reviewed sources**.
 
 Posting changes only `status: draft` to `status: posted`, the same as
 `iris post --local`, and never syncs. On a linked book the page says "Posted on

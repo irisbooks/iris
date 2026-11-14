@@ -1731,7 +1731,7 @@ irisbooks.io, in your browser. Everything else on the page works offline.
 
 Open a draft, read it, and choose **Post**. To post several, select them in
 **Journals**, choose **Review selected journals**, read each one, then choose
-**Approve reviewed sources**. You can review up to 32 at a time.
+**Approve reviewed sources**.
 
 Posting changes only `status: draft` to `status: posted`, the same as
 `iris post --local`, and never syncs. On a linked book the page says "Posted on
@@ -3517,8 +3517,8 @@ book owner turned on **posting approval** (web app → Settings), posting is
 web-only: `iris post` refuses locally and the server rejects any pushed
 status flip with `APPROVAL_REQUIRED`.
 Web approval displays the stored source and submits only `status: posted` with
-that reviewed file's hash. Bulk approval first displays up to 32 selected
-sources and uses those same hashes. A changed file requires a fresh review;
+that reviewed file's hash. Bulk approval first displays every selected
+source and uses those same hashes. A changed file requires a fresh review;
 approval never fetches and posts an unseen replacement. Ordinary browser record
 creation, editing, deletion and recovery are unavailable. Make corrections in a
 local client under the owner's posting policy.
