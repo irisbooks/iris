@@ -301,7 +301,8 @@ anything.
 and with the folder's own prices if it has them. **Settings → Price history** lists them. To
 record a price or exchange rate, ask your assistant or run
 [`iris price add`](cli-reference.md#iris-price); add `--books-dir` to record it
-for the folder.
+for the folder. To bring down the prices you recorded on the web app or another
+computer, [sync your prices](#sync-your-prices).
 
 A folder whose books use different currencies needs a reporting currency for the
 Dashboard and Net Worth. Set `reporting_currency` in the folder's
@@ -323,14 +324,14 @@ need, then choose **Reload the entry** to see the other window's change.
 ## Sync with the cloud
 
 Once you sign in, the page can sync a book with its cloud copy, put a book
-online, and download a book from the cloud. Until then it shows none of this,
-only a way to sign in.
+online, download a book from the cloud, and sync your prices. Until then it
+shows none of this, only a way to sign in.
 
 ### Sign in
 
-Choose **Sign in to IrisBooks**. It's in **Settings → IrisBooks account** and in
-a book's **Book settings**, and on the Overview and **Sync** page of a book with
-a cloud copy. The
+Choose **Sign in to IrisBooks**. It's in **Settings → IrisBooks account**,
+**Settings → Price history** and a book's **Book settings**, and on the Overview
+and **Sync** page of a book with a cloud copy. The
 sign-in page opens in your browser, and this page updates when you finish
 there. If the sign-in page doesn't come up, for example because it opened
 behind this window, choose **Open the sign-in page**. If signing in times out or
@@ -416,6 +417,37 @@ Choose **Download from the cloud** in the folder strip's menu, or next to
 were invited to, and where to save it. The book gets a folder of its own there,
 named after the book and its year. The page then opens the folder you saved in
 and shows every book in it. Downloading here does the same as `iris clone`.
+
+A book doesn't carry your prices. To value its holdings with the prices you
+recorded elsewhere, also [sync your prices](#sync-your-prices).
+
+### Sync your prices
+
+The prices and exchange rates you record are yours, not a book's, so syncing a
+book doesn't carry them. **Settings → Price history** has **Sync prices**. It
+sends the prices recorded on this computer and brings down the ones you
+recorded on the web app, on another computer or through your AI, the same as
+`iris price sync`. The card says when this computer doesn't have your cloud
+prices yet, and how many prices recorded here aren't in the cloud yet. Like a
+book's sync, it runs only when you choose it.
+
+On **Net Worth**, a holding with no recorded price is valued at book value. The
+note that lists those holdings links to **Price history**.
+
+If a price changed here and in the cloud since the last sync, the card lists it
+with both prices, and Net Worth uses the cloud's until you choose.
+**Keep the cloud's** discards this computer's price, after asking you.
+**Keep this computer's** keeps it and syncs, so the cloud gets it too. When
+more than one price is listed, **Keep this computer's for all** and
+**Keep the cloud's for all** make the same choice for every one of them. If any
+of them changed since the page showed them, your choice isn't applied and the
+list shows them again. Your
+assistant can choose for you, or you can run
+[`iris price conflicts`](cli-reference.md#iris-price) and then
+`iris price resolve`.
+
+A folder's own prices never sync. For the units they price, they're still used
+instead of your synced prices.
 
 ## Updates
 
