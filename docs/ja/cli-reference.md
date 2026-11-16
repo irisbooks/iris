@@ -246,7 +246,7 @@ iris status [--json] [path]
 指定すると拒否されます。
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [--json] [path]
 ```
 
 `--link-existing BOOK_ID` を付けると、翌年度のクラウド帳簿を新しく作らず、作成したまま
@@ -259,7 +259,11 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | 
 親フォルダの MCP `yearend` でも `link_existing="<book-id>"` を使えます。
 
 `--dry-run` は、期首残高の仕訳、移動する仕訳、クラウド操作のプレビューと、繰越から
-除外される下書きの件数を表示します（`--dry-run --json` なら JSON）。ファイルやクラウドには書き込みません。
+除外される下書きの件数を表示します。ファイルやクラウドには書き込みません。`--json` を付けると
+この計画を1つのオブジェクト（`status: "preview"`）として出力します。`--dry-run` なしでは
+計画を実行し、同じオブジェクトを `status: "done"` で出力します。次年度の帳簿にクラウドの
+コピーがあれば `cloudBookId` も加わります。`--json` での実行は確認を求めないため、
+クラウドの帳簿を作るには `--yes` が必要です。
 
 ### iris seal
 
@@ -287,8 +291,15 @@ iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | 
 サーバー側でデータを再構築する必要があります。[Discordコミュニティ](https://discord.gg/wZDsv9gyb9)で相談してください。
 
 ```bash
-iris seal [--dry-run] <fiscal-year> [book-path]
+iris seal [--dry-run] [--json] <fiscal-year> [book-path]
 ```
+
+`--json` を付けると、`dryRun` と `periodKey` を含む1つのオブジェクトを
+出力します。プレビューでは `alreadySealed`・`fileCount`・`totalBytes`・
+`files`（`path`・`sizeBytes`）・`drafts`、残高の確認を設定していれば
+`reconciliation`、そして `ready`（下書きも未解決もない）が加わります。
+締められない状態のプレビューも終了コードは 0 です。締めると `seal`
+（`id`・`periodKey`・`sealedAt` など）が加わります。
 
 連携済み帳簿のフォルダで実行するか、`--book-path` を指定します。その帳簿の
 クラウド側を締めます。ローカル MCP の `seal` ツールも、選んだ帳簿に同じ操作をします。
@@ -303,8 +314,10 @@ iris seal [--dry-run] <fiscal-year> [book-path]
 `iris sync` で編集を push し、`iris seal <fiscal-year>` で年度を再度締めてください。
 
 ```bash
-iris reopen <fiscal-year> [path]
+iris reopen [--json] <fiscal-year> [path]
 ```
+
+`--json` を付けると `status`（`reopened`）・`fiscalYear`・再開した締めの `sealId` を出力します。
 
 ## 記帳と会計ルール
 
@@ -437,9 +450,19 @@ Web アプリでは保存済みのソースを確認してから承認します�
 run `iris reopen <n>` to amend it, then re-seal"*）。
 
 ```bash
-iris post [--dry-run] [--local] <file>...
-iris post [--dry-run] [--local] --all
+iris post [--dry-run] [--local] [--json] <file>...
+iris post [--dry-run] [--local] [--json] --all
 ```
+
+`--json` を付けると1つのオブジェクトを出力します。`journals` は各仕訳の
+帳簿内パス `path` と `result`（`posted`・`wouldPost`・`alreadyPosted`・
+`failed`）で、失敗したものには `reason` と `error` が付きます。`counts` は
+結果ごとの件数です。`sync` の `status` は `synced`（`result` に
+`iris sync --json` と同じ形の結果）、`dryRun`、`local`、`skipped`（理由は
+`reason`）、`error` のいずれかです。終了コードは変わらず、仕訳を処理した
+後であれば終了コードにかかわらずこのオブジェクトを出力します。同期が
+途中までの場合も 0 で終わることがあるので、`sync.result.status` を
+確認してください。
 
 `--all` はファイルを指名する代わりに、帳簿内のすべての `draft` 下書きを
 記帳します。ほかの共同作業者が書いた仕訳や、自動生成の減価償却も対象です。
@@ -496,10 +519,17 @@ iris allocation --input -     # 標準入力から一つのJSONオブジェク�
 固定資産の減価償却とレポート。
 
 ```bash
-iris asset schedule [--year YYYY] [path]    # 各資産の償却スケジュール
-iris asset depreciate --month YYYY-MM [path]  # その月の仕訳を生成（status: draft）
-iris asset depreciate --year YYYY [path]      # 年度合計の仕訳を期末日付で資産ごとに生成
+iris asset schedule [--year YYYY] [--json] [path]  # 各資産の償却スケジュール
+iris asset depreciate --month YYYY-MM [--json] [path]  # その月の仕訳を生成（status: draft）
+iris asset depreciate --year YYYY [--json] [path]    # 年度合計の仕訳を期末日付で資産ごとに生成
 ```
+
+`--json` を付けると、`schedule` は `asOf`・`currency`・`assets`（取得価額、期首・
+当期償却・期末の帳簿価額、償却累計額を10進数の文字列で）を、`--year` があれば
+`fiscalYear` と `periodStart` も出力します。`depreciate` は `cadence`・`fiscalYear`・
+`date`・`currency`、書き出した下書き `written`（`path`・`asset`・`amount`）、
+既にあるため飛ばした `skipped`、償却のない資産の件数 `noActivity`、計算できなかった
+資産 `failed` を出力します。
 
 方式は会計年度ごとにどちらか一方を選びます。すでに月次仕訳がある年度への年次
 実行（およびその逆）は拒否されます — 混在すると二重計上になるためです。
@@ -788,10 +818,15 @@ iris view --remove-launcher
 ランチャーを1つ追加します。ランチャーはフォルダを持ちません。一緒に指定した
 フォルダは最初に開くだけで、`--currency` は指定できません。`--status` は
 画面を表示している `iris` のバージョンも示します。`--status --json` は
-`running`・`folder`・`books` を、動いている間は `version` も出力します。
+`running`・`folder`・`books` を、動いている間は `version` と `port` も出力します。
 画面を表示しているのがこの `iris` より古いものなら `binaryVersion` も加わり、
 次の `iris view` で置き換わります。これを含め、どの出力にもサインイン用の
-リンクは含まれません。
+リンクは含まれません。VM や SSH 接続先のようにブラウザが開けない環境では、
+`iris view` はその旨を示して終了コード 1 で終わり、何も動かしたままにしません。
+画面のないコンピュータでは何も起動せず、起動したあとでブラウザが開けなかった
+場合はその画面を止めます。すでに動いていた画面はそのままにします。`--json` を
+付けると `opened: false` を含む概要も出力します。その場合は、ご自分の
+コンピュータで帳簿を開いてください。
 
 ### iris balance
 
@@ -1042,9 +1077,14 @@ iris references [--json] <path> [path]
 仕訳・試算表・元帳・資産を CSV（UTF-8 BOM 付き）で書き出します。
 
 ```bash
-iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
-iris export assets [--year YYYY] [--out FILE] [path]
+iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] [path]
+iris export assets [--year YYYY] [--out FILE] [--json] [path]
 ```
+
+`--json` を付けると書き出したファイルを出力します。`iris export` は
+`outDir`・`files`・`journalCount` と、基準日があれば `asOf` を、
+`iris export assets` は `files` と `assetCount` を返します。帳簿内のパスは
+帳簿からの相対パスです。
 
 各 `ledger-<科目>.csv` は紙の元帳の並びです。`date`、`file`、`description`（摘要）、
 `counter_account`（相手勘定。科目、または帳簿の言語で「諸口」「前期繰越」）、`payee`
@@ -1154,8 +1194,11 @@ iris diff --paths        # 名前と種別のみ
 
 ```bash
 iris conflicts list [--json] [path]
-iris conflicts resolve <path> --keep mine|cloud [path]
+iris conflicts resolve <path> --keep mine|cloud [--json] [path]
 ```
+
+`--json` を付けると、`resolve` は `path` と `kept` を、`--keep mine` の
+場合は同期結果を `sync`（`iris sync --json` と同じ形）として出力します。
 
 通常は手動マージで解決します（正規ファイルを編集し、サイドカーを削除し、
 `iris sync`）。[トラブルシューティング](troubleshooting.md) を参照。
@@ -1167,9 +1210,11 @@ iris conflicts resolve <path> --keep mine|cloud [path]
 
 ```bash
 iris sync issues list [--json] [path]              # パス + コード + 問題を表示
-iris sync issues retry [path]             # 抑制を外す。次の `iris sync` で再 push
+iris sync issues retry [--json] [path]             # 抑制を外す。次の `iris sync` で再 push
 iris sync issues retry --path <relpath> [path]   # 1ファイルのみ
 ```
+
+`retry --json` は抑制を外したパス `dropped` と、残った記録の件数 `remaining` を出力します。
 
 **出力形**（`list --json`）:
 
@@ -1214,12 +1259,18 @@ iris networth movers --books-dir ~/IrisBooks --compare 2026-09-30
 保存され、帳簿には入りません。
 
 ```bash
-iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
+iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S] [--json]
 iris price list [--unit BTC] [--currency JPY] [--year 2026] [--books-dir PARENT] [--json]
 iris price sync [--json]
 iris price conflicts [--json]
-iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
+iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id> [--json]
 ```
+
+`--json` を付けると、`price add` は記録した `unit`・`currency`・`date`・
+`price`（10進数の文字列）、指定した場合は `source`、そして `level`
+（自分の記録なら `user`、`--books-dir` なら `folder`）を出力します。
+`price resolve` は解決した不一致と `choice`、それに `pendingSync` を出力します。
+`pendingSync` は、残した修正が `iris price sync` を待っているとき true です。
 
 **出力形**。`list --json`:
 
@@ -1365,7 +1416,13 @@ iris offboard [--book-path PATH] [--keep-skill] [--remove-path] [--dry-run]
 iris mcp serve [--book-path PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 ```
 
-引数は利用中のツールの入力形式で確認してください。以下は作業ごとの案内です。
+引数は利用中のツールの入力形式で確認してください。どのツールも出力の形式も
+宣言しており、成功した呼び出しはその形式に沿った構造化された結果を返すので、
+呼び出す前に結果の形が分かります。失敗した呼び出しはテキストだけを返します。
+チェックで問題が見つかっても失敗にはなりません。`validate` と `reconcile` は
+`ok: false` の結果を返します。金額は帳簿ファイルと同じく、帳簿の通貨の小数の
+文字列です。
+以下は作業ごとの案内です。
 
 #### ローカル帳簿を選ぶ
 
@@ -1783,8 +1840,11 @@ iris api history --all --json <book-id> > history-2025.json
 ### iris api export
 
 ```bash
-iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSV 群
+iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] <book-id>  # CSV 群
 ```
+
+`--json` を付けると `outDir`・`year`（全年度なら 0）・`asOf`・
+`journalCount` と書き出した `files` を出力します。
 
 `--year` を指定すると、その会計年度に属する仕訳のみがエクスポートされます。
 締め済み年度もファイルはライブツリーに残っているため、他の年度と同じように

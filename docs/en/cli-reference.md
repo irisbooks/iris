@@ -260,7 +260,7 @@ forward.
 naming any other year is refused.
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [path]
+iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [--json] [path]
 ```
 
 `--link-existing BOOK_ID` reuses an untouched next-year cloud starter you own.
@@ -272,8 +272,11 @@ verifies its cloud settings and seals, then refreshes it. The successor syncs
 successfully before the old linked book syncs its removals.
 
 `--dry-run` prints a preview of opening balances, moves and cloud actions, plus
-the count of unposted drafts excluded (`--dry-run --json` prints it as JSON). It
-writes nothing.
+the count of unposted drafts excluded. It writes nothing. `--json` prints that
+plan as one object (`status: "preview"`); without `--dry-run` it carries the plan
+out and prints the same object with `status: "done"`, plus `cloudBookId` when the
+next book has a cloud copy. A `--json` run asks nothing, so creating a cloud
+book needs `--yes`.
 
 ### iris seal
 
@@ -302,8 +305,14 @@ stale native source mirror after sync needs a server projection rebuild; seek
 support from the [Discord community](https://discord.gg/wZDsv9gyb9).
 
 ```bash
-iris seal [--dry-run] <fiscal-year> [book-path]
+iris seal [--dry-run] [--json] <fiscal-year> [book-path]
 ```
+
+`--json` prints one object with `dryRun` and `periodKey`. A preview adds
+`alreadySealed`, `fileCount`, `totalBytes`, `files` (`path`, `sizeBytes`),
+`drafts`, `reconciliation` when balances are configured, and `ready` (no drafts
+and nothing unresolved); a blocked preview still exits 0. Sealing adds `seal`
+(`id`, `periodKey`, `sealedAt`, …).
 
 Run it in the linked book's folder or pass `--book-path`; it closes that book's
 cloud copy. Local MCP's `seal` tool does the same for the selected book.
@@ -319,8 +328,10 @@ in your working tree, so there is nothing to restore: edit them directly, run `i
 your edits, and `iris seal <fiscal-year>` to close the year again.
 
 ```bash
-iris reopen <fiscal-year> [path]
+iris reopen [--json] <fiscal-year> [path]
 ```
+
+`--json` prints `status` (`reopened`), `fiscalYear` and the reopened `sealId`.
 
 ## Bookkeeping and accounting rules
 
@@ -457,9 +468,18 @@ sealed fiscal year is refused (*"FY \<n\> is sealed (closed period) — run
 `iris reopen <n>` to amend it, then re-seal"*).
 
 ```bash
-iris post [--dry-run] [--local] <file>...
-iris post [--dry-run] [--local] --all
+iris post [--dry-run] [--local] [--json] <file>...
+iris post [--dry-run] [--local] [--json] --all
 ```
+
+`--json` prints one object: `journals` (each with its book-relative `path`,
+`result` — `posted`, `wouldPost`, `alreadyPosted` or `failed` — and for a
+failure `reason` and `error`), `counts` of each result, and `sync`, whose
+`status` is `synced` (the pass in the `iris sync --json` shape under `result`),
+`dryRun`, `local`, `skipped` (with `reason`) or `error`. Exit codes stay the
+same, and the object is printed whatever the exit code once journals were
+considered. A post can exit 0 while its sync pass was incomplete, so check
+`sync.result.status`.
 
 `--all` posts every `draft` draft in the book instead of naming files —
 including drafts you didn't author, such as other collaborators' entries and
@@ -516,10 +536,17 @@ See [the complete allocation example](book-format-reference.md#businessprivate-e
 Fixed-asset depreciation and reporting.
 
 ```bash
-iris asset schedule [--year YYYY] [path]    # print each asset's depreciation schedule
-iris asset depreciate --month YYYY-MM [path]  # generate that month's entries (status: draft)
-iris asset depreciate --year YYYY [path]      # one FY-total entry per asset, dated the FY's last day
+iris asset schedule [--year YYYY] [--json] [path]  # print each asset's depreciation schedule
+iris asset depreciate --month YYYY-MM [--json] [path]  # generate that month's entries (status: draft)
+iris asset depreciate --year YYYY [--json] [path]    # one FY-total entry per asset, dated the FY's last day
 ```
+
+With `--json`, `schedule` prints `asOf`, `currency` and `assets` (each with
+cost, opening, period and closing book values and accumulated depreciation as
+decimal strings), plus `fiscalYear` and `periodStart` with `--year`.
+`depreciate` prints `cadence`, `fiscalYear`, `date`, `currency`, the drafts
+`written` (`path`, `asset`, `amount`), those `skipped` because they already
+exist, the `noActivity` count and any `failed` assets.
 
 Pick one cadence per fiscal year: `depreciate` refuses to write annual entries
 into a year that already has monthly ones, and vice versa (mixing them would
@@ -823,9 +850,14 @@ different currencies, like `reporting_currency` in
 menu. It holds no folder: a folder named with it only opens first, and
 `--currency` is refused there. `--status` names the version of `iris` serving
 the page. `--status --json` prints `running`, `folder` and `books`, and while it
-runs `version`; `binaryVersion` appears when the server is an older `iris` than
-this one, which the next `iris view` replaces. Neither it nor any other output
-includes the sign-in link.
+runs `version` and `port`; `binaryVersion` appears when the server is an older
+`iris` than this one, which the next `iris view` replaces. Neither it nor any
+other output includes the sign-in link. Where no browser can open, as on a VM
+or over SSH, `iris view` says so and exits 1, leaving nothing running: on a
+computer with no display it starts nothing, and a page it started for a browser
+that then failed to open is stopped. A page that was already running is left as
+it was. With `--json` it also prints the summary with `opened: false`. Open the
+books on your own computer instead.
 
 ### iris balance
 
@@ -1109,9 +1141,13 @@ document — how you spot a receipt booked twice.
 Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 
 ```bash
-iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [path]
-iris export assets [--year YYYY] [--out FILE] [path]
+iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] [path]
+iris export assets [--year YYYY] [--out FILE] [--json] [path]
 ```
+
+`--json` prints the files written: `iris export` gives `outDir`, `files`,
+`journalCount` and, with a cutoff, `asOf`; `iris export assets` gives `files`
+and `assetCount`. Paths inside the book are book-relative.
 
 Each `ledger-<account>.csv` is laid out like a paper ledger: `date`, `file`,
 `description`, `counter_account` (the account, or *Various* / *Brought
@@ -1222,8 +1258,11 @@ version keeps the canonical path and your version is saved beside it as a
 
 ```bash
 iris conflicts list [--json] [path]
-iris conflicts resolve <path> --keep mine|cloud [path]
+iris conflicts resolve <path> --keep mine|cloud [--json] [path]
 ```
+
+With `--json`, `resolve` prints `path` and `kept`, and for `--keep mine` the
+sync pass under `sync` in the `iris sync --json` shape.
 
 The usual resolution is to merge by hand (edit the canonical file, delete the
 sidecar, `iris sync`). See
@@ -1236,9 +1275,11 @@ mark them to be pushed again.
 
 ```bash
 iris sync issues list [--json] [path]              # show path + code + issues
-iris sync issues retry [path]             # drop suppression; the next `iris sync` re-pushes
+iris sync issues retry [--json] [path]             # drop suppression; the next `iris sync` re-pushes
 iris sync issues retry --path <relpath> [path]   # just one file
 ```
+
+`retry --json` prints the paths it `dropped` and how many records are `remaining`.
 
 **Output shape** (`list --json`):
 
@@ -1282,12 +1323,18 @@ Record and list unit prices offline, and sync them to the server. Prices
 belong to your user account and are not stored in the book.
 
 ```bash
-iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S]
+iris price add --unit BTC --price 9850000 [--currency JPY] [--date YYYY-MM-DD] [--books-dir PARENT] [--source S] [--json]
 iris price list [--unit BTC] [--currency JPY] [--year 2026] [--books-dir PARENT] [--json]
 iris price sync [--json]
 iris price conflicts [--json]
-iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id>
+iris price resolve --unit BTC --currency JPY --date 2026-10-07 --choose local --revision 43 --edit <edit-id> [--json]
 ```
+
+With `--json`, `price add` prints the recorded `unit`, `currency`, `date`,
+`price` (a decimal string), `source` when given and `level` (`user` for your
+log, `folder` with `--books-dir`). `price resolve` prints the conflict it
+resolved, `choice`, and `pendingSync`, which is true when the kept correction
+waits for `iris price sync`.
 
 **Output shapes.** `list --json`:
 
@@ -1439,6 +1486,11 @@ iris mcp serve [--book-path PATH | --books-dir PATH] [--http 127.0.0.1:PORT]
 
 Use the live tool schemas for arguments. Unknown fields and incorrect types return
 a tool error before execution; strings such as `"true"` are not booleans.
+Every tool also declares an output schema, and a successful call returns its
+result as structured content that matches it, so the shape is known before the
+call. A failed call returns text only. A check that finds something is not a
+failure: `validate` and `reconcile` return their result with `ok: false`.
+Amounts are decimal strings in the book currency, as the book files write them.
 The following sections cover one workflow each.
 
 #### Select a local book
@@ -1874,8 +1926,11 @@ server's response through unchanged.
 ### iris api export
 
 ```bash
-iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] <book-id>  # CSVs
+iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] <book-id>  # CSVs
 ```
+
+`--json` prints `outDir`, `year` (0 for every year), `asOf`, `journalCount`
+and the `files` written.
 
 With `--year`, the export is restricted to journals dated in that fiscal
 year. Sealed years stay in the live tree, so they export like any other
