@@ -14,7 +14,7 @@ your-book/
 │   ├── rules.yaml                # optional categorization hints (may be empty)
 │   ├── balance-assertions.yaml   # optional observed account balances and evidence
 │   ├── prior-year.yaml           # last year's figures, written by `iris yearend`
-│   └── overlays/                 # optional: this book's own overlay layer (rules, recipes)
+│   └── overlays/                 # optional: this book's own package layer (rules, recipes)
 ├── raw/                          # source documents; any structure, type inferred from content
 ├── journals/
 │   └── YYYY-MM/
@@ -22,7 +22,7 @@ your-book/
 ├── assets/
 │   └── YYYY/<asset-name>.md       # fixed assets (by acquisition year)
 ├── filings/
-│   └── <recipe>.md                # recorded return figures, written by overlay recipes
+│   └── <recipe>.md                # recorded return figures, written by package recipes
 ├── notes/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<mirror of raw/>.md    # parse caches
@@ -80,7 +80,7 @@ units:                          # non-currency units (forex, crypto, metals, sha
     scale: 8
     name: "Bitcoin"
 
-# Settings blocks an overlay defines sit at the top level too;
+# Settings blocks a package defines sit at the top level too;
 # `iris overlay list --json` shows their fields.
 ```
 
@@ -97,13 +97,12 @@ those use the book's top-level `scale`, which defaults from `currency` when
 omitted. An explicit top-level `scale: 0` remains zero, even for USD.
 Cloud Book amount precision supports 0–6 fractional digits; declared quantity
 unit precision supports 0–18.
-Signed-in `iris init` copies available account unit templates;
-`--no-user-defaults` skips them. Account preferences affect new books only.
-The BTC entry above is an example, not a preinstalled default.
+The BTC entry above is an example; a new book declares no units until you add
+them here.
 
 `scale` is the number of fractional digits the currency uses, and it is
 **immutable** — JPY is `0` (whole yen, no decimals), USD/EUR are `2`, the Gulf
-dinars are `3`. Settings blocks an overlay defines ride along opaquely: the
+dinars are `3`. Settings blocks a package defines ride along opaquely: the
 universal engine ignores them, and the selected packages read them.
 
 `fiscal_year` is the fiscal year the book covers, named by the year it starts
@@ -113,7 +112,7 @@ one in the book it creates. It is required: `iris validate` and the cloud
 refuse a `book.yaml` without it, and the cloud refuses a change to it — the
 next year is a new book, not an edit to this one.
 
-`overlay` selects one exact function version;
+The `overlay` key selects one exact package version;
 `overlays` selects several exact versions. Local clients execute only definitions
 stored in the Book at `config/overlay-packages/`. This store is separate from
 `config/overlays/`, the active trusted local layer, and from `.iris/` runtime state.
@@ -125,7 +124,7 @@ packages. Core accounting/structural checks remain active. Region never selects 
 you. When the exact copy of a selected version is missing or changed, iris
 reports it and does not substitute another version;
 use `iris overlay install` explicitly to copy selected distribution versions.
-Cloud preserves these files/settings but never evaluates Overlay definitions.
+Cloud preserves these files/settings but never evaluates package definitions.
 
 Copies installed from a binary verify their complete source files against its
 trusted release fingerprints; runtime reads do not need the binary's old package
@@ -133,12 +132,12 @@ body. Downloaded copies verify their release signature. The Book's stored bundle
 hash still binds its exact bytes. A fingerprint or signature never supplies a
 missing definition or enables a package by itself.
 
-Bindings are the versioned set of inputs and functions iris passes to overlay
-definitions. Under Bindings v4, overlay definitions cannot read a journal's
+Bindings are the versioned set of inputs and functions iris passes to package
+definitions. Under Bindings v4, package definitions cannot read a journal's
 status or its approval and seal metadata, including inside nested records.
 Definitions that read `journal.status` or target lifecycle fields fail with an
-explicit compatibility error. Domain facts, such as an overlay's own settings,
-remain available. iris itself, not an overlay, decides who can post, which
+explicit compatibility error. Domain facts, such as a package's own settings,
+remain available. iris itself, not a package, decides who can post, which
 years are sealed and which statuses reports include.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
@@ -188,7 +187,7 @@ can also have a `name`. These texts are shown, never written into journals.
 Published packages that use them declare `requires_bindings: 7`; a Book's own
 layer can use them under any bindings.
 
-Local Overlay checks share a budget across the complete validation request,
+Local package checks share a budget across the complete validation request,
 including field guards, private helper bodies, native ledger operations,
 derivation hints and recorded-result replay. The CLI uses one session for the
 whole Book; autocomplete and task-context requests also share their own session.
@@ -211,7 +210,7 @@ The limits are:
 Preparation keeps its stricter limits above. Limits are checked before native
 table allocation and unbounded input/result expansion. Exhaustion reports an
 `overlay.checks-incomplete` error; `iris validate --apply` writes no proposals
-when any Overlay check cannot finish. Ordinary type/evaluation warnings remain
+when any package check cannot finish. Ordinary type/evaluation warnings remain
 distinct, and native accounting checks continue.
 
 Analytics artifact schema v5 retains config, asset and journal-line extensions in a
@@ -289,14 +288,12 @@ A book written by an earlier iris may hold `carrying_value_minor`,
 amounts and quantities as integers in the smallest unit. Such an entry still
 reads as written; use one form per entry. `iris yearend` writes the decimal form.
 
-Local comparisons and retained financial calculations allocate later disposals
-from these lots, or from the moving-average pool, using the method recorded
-here. They refuse, rather than estimate, in any of these cases:
+Local comparisons allocate later disposals from these lots, or from the
+moving-average pool, using the method recorded here. They refuse, rather than estimate, in any of these cases:
 
 - an opening holding has no entry;
 - its acquisition cost is null;
-- its carrying value differs from its acquisition cost;
-- a view selects a different method.
+- its carrying value differs from its acquisition cost.
 
 A different method needs its own opening state.
 
@@ -308,7 +305,7 @@ An opening can also hold `allocation_cost` and `allocation_policy`. A
 package's inventory policy writes them, and its [docs](https://irisbooks.io/docs/en/overlays/) describe them.
 They never replace acquisition cost or recorded carrying value.
 
-## Pin several published overlays
+## Pin several published packages
 
 `overlays` selects an **unordered set of exact versions**. Use it instead of
 `overlay`; the two forms cannot appear together. For example:
@@ -340,7 +337,7 @@ book-layer compatibility and settings before showing the proposed pins.
 the latest release of every pinned member together.
 
 The function catalog holds common functions and each region's functions; the
-[overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
+[package docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
 dependencies.
 Categories only organize the catalog for browsing and distribution; you cannot
 switch a whole category on or off.
@@ -418,7 +415,7 @@ fields:
 
 The stored values stay plain strings, so expressions read them as before. The
 book's checks report a reference the book doesn't define, and
-[`iris view`](iris-view.md#plugins) offers the chart or the units instead of a
+[`iris view`](iris-view.md#packages) offers the chart or the units instead of a
 text box. Reference types take no `enum`, and a published package that uses
 them declares `requires_bindings: 7`.
 
@@ -533,7 +530,7 @@ Why this transaction happened (not a restatement of the lines).
 | `lines` | yes | 2–999; each has `account` + exactly one of `debit`/`credit` |
 | `lines[].memo` | no | Per-line note |
 | `lines[].quantity` + `unit` | no | Physical quantity for a unit from `book.yaml` `units` (always positive; direction comes from debit/credit) |
-| `lines[].<field>` | no | Fields a selected overlay defines on a line — see below |
+| `lines[].<field>` | no | Fields a selected package defines on a line — see below |
 | body | no | Free Markdown after the closing `---` |
 
 **Line count.** A journal takes at most **999 lines**, and you get a warning
@@ -551,10 +548,10 @@ $12.00, not $0.12). Internally everything is integer minor units.
 matches an alias); the date matches the filename; status is valid; YAML parses.
 Reports include **only `posted`** entries.
 
-**Overlay fields on a line.** A selected overlay can define fields on journal
+**Package fields on a line.** A selected package can define fields on journal
 lines, such as a tax classification block. iris keeps them on the file, and the
 package's rules check them. `iris overlay list --json` lists each field with its
-accepted values; the package's page under [Overlays](https://irisbooks.io/docs/en/overlays/) explains them.
+accepted values; the package's page under [Packages](https://irisbooks.io/docs/en/overlays/) explains them.
 
 ## Defaults and inferred values
 
@@ -615,7 +612,7 @@ inventory:
 ```
 
 The account must exist in a strict book's chart. The method may be omitted for
-FIFO; set `method: moving-average` to change it, including in a selected view.
+FIFO; set `method: moving-average` to change it.
 An omitted `accounts.exact` selector covers commodity asset accounts; add it
 to restrict the scope. The optional `commodity` filter restricts the unit.
 In a book that opens with holdings, comparisons start from its
@@ -628,7 +625,7 @@ account. Ordinary validation and approved reports use the recorded ledger;
 computed comparisons stay unapproved.
 
 A journal amount left as `null` is filled in only by a selected package's
-completion; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each package completes
+completion; the [package docs](https://irisbooks.io/docs/en/overlays/) describe what each package completes
 and the inputs it needs. Preview and apply a completion with
 [`iris journal complete`](cli-reference.md#iris-journal-complete).
 
@@ -697,34 +694,12 @@ them. Rollover leaves them in the original Book so old observations are not
 reused next year. Storage alone does not evaluate observations. Cloud close
 previews run this same native check against accepted synced sources, and closing
 is refused for mismatches or unavailable/changed evidence. The check binds accepted
-source versions; it does not fetch an unpinned latest object or run Overlay code.
+source versions; it does not fetch an unpinned latest object or run package code.
 If a preview reports missing/stale source data after sync, the server's projections
 need rebuilding before that Book can close. Financial ZIPs do not automatically
-include raw evidence. Cloud close checks every accepted native view separately. Local root-only reconciliation still refuses unresolved view sources.
+include raw evidence.
 
 ## Chart of accounts — `config/chart-of-accounts.yaml`
-
-If your book doesn't use accounting views (`views`), skip the next three
-paragraphs. A view holds an alternative accounting interpretation of the same
-records under a root `views` key. Config, chart, rule, journal and asset files
-are read after the selected view is resolved; a file whose root `views` is
-still unresolved is refused, including one supplied through a YAML merge. Edit
-the original document so the other views stay. Removing `views` loses the
-alternative interpretations. Replacing a journal through the structured API is
-refused too, because that API cannot preserve stored views.
-
-Cloud storage accepts bounded view-bearing `config/book.yaml`, journal and asset sources
-without executing Overlay code. Declare at most 16 Book views and one default;
-all variants must pass native parsing, balance, account/reference and sealed-period
-checks. Views share Book identity, fiscal bounds, currency, unit precision and host
-integrity settings. Journal lifecycle status belongs to the shared root and cannot
-be overridden in a payload. Sync and clone preserve the unresolved source.
-
-Web displays the default as an **unapproved view preview**. Human posting approves
-the exact shared source version, not its view-specific financial results. Named-view approved reports require separately retained native financial acceptance. See [financial generations](cli-reference.md#iris-financial). Close requires every declared view accepted and final; SQLite stores each separately and keeps the default in its ordinary tables.
-Adding declarations or changing the default while journal or asset view payloads exist requires
-a coherent rebuild and is currently refused. Referenced declarations cannot be removed.
-Chart and rule sources with their own `views` remain unsupported in cloud ingestion.
 
 ```yaml
 schema_version: 1
@@ -896,7 +871,7 @@ schedule:                          # optional recorded table — see below
     amount: 250000
   - period: 2028-03
     amount: 187500
-schedule_source:                   # present when an overlay recipe wrote the table — see below
+schedule_source:                   # present when a package recipe wrote the table — see below
   overlay: example-declining@2026.10.1   # illustrative package
   recipe: example-declining.schedule
   bindings: 5
@@ -909,8 +884,8 @@ disposal:                          # optional, until disposed
 ---
 ```
 
-Fields a selected overlay defines on an asset ride along untouched: iris keeps
-them on the file without interpreting them, and that overlay reads them.
+Fields a selected package defines on an asset ride along untouched: iris keeps
+them on the file without interpreting them, and that package reads them.
 
 Book the purchase of an asset described here to its `asset_account` — an
 `expensed` one included — and let `iris asset depreciate` book the charges.
@@ -955,7 +930,7 @@ result gives each row's `amount` and the `total` as decimal strings, with the
 YAML to paste, which reads back as the same amounts. The result reports the
 scale used.
 
-Your AI assistant builds the table for you. When a selected overlay has a
+Your AI assistant builds the table for you. When a selected package has a
 **recipe** for the method (`list_recipes` shows it), it runs that with the
 published rates as inputs and the recipe composes the table and
 writes it, with its provenance, onto the file (`iris overlay recipe`, or the
@@ -980,7 +955,7 @@ accountant can check them against the published table.
 
 ### `schedule_source:` — where the table came from, replayed
 
-When a recipe wrote the table, it also recorded its provenance: the overlay
+When a recipe wrote the table, it also recorded its provenance: the package
 version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
 `config/overlays/`), the recipe, the engine versions it ran under, and the
 inputs you gave — the rates from the published table, the useful life, the
@@ -1016,7 +991,7 @@ disposal-period row is yours.
 ## Filings — `filings/<recipe>.md`
 
 A filing records the figures a return is filed from. A figures recipe of
-a selected overlay sums the posted journals and combines them the way the
+a selected package sums the posted journals and combines them the way the
 return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
 records the result with the same provenance as a schedule. An illustrative
 filing:
@@ -1056,9 +1031,9 @@ paths still replays in its original location; after moving it, re-run and
 review the recipe to record portable provenance. Changed factual inputs and
 unknown path contracts still fail replay.
 
-## Your book's overlay layer — `config/overlays/` (optional)
+## Your book's own package layer — `config/overlays/` (optional)
 
-Published function packages are selected explicitly by `overlay:` or `overlays:`
+Published packages are selected explicitly by `overlay:` or `overlays:`
 in `book.yaml`.
 A book may add its own layer on top:
 
@@ -1107,14 +1082,14 @@ keeps native integrity and access guards without executing the layer.
 Only the book's Owner can change these files. The first time
 a machine meets a version of this layer it shows the files and asks once
 (`iris overlay trust` records the answer); until then only the published
-overlay applies. `iris overlay list` and published MCP recipe tools remain
+packages apply. `iris overlay list` and published MCP recipe tools remain
 available; the CLI and MCP `describe_overlay.issues` report
 `overlay.book-layer-untrusted`. Book-local settings are checked when the layer
 is trusted. A recipe from your layer records `book:<hash>` as its source,
 so a reviewer can see a schedule came from a book-specific recipe.
 
 The published
-overlays are open source (Apache-2.0) in the public
+packages are open source (Apache-2.0) in the public
 [`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository. A layer
 that proves useful beyond one book can be proposed there as a pull request.
 
@@ -1405,8 +1380,8 @@ Expected results:
 | 2026-08-31 | 926,000 | 80,000 | 80,000 | 2026-08-31 | 120,000 | 1,046,000 |
 
 This Book selects inventory calculation, so local P&L uses `--mode comparison`
-and is explicitly unapproved. Retained financial acceptance is not implemented;
-the default approved local report refuses this calculated inventory selection.
+and is explicitly unapproved. The default approved local report refuses this
+calculated inventory selection.
 
 The posted P&L contains income/net JPY 6,000 and no expense. Book net assets
 are JPY 1,006,000. The remaining JPY 40,000 market uplift is management valuation,
@@ -1447,7 +1422,7 @@ value is JPY 1,054,000, with the same quantities and acquisition costs.
 for repeated purchases, tax-advantaged accounts — is regional; a generic FIFO
 or moving-average label is not a tax determination, and a unit symbol, a note
 or a successful validation does not establish an account's tax status. See
-your region's guide under [Overlays](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
+your region's guide under [Packages](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
 automatic product/regime classification remain outside this management example.
 
 ## Business/private expense allocation
@@ -1457,7 +1432,7 @@ business fraction. It returns exact amounts without changing files or posting
 entries. Confirm the basis and treatment first; an account name cannot establish
 a business percentage. Tax law may require records that distinguish the
 business portion of household-related costs; your region's guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/) says where.
+[Packages](https://irisbooks.io/docs/en/overlays/) says where.
 The 1/4 fraction below is a synthetic owner-reviewed example, not a recommended rate.
 
 Save this request as `raw/allocation-jan.json`:
@@ -1628,14 +1603,14 @@ acquisition_journal: '[[2026-05-01-equipment]]'
 Read the native gross schedule and choose one posting cadence:
 
 ```bash
-iris asset schedule --year 2026
-iris export assets --year 2026 --out raw/assets-2026.csv
-iris asset depreciate --year 2026
+iris asset schedule
+iris export assets --out raw/assets-2026.csv
+iris asset depreciate --apply
 ```
 
 The engine calculates eight May–December charges of JPY 5,001: gross depreciation
-JPY 40,008 and closing carrying value JPY 200,041. `depreciate` writes a draft,
-not a posted journal. Review it under the Book's authority before posting.
+JPY 40,008 and closing carrying value JPY 200,041. `depreciate --apply` writes a
+draft, not a posted journal; without `--apply` it only previews. Review it under the Book's authority before posting.
 Its gross debit to depreciation expense and credit to accumulated depreciation
 must remain exactly once. Reruns preserve existing proposals; monthly and annual
 cadences cannot be mixed. New proposals are refused when the year is known
@@ -1897,7 +1872,7 @@ It does not select a latest ratio or invent proration. Obtain separately
 evidenced charge amounts for each period before calculating; the example does
 not establish a deductible percentage, legal expense allocation or tax-return
 mapping. For your region's evidence requirements, see its guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. To correct an old
+[Packages](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. To correct an old
 source, make a separate correction, review it, and keep the source's original
 identity.
 
@@ -2089,7 +2064,7 @@ counterparty bank movement, premature settlement and a repeated payout.
 Real agreements can assign different rights; do not copy these assumptions
 into a sole-tenant, business, disputed or otherwise different arrangement.
 For your region's model agreements and other reference material, see its
-guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
+guide under [Packages](https://irisbooks.io/docs/en/overlays/).
 
 See also: [Core concepts](concepts.md) ·
 [CLI command reference](cli-reference.md).

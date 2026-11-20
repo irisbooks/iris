@@ -18,9 +18,9 @@ it's the fastest way to learn what's wrong.
 - **Bad status** — `status` must be `draft` or `posted`.
 - **YAML won't parse** — usually indentation or a stray colon in the
   frontmatter. The error names the file.
-- **Overlay rules** — a check from a package your book selected, such as a
+- **Package rules** — a check from a package your book selected, such as a
   field with a value the package doesn't accept. The message names the rule;
-  the package's docs under [Overlays](https://irisbooks.io/docs/en/overlays/) explain its fields.
+  the package's docs under [Packages](https://irisbooks.io/docs/en/overlays/) explain its fields.
 
 Fix and re-run. Your AI assistant can do this loop for you.
 
@@ -179,17 +179,17 @@ in its `errorDetail` field.
 ## "I need to change a sealed year"
 
 A sealed fiscal year is **locked**: `iris post` refuses journals dated in it
-("FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it, then
+("FY \<n\> is sealed (closed period) — run `iris reopen` to amend it, then
 re-seal"). The server also rejects changes to those journals and to `config/`,
 `assets/`, `filings/`, `compiled/` until reopening. `raw/` and `notes/` remain
 writable. Local files remain editable, but locked changes cannot sync.
 To amend the accounting records, reopen the year first:
 
 ```bash
-iris reopen 2025      # unlocks the seal; the files are already in the working tree
+iris reopen           # unlocks the seal; the files are already in the working tree
 # …make the correction…
 iris sync
-iris seal 2025        # close the year again
+iris seal             # close the year again
 ```
 
 The server records the corrections as **post-seal edits** — visible in the
@@ -244,7 +244,7 @@ Almost always a sync gap or a status difference:
   (drafts vs posted) or what sync does.
 - Check the in-book `notes/open-questions.md` — your AI files ambiguous items
   there.
-- For your region's tax rules, see its guide under [Overlays](https://irisbooks.io/docs/en/overlays/);
+- For your region's tax rules, see its guide under [Packages](https://irisbooks.io/docs/en/overlays/);
   your AI verifies volatile values (rates, tables, form layouts) against the
   tax authority's current pages.
 - Still stuck after that? Ask in the

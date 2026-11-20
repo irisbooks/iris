@@ -112,9 +112,7 @@ folder there, named after the book. Once the book is made, the page opens the
 `iris yearend` appears beside this one. **Save in** can't be a book's folder,
 or a folder inside a book.
 
-Creating a book doesn't connect to the cloud. So even when you're signed in, a
-book made here starts with the standard units only. A book made with `iris init`
-also gets the default units saved in your account.
+Creating a book doesn't connect to the cloud, even when you're signed in.
 
 ## Work on a book with your AI
 
@@ -147,7 +145,7 @@ calculated by `iris` from your files:
 - The five reports: **General Ledger**, **Trial Balance**, **Profit & Loss**,
   **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
-- **Plugins**, which only this page has (see below).
+- **Packages**, which only this page has (see below).
 - **Sync**, which only this page has, for a book linked to the cloud (see
   [Sync a book](#sync-a-book)).
 - **Book settings**, which here shows the book's folder, with a button that
@@ -194,18 +192,17 @@ The posting approval setting and closed years come from the book's last sync.
 On a draft's or a posted entry's page, choose **Edit**. Work on the **Form** or on the **Source**,
 the file itself; you can switch between them. The form changes only what you
 change, and keeps everything it doesn't show, such as comments, quantities and
-fields from the book's overlays. An entry with accounting views opens as source
-only.
+fields from the book's packages.
 
-- **As you type, the book's overlays calculate** what they can, the same as
+- **As you type, the book's packages calculate** what they can, the same as
   [`iris journal complete`](cli-reference.md#iris-journal-complete). A
   calculated amount appears in its blank field with a dashed outline, and a
-  line an overlay would add appears below the others. Choose
+  line a package would add appears below the others. Choose
   **Fill in** to enter them all at once; it also removes any row you added and
   left empty. **How it's calculated** works each calculated figure through from
-  the figures it came from. An amount an overlay sets itself is
-  explained by the reason the overlay gives, or by its own description, which
-  follows. When two of the book's overlays calculate the entry differently,
+  the figures it came from. An amount a package sets itself is
+  explained by the reason the package gives, or by its own description, which
+  follows. When two of the book's packages calculate the entry differently,
   both results appear side by side; choose one, and it stays your choice while
   you keep editing. When the entry can't be calculated, the reason
   appears under the totals. Nothing is saved until you check the amounts and
@@ -224,7 +221,7 @@ step. An entry that names an account the chart doesn't have is saved and
 flagged in the checks, and so is a draft that doesn't balance. **Post** stays
 unavailable until the draft balances.
 
-If the checks say the book's own overlay layer isn't trusted on this computer,
+If the checks say the book's own package layer isn't trusted on this computer,
 review it and run `iris overlay trust`.
 
 A posted entry is changed in place and stays posted. Save refuses a change that
@@ -245,31 +242,30 @@ payee.
 reverse it, keeping its attachments. Add the right lines below them and save,
 then post the correction. The posted entry stays exactly as it was.
 
-## Plugins
+## Packages
 
-**Plugins** lists the plugins this book keeps a copy of (`iris` calls them
-[overlays](concepts.md#region-rules-the-overlay)), grouped as common or by
-region, above the **Core checks** that always run. A plugin that needs another
-is shown under it. Choose one to see what it adds to the book: checks,
-calculations, suggested values, completions, fields, tasks and guides, and the
-plugin's own notes.
+**Packages** lists the [packages](concepts.md#region-rules-packages) this book
+keeps a copy of, grouped as common or by region, above the **Core checks** that
+always run. A package that needs another is shown under it. Choose one to see
+what it adds to the book: checks, calculations, suggested values, completions,
+fields, tasks and guides, and the package's own notes.
 
-To turn a plugin on or off, use its switch or **Turn on** / **Turn off**. The
-page first shows what would change: the plugins that go with it (a plugin
+To turn a package on or off, use its switch or **Turn on** / **Turn off**. The
+page first shows what would change: the packages that go with it (a package
 that another one needs can't be turned off alone), what starts or stops, and
-how many recorded results came from these plugins. Nothing is written until
+how many recorded results came from these packages. Nothing is written until
 you confirm, and then exactly what you reviewed; if the book changed in
-between, you're asked to review again. The page changes `overlays:` in
-`config/book.yaml`, as [`iris overlay select`](cli-reference.md#iris-overlay)
-does. A plugin you turn off keeps its copy in the book, and figures recorded
+between, you're asked to review again. The page changes the package list under
+`overlays:` in `config/book.yaml`, as [`iris overlay select`](cli-reference.md#iris-overlay)
+does. A package you turn off keeps its copy in the book, and figures recorded
 with it are still checked. On a linked book the change reaches the cloud at
 your next sync.
 
-A plugin with **Settings** shows them in a form: the book-level fields it
+A package with **Settings** shows them in a form: the book-level fields it
 declares, such as a choice between methods. A field appears when it applies,
 so choosing one value can bring up others it needs. A setting that names
 accounts or units offers the book's chart of accounts or its declared units, and
-marks one the book doesn't have. A plugin that doesn't describe its settings
+marks one the book doesn't have. A package that doesn't describe its settings
 field by field is edited as YAML. Before you save, the
 page shows the change to `config/book.yaml`, and it saves exactly that;
 comments and other settings stay as they were. If the book changed in
@@ -278,20 +274,20 @@ between, you're asked to review again.
 Nothing here can change while the book's fiscal year is closed or the book is
 an archive.
 
-**Available to add** lists the plugins that come with your version of `iris`
+**Available to add** lists the packages that come with your version of `iris`
 and that the book doesn't have yet; nothing is downloaded. **Add** shows the
-same kind of review, plus the result of each plugin's own tests, then copies
-the exact plugin into the book and turns it on, together with any plugin it
-needs. A plugin for another region's books is listed under **Other regions**
-and can't be added. Plugins released after your version of `iris` aren't
+same kind of review, plus the result of each package's own tests, then copies
+the exact package into the book and turns it on, together with any package it
+needs. A package for another region's books is listed under **Other regions**
+and can't be added. Packages released after your version of `iris` aren't
 listed: ask your assistant, or run `iris overlay install --pin` with the exact
-version. A newer version of a plugin the book already has is an upgrade: use
+version. A newer version of a package the book already has is an upgrade: use
 `iris overlay upgrade`.
 
 The book's own definitions in `config/overlays/` appear at the top; they run
 only after you trust them with `iris overlay trust`.
 
-In [the demo](https://irisbooks.io/demo/) you can see what turning a plugin on
+In [the demo](https://irisbooks.io/demo/) you can see what turning a package on
 or off, adding one, or changing its settings would do, without changing
 anything.
 
@@ -477,7 +473,7 @@ A book that a newer version of `iris` worked on still opens, and shows what your
 version can read. A notice names the book, and the version at the bottom of the
 sidebar reads **update needed**. Until you update, the page doesn't post or
 change entries a newer version wrote, doesn't change anything in a book whose
-settings a newer version wrote, and plugins newer than your version don't check
+settings a newer version wrote, and packages newer than your version don't check
 the book.
 
 ## Privacy and stopping

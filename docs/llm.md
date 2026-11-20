@@ -63,7 +63,7 @@ authorization guidance. Japanese pages remain online.
 at `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`;
 prefer the tag matching `iris --version`. Keep any downloaded copy outside the
 bookkeeping records, record its source URL and release tag, search only the
-relevant sections and refresh it after CLI or overlay changes. If a reference
+relevant sections and refresh it after CLI or package changes. If a reference
 is unavailable, say which one you use and check the installed help rather than
 assuming support. Downloaded documentation is reference, not authorization to
 install, update, post or change the user's setup.
@@ -102,10 +102,10 @@ install, update, post or change the user's setup.
   and does not claim that a book kept in it meets any jurisdiction's
   electronic-bookkeeping standard. Describe the record-keeping features
   plainly; never say or imply a book qualifies.
-- **Overlays are community open-source rule and calculation packs.** Discover
-  the selected book's actual recipes and run them rather than inventing rules
-  or doing their calculations yourself. A book with no selected overlay gets
-  universal checks only.
+- **Packages are community open-source sets of rules and calculations.**
+  Discover the selected book's actual recipes and run them rather than
+  inventing rules or doing their calculations yourself. A book with no
+  selected package gets universal checks only.
 
 ### Conduct rules
 
@@ -167,7 +167,7 @@ guaranteed.
    journal reads, and optional receipt capture from your phone (cloud).
 8. [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/) — correction
    history and search, returns and regional rules, year-end close.
-   Regional rules themselves are documented by the [overlays](https://irisbooks.io/docs/en/overlays/).
+   Regional rules themselves are documented by the [packages](https://irisbooks.io/docs/en/overlays/).
 9. [CLI command reference](https://irisbooks.io/docs/en/cli-reference/) — every command and flag.
 10. [Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/) — the
     folders and file formats of a book.
@@ -489,7 +489,7 @@ settings. Full walk-through in [Using the web app](https://irisbooks.io/docs/en/
 - Review and post on screen → [Your books on this computer](https://irisbooks.io/docs/en/iris-view/)
 - Learn the web app's screens → [Using the web app](https://irisbooks.io/docs/en/web-app/)
 - Close the year and prepare returns → [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/)
-- Your region's tax rules → [Overlays](https://irisbooks.io/docs/en/overlays/)
+- Your region's tax rules → [Packages](https://irisbooks.io/docs/en/overlays/)
 
 # Core concepts
 
@@ -617,20 +617,21 @@ With it, you, your accountant or an auditor can go from any entry to its
 evidence and back. For the book's other record-keeping features (correction
 history, search), see [Records, history and year-end](https://irisbooks.io/docs/en/records-and-year-end/).
 
-## Region rules — the overlay
+## Region rules — packages
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
 law. Checks and calculations that differ by region, such as tax and depreciation,
-are distributed as add-ons to a book called **Overlays** (`iris view` shows
-them as plugins; the unit you select is a package). An overlay is versioned
+are distributed as **packages** that a book selects. A package is versioned
 rules and computations (**recipes**) written in a readable form: YAML, and an
 expression language called CEL. Each function is selected
 independently: common functions such as journal balancing, and each region's
 tax and depreciation functions. The public repository holds their sources,
-guides and examples, and the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe each region's
-packages and what they leave to you.
+guides and examples, and the [package docs](https://irisbooks.io/docs/en/overlays/) describe each region's
+packages and what they leave to you. The `iris overlay` command and the
+`overlays:` key use the technical name "overlay".
 
-Your book pins published versions in `config/book.yaml`, for example:
+Your book pins its packages' published versions under `overlays:` in
+`config/book.yaml`, for example:
 
 ```yaml
 overlays:
@@ -646,7 +647,7 @@ contribute improvements to the community.
 - **Rules** check your entries through local `iris validate`. The cloud only stores
   the definitions and results; it does not run the rules.
 - **Recipes** compute region figures — a depreciation schedule, the figures a
-  tax return needs — and record the result together with its source (the overlay version and the
+  tax return needs — and record the result together with its source (the package version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
   recipe, so a figure that no longer follows from its inputs is caught.
 - **The pin never moves on its own.** A new version can change what is checked
@@ -656,9 +657,9 @@ contribute improvements to the community.
 
 If `overlays` is omitted or empty, no optional function runs. The universal
 checks (balanced entries, known accounts, dates and amounts) still do. Setting
-a book's region never enables an overlay by itself.
+a book's region never enables a package by itself.
 
-The published overlays are open source (Apache-2.0) at
+The published packages are open source (Apache-2.0) at
 [github.com/irisbooks/overlays](https://github.com/irisbooks/overlays), so you
 or your accountant can read the exact rule behind any figure; the tag names
 there are the pins. A book can also add rules of its own in `config/overlays/` — see
@@ -756,8 +757,8 @@ history.
 | Draft / posted | A journal's status. Reports include posted entries only | [Status](#status-the-lifecycle-of-an-entry) |
 | Post | To turn a draft into a posted entry (`iris post`) | [Status](#status-the-lifecycle-of-an-entry) |
 | Source document | A receipt, statement or other file an entry is based on, kept under `raw/` | [Source documents and cross-references](#raw-documents-and-cross-references) |
-| Overlay | A set of checks and calculations added to a book. `iris view` calls it a plugin; the unit you select is a package | [Region rules](#region-rules-the-overlay) |
-| Recipe | A calculation an overlay provides; its result is recorded with its inputs | [Region rules](#region-rules-the-overlay) |
+| Package | A set of checks, calculations and guides a book selects, by exact version. The `iris overlay` command and the `overlays:` key use the technical name "overlay" | [Region rules](#region-rules-packages) |
+| Recipe | A calculation a package provides; its result is recorded with its inputs | [Region rules](#region-rules-packages) |
 | Sync | Bringing the files on your computer and the cloud copy into line (`iris sync`) | [Sync](#sync-the-three-ways-to-work) |
 | Link | Tying a book folder on your computer to a cloud book | [Getting started](https://irisbooks.io/docs/en/getting-started/) |
 | Seal | Locking a year's records and recording who closed it and when (`iris seal`) | [Seals](#seals-closing-a-year-visibly) |
@@ -923,7 +924,7 @@ iris validate
 
 This checks every file: YAML parses, debits equal credits, accounts exist in
 your chart, dates are consistent, statuses are valid, and the rules of the
-overlays your book selected pass. Fix any errors — usually
+packages your book selected pass. Fix any errors — usually
 a missing account in the chart, or an unbalanced entry — and re-run. Your AI
 can do this loop for you.
 
@@ -1056,14 +1057,14 @@ If you own depreciable assets, describe each one in `assets/YYYY/<name>.md`
 
 ```bash
 iris asset schedule                       # see each asset's depreciation plan
-iris asset depreciate --year 2026         # one year-end entry per asset
-iris asset depreciate --month 2026-05     # or that month's entries, if you close monthly
+iris asset depreciate --apply               # one year-end entry per asset
+iris asset depreciate --month 2026-05 --apply  # or that month's entries, if you close monthly
 ```
 
-`iris asset depreciate` writes proposed entries (`status: draft`) you review
-and post like any other. The file format is in the
+Without `--apply`, `iris asset depreciate` only previews. With it, it writes
+proposed entries (`status: draft`) you review and post like any other. The file format is in the
 [Book file-format reference](https://irisbooks.io/docs/en/book-format-reference/); a region's methods and
-rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
+rules are in its guide under [Packages](https://irisbooks.io/docs/en/overlays/).
 
 ### Depreciation your AI can't get wrong
 
@@ -1081,7 +1082,7 @@ Over the MCP connection your AI has these asset tools for this:
 | `declining_table` | a declining-balance table at a rate you supply |
 | `flat_table` | a fixed charge per period until the asset is written down |
 | `straight_line_table` | a basis split evenly over N periods |
-| `list_recipes` / `run_recipe` | the region overlay's ready-made composition — preferred whenever one exists |
+| `list_recipes` / `run_recipe` | the region package's ready-made composition — preferred whenever one exists |
 
 The steps are the same whether the local MCP server is connected to one book
 or to a parent folder of books. Use `list_recipes` to discover canonical
@@ -1093,7 +1094,7 @@ preview. Add `apply=true` and a book-relative `out` to record the result;
 The point is that your AI never multiplies a balance forward by hand — that's
 where arithmetic slips happen, and a slip that still adds up to the right total
 is one iris cannot detect. It composes exact tables instead. Better still, when
-a selected overlay has a **recipe** for the method (`list_recipes` shows it),
+a selected package has a **recipe** for the method (`list_recipes` shows it),
 it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
 order and records where the rows came from, so `iris validate` can replay them
 and catch an error such as a method switch that landed a year late. Composing by hand is the fallback
@@ -1101,7 +1102,7 @@ for a method no recipe covers. See
 [`schedule:`](https://irisbooks.io/docs/en/book-format-reference/#schedule-recording-the-table-instead-of-computing-it)
 for the file format and what iris checks.
 
-For assistants, in this order: (1) run the selected overlay's recipe for the
+For assistants, in this order: (1) run the selected package's recipe for the
 method when one exists; (2) otherwise compose the table tools and paste the
 rows under `schedule:`; (3) if the method will recur, write a recipe under
 `config/overlays/recipes/` with a golden case and run `iris overlay test`.
@@ -1126,8 +1127,8 @@ than returning zero.
 ## Exporting
 
 ```bash
-iris export                 # journals.csv, trial-balance.csv, ledger-*.csv
-iris export --year 2026     # restrict to a fiscal year
+iris export                 # the book's year: journals.csv, trial-balance.csv, ledger-*.csv
+iris export --as-of 2026-06-30   # stop at a date
 iris export assets          # per-asset depreciation schedule
 ```
 
@@ -1160,7 +1161,7 @@ posted form; create/review drafts and post only within that Book's policy and
 your authority. Tax and reimbursement evidence requirements still apply where
 relevant; per-receipt detail here is a working policy, not a universal legal
 requirement. What your region's law asks for is in its guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/).
+[Packages](https://irisbooks.io/docs/en/overlays/).
 
 ### Keep the receipt and bank row attached to one business payment
 
@@ -1544,7 +1545,7 @@ its source URL and release tag:
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
 Where you can, pick the release tag that matches `iris --version`, and search
 only the sections you need. For the rules that apply to a book, check the
-overlays that book selects. Reading reference material does not authorize any
+packages that book selects. Reading reference material does not authorize any
 action.
 
 ## A note on what *not* to do
@@ -1674,9 +1675,7 @@ folder there, named after the book. Once the book is made, the page opens the
 `iris yearend` appears beside this one. **Save in** can't be a book's folder,
 or a folder inside a book.
 
-Creating a book doesn't connect to the cloud. So even when you're signed in, a
-book made here starts with the standard units only. A book made with `iris init`
-also gets the default units saved in your account.
+Creating a book doesn't connect to the cloud, even when you're signed in.
 
 ## Work on a book with your AI
 
@@ -1709,7 +1708,7 @@ calculated by `iris` from your files:
 - The five reports: **General Ledger**, **Trial Balance**, **Profit & Loss**,
   **Balance Sheet** and **Monthly Trend**.
 - **Chart of Accounts**, **Raw documents** and **Notes**.
-- **Plugins**, which only this page has (see below).
+- **Packages**, which only this page has (see below).
 - **Sync**, which only this page has, for a book linked to the cloud (see
   [Sync a book](#sync-a-book)).
 - **Book settings**, which here shows the book's folder, with a button that
@@ -1756,18 +1755,17 @@ The posting approval setting and closed years come from the book's last sync.
 On a draft's or a posted entry's page, choose **Edit**. Work on the **Form** or on the **Source**,
 the file itself; you can switch between them. The form changes only what you
 change, and keeps everything it doesn't show, such as comments, quantities and
-fields from the book's overlays. An entry with accounting views opens as source
-only.
+fields from the book's packages.
 
-- **As you type, the book's overlays calculate** what they can, the same as
+- **As you type, the book's packages calculate** what they can, the same as
   [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete). A
   calculated amount appears in its blank field with a dashed outline, and a
-  line an overlay would add appears below the others. Choose
+  line a package would add appears below the others. Choose
   **Fill in** to enter them all at once; it also removes any row you added and
   left empty. **How it's calculated** works each calculated figure through from
-  the figures it came from. An amount an overlay sets itself is
-  explained by the reason the overlay gives, or by its own description, which
-  follows. When two of the book's overlays calculate the entry differently,
+  the figures it came from. An amount a package sets itself is
+  explained by the reason the package gives, or by its own description, which
+  follows. When two of the book's packages calculate the entry differently,
   both results appear side by side; choose one, and it stays your choice while
   you keep editing. When the entry can't be calculated, the reason
   appears under the totals. Nothing is saved until you check the amounts and
@@ -1786,7 +1784,7 @@ step. An entry that names an account the chart doesn't have is saved and
 flagged in the checks, and so is a draft that doesn't balance. **Post** stays
 unavailable until the draft balances.
 
-If the checks say the book's own overlay layer isn't trusted on this computer,
+If the checks say the book's own package layer isn't trusted on this computer,
 review it and run `iris overlay trust`.
 
 A posted entry is changed in place and stays posted. Save refuses a change that
@@ -1807,31 +1805,30 @@ payee.
 reverse it, keeping its attachments. Add the right lines below them and save,
 then post the correction. The posted entry stays exactly as it was.
 
-## Plugins
+## Packages
 
-**Plugins** lists the plugins this book keeps a copy of (`iris` calls them
-[overlays](https://irisbooks.io/docs/en/concepts/#region-rules-the-overlay)), grouped as common or by
-region, above the **Core checks** that always run. A plugin that needs another
-is shown under it. Choose one to see what it adds to the book: checks,
-calculations, suggested values, completions, fields, tasks and guides, and the
-plugin's own notes.
+**Packages** lists the [packages](https://irisbooks.io/docs/en/concepts/#region-rules-packages) this book
+keeps a copy of, grouped as common or by region, above the **Core checks** that
+always run. A package that needs another is shown under it. Choose one to see
+what it adds to the book: checks, calculations, suggested values, completions,
+fields, tasks and guides, and the package's own notes.
 
-To turn a plugin on or off, use its switch or **Turn on** / **Turn off**. The
-page first shows what would change: the plugins that go with it (a plugin
+To turn a package on or off, use its switch or **Turn on** / **Turn off**. The
+page first shows what would change: the packages that go with it (a package
 that another one needs can't be turned off alone), what starts or stops, and
-how many recorded results came from these plugins. Nothing is written until
+how many recorded results came from these packages. Nothing is written until
 you confirm, and then exactly what you reviewed; if the book changed in
-between, you're asked to review again. The page changes `overlays:` in
-`config/book.yaml`, as [`iris overlay select`](https://irisbooks.io/docs/en/cli-reference/#iris-overlay)
-does. A plugin you turn off keeps its copy in the book, and figures recorded
+between, you're asked to review again. The page changes the package list under
+`overlays:` in `config/book.yaml`, as [`iris overlay select`](https://irisbooks.io/docs/en/cli-reference/#iris-overlay)
+does. A package you turn off keeps its copy in the book, and figures recorded
 with it are still checked. On a linked book the change reaches the cloud at
 your next sync.
 
-A plugin with **Settings** shows them in a form: the book-level fields it
+A package with **Settings** shows them in a form: the book-level fields it
 declares, such as a choice between methods. A field appears when it applies,
 so choosing one value can bring up others it needs. A setting that names
 accounts or units offers the book's chart of accounts or its declared units, and
-marks one the book doesn't have. A plugin that doesn't describe its settings
+marks one the book doesn't have. A package that doesn't describe its settings
 field by field is edited as YAML. Before you save, the
 page shows the change to `config/book.yaml`, and it saves exactly that;
 comments and other settings stay as they were. If the book changed in
@@ -1840,20 +1837,20 @@ between, you're asked to review again.
 Nothing here can change while the book's fiscal year is closed or the book is
 an archive.
 
-**Available to add** lists the plugins that come with your version of `iris`
+**Available to add** lists the packages that come with your version of `iris`
 and that the book doesn't have yet; nothing is downloaded. **Add** shows the
-same kind of review, plus the result of each plugin's own tests, then copies
-the exact plugin into the book and turns it on, together with any plugin it
-needs. A plugin for another region's books is listed under **Other regions**
-and can't be added. Plugins released after your version of `iris` aren't
+same kind of review, plus the result of each package's own tests, then copies
+the exact package into the book and turns it on, together with any package it
+needs. A package for another region's books is listed under **Other regions**
+and can't be added. Packages released after your version of `iris` aren't
 listed: ask your assistant, or run `iris overlay install --pin` with the exact
-version. A newer version of a plugin the book already has is an upgrade: use
+version. A newer version of a package the book already has is an upgrade: use
 `iris overlay upgrade`.
 
 The book's own definitions in `config/overlays/` appear at the top; they run
 only after you trust them with `iris overlay trust`.
 
-In [the demo](https://irisbooks.io/demo/) you can see what turning a plugin on
+In [the demo](https://irisbooks.io/demo/) you can see what turning a package on
 or off, adding one, or changing its settings would do, without changing
 anything.
 
@@ -2039,7 +2036,7 @@ A book that a newer version of `iris` worked on still opens, and shows what your
 version can read. A notice names the book, and the version at the bottom of the
 sidebar reads **update needed**. Until you update, the page doesn't post or
 change entries a newer version wrote, doesn't change anything in a book whose
-settings a newer version wrote, and plugins newer than your version don't check
+settings a newer version wrote, and packages newer than your version don't check
 the book.
 
 ## Privacy and stopping
@@ -2277,7 +2274,7 @@ book value and show a coverage warning. Missing acquisition basis or disposal
 policy leaves cost blank; book-value revaluations do not become acquisition cost.
 The chart samples weekly and includes the selected endpoint. Expand the date/value
 table for exact displayed observations, or download the DuckDB file for your own
-SQL and pivot analysis. Acquisition cost uses the ordinary posted ledger or a named Book’s accepted default native generation. Additional fields → Accepted financial view shows its identity; regenerating refuses stale acceptance.
+SQL and pivot analysis. Acquisition cost uses the posted ledger.
 
 Expand **Additional fields** to inspect saved journal-line, asset or book-setting
 values in this report. Choose a record type, then use **Find fields** to list
@@ -2341,11 +2338,6 @@ operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
 To edit drafts and posted entries on screen, open your local folder with
 [`iris view`](https://irisbooks.io/docs/en/iris-view/); the edits reach this app at your next sync.
-
-Named-view Books label amounts **View preview**, including shared-root entries.
-The detail page identifies the default preview; CSV exports retain the unapproved
-scope. Approval marks the shared source as posted and does not accept its financial
-variations. Use **Book settings → Accounting view acceptance** to review and accept separately prepared calculations. Report selectors choose an accepted view; CSV and ledger drilldowns retain its identity. Stale or unaccepted calculations remain unavailable.
 
 ### History and the "after seal" warning
 
@@ -2474,10 +2466,10 @@ the period close:
   the screen counts the files amended. Close the year again when you're
   done — the **History** panel keeps every close and reopen on record.
 
-Run `iris validate` locally before syncing and closing. Overlay checks and recipe
+Run `iris validate` locally before syncing and closing. Package checks and recipe
 replay run on local clients using Book-contained definitions; the cloud checks
 native accounting, access, posting, seals and revision consistency. A successful
-cloud preview or close therefore says nothing about Overlay validation or
+cloud preview or close therefore says nothing about package validation or
 recipe replay: those run only on your computer.
 
 If `config/balance-assertions.yaml` is configured, the preview also compares its
@@ -2490,11 +2482,6 @@ If, after syncing, the preview still reports stale or missing source data, the
 server has to rebuild it; trying to close again will not fix it. Matching
 hashes establish that a source is the same file, not that its figures were
 copied correctly or that it came from the bank.
-
-To close a book with named views, every declared view must be accepted against
-the current inputs, and no source entry may still be a draft. The preview
-lists the calculations the close will pin. Closing locks those calculations
-and the evidence they reference; other incoming raw files can still be added.
 
 Closing never removes anything: the year's files stay in the book.
 
@@ -2843,10 +2830,8 @@ Nothing you change on the connector affects them.
 ## What you can do from anywhere
 
 - **Read reports** — `get_report` provides trial balance, P&L, balance sheet,
-  account ledger and grouped totals. For an ordinary book the figures come from
-  posted entries. For a book with named views they come from the calculation
-  currently accepted for that view. Responses include
-  the sync watermark `figures_as_of` when available.
+  account ledger and grouped totals. The figures come from posted entries.
+  Responses include the sync watermark `figures_as_of` when available.
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
   investing and financing activity, with opening and closing cash.
@@ -2996,7 +2981,7 @@ the book folder and of its record from `iris api history --all --json`
 The engine handles the universal, stable parts: double-entry math, the fields
 recorded on each line, totals and data exports. Regional rules — tax
 classifications, depreciation methods, the figures a return needs — come only
-from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
+from the [packages](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
 for your region, its region guide there says which to select and what they
 leave to you; a book whose region has none gets the universal checks only.
 
@@ -3019,8 +3004,8 @@ closing:
 iris yearend                                      # start the FY2026 book, with its opening balances
 # …closing adjustments and the return happen here, in the FY2025 book…
 iris yearend                                      # after late corrections: refresh FY2026's opening balances
-iris seal --dry-run 2025                          # see exactly what will be sealed (cloud)
-iris seal 2025                                    # seal it (cloud)
+iris seal --dry-run                               # see exactly what will be sealed (cloud)
+iris seal                                         # seal it (cloud)
 ```
 
 - **Next year's book (`iris yearend`).** Creates the FY2026 book beside this
@@ -3043,7 +3028,7 @@ iris seal 2025                                    # seal it (cloud)
   earlier version.
 
 Run `iris validate` locally before syncing and closing. Local clients check
-Overlay rules and replay recorded recipes using definitions retained in the Book;
+package rules and replay recorded recipes using definitions retained in the Book;
 the cloud does not execute those definitions or certify that those checks passed.
 When `config/balance-assertions.yaml` is configured, `--dry-run` shows the native
 check's exact recorded/observed/difference values, scope and evidence status for
@@ -3057,11 +3042,11 @@ Need to amend a sealed year? In its book, reopen it, edit, re-sync, and
 re-seal:
 
 ```bash
-iris reopen 2025      # unlock the seal; the year's files are already in the working tree
+iris reopen           # unlock the seal; the year's files are already in the working tree
 # …make corrections…
 iris sync             # push; the server flags these as post-seal edits
 iris yearend          # refresh the FY2026 book's opening balances (while 2026 is still open)
-iris seal 2025        # close the year again (supersedes the old seal)
+iris seal             # close the year again (supersedes the old seal)
 ```
 
 If the *next* year is already sealed too, `iris yearend` does not update its
@@ -3083,9 +3068,9 @@ and runs the same preview → close → reopen flow — see
 What an auditor, an accountant or a tax authority asks for is already in the
 book:
 
-- **The books.** The book folder itself (plain markdown and YAML), or a
-  fiscal year as CSVs with `iris export --year 2025` (from the cloud copy:
-  `iris api export --year 2025 <book-id>`).
+- **The books.** The book folder itself (plain markdown and YAML), or the
+  year as CSVs with `iris export` in its book (from the cloud copy:
+  `iris api export <book-id>`).
 - **The correction/deletion record**, as a file:
 
   ```bash
@@ -3130,10 +3115,9 @@ without a book or login, writes to stdout and exits 0. Flags may precede or foll
 literal. Boolean values use `--flag=true` or `--flag=false`; a separate value
 (`--json false`) is refused with that hint.
 
-Calculations and repairs (`journal complete`, `organize`, `financial prepare`,
-`overlay recipe`, and derived values in `validate`) write only with `--apply`.
-Recipes also need `--out PATH`; retained financial calculations need the reviewed
-`--revision`. Action commands such as `post`, `yearend`, `overlay select`,
+Calculations and repairs (`journal complete`, `organize`, `overlay recipe`,
+and derived values in `validate`) write only with `--apply`.
+Recipes also need `--out PATH`. Action commands such as `post`, `yearend`, `overlay select`,
 `overlay upgrade`, and `seal` perform their named action; `--dry-run` previews
 it. `yearend` carries balances into the next book; `seal` separately locks
 the current year, and `reopen` unlocks it for amendments.
@@ -3150,7 +3134,7 @@ The command names are `journal complete`, `references`, and `sync issues`.
 The former `autocomplete`, `show`, and `attention` names are removed. Folder
 selectors use `--book-path`; the former ambiguous `--book` flag is removed.
 Closing previews use `seal --dry-run`; calculation writes use `validate
---apply`, `financial prepare --apply`, and `overlay recipe --out PATH --apply`.
+--apply` and `overlay recipe --out PATH --apply`.
 
 Results printed with `--json` share one convention: dates are
 `YYYY-MM-DD` strings, and the document is pretty-printed with a two-space
@@ -3206,7 +3190,6 @@ iris init [flags] <path>
 | `--sample` | Seed ~40 demo journals for the business chart; unavailable with personal setup |
 | `--posting` | Posting policy written into AGENTS.md: `approve` (default — you review and post) / `auto` (your assistant posts everything that validates) |
 | `--book-id` | Pre-link to an existing server book (advanced) |
-| `--no-user-defaults` | Don't merge your account's default units into the new book (offline / reproducible init) |
 
 The interactive wizard, parent-MCP `create_book` and explicit Web/API creation
 use the same static planner. Personal setup selects the common package and
@@ -3310,7 +3293,7 @@ task links and context diagnostic counts. `packageContext` carries that compact
 summary in JSON. It is an offline read using the same resolver as `iris context`,
 not validation or an eligibility verdict. A missing copy is diagnosed without
 installation; archived status skips the live lookup. Use `iris context` for the
-full task index, source/view errors and metadata limits.
+full task index, source errors and metadata limits.
 
 ### iris yearend
 
@@ -3366,11 +3349,11 @@ year is sealed, its opening entry is frozen — a mismatch is reported with
 remedies, never silently rewritten. Drafts still dated in the old year produce a warning; drafts are not carried
 forward.
 
-`<fiscal-year>` is optional — it defaults to the book's `fiscal_year`, and
-naming any other year is refused.
+It takes no year: a book covers one fiscal year, and the next book covers the
+year after it.
 
 ```bash
-iris yearend [<fiscal-year>] [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [--json] [path]
+iris yearend [--to PATH] [--carry notes,raw] [--yes] [--local | --link-existing BOOK_ID] [--dry-run] [--json] [path]
 ```
 
 `--link-existing BOOK_ID` reuses an untouched next-year cloud starter you own.
@@ -3390,11 +3373,12 @@ book needs `--yes`.
 
 ### iris seal
 
-Close a fiscal year of the linked cloud book (a period seal). The server locks
+Close the linked cloud book's fiscal year (a period seal). A book covers one
+fiscal year, so the command takes no year. The server locks
 journals dated in the year or earlier (an earlier entry still changes the
 year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
 `raw/` and `notes/` remain writable. Local files can still be edited, but locked
-changes cannot sync; the year's files stay in your working tree. To amend a sealed year, run `iris reopen <fiscal-year>`. While the year is
+changes cannot sync; the year's files stay in your working tree. To amend a sealed year, run `iris reopen`. While the year is
 reopened, changes to the locked scope are flagged in the audit trail
 (`iris api history`). When you are done, run `iris seal` again to close the
 year; the new seal replaces the old one, and the old one stays in the history.
@@ -3404,7 +3388,7 @@ resolved. Post each draft if it belongs in the year, delete it if abandoned, or
 change its date into an open year; `--dry-run` lists the blockers.
 
 Run `iris validate` locally before syncing and closing. Local clients check
-Overlay rules and replay recorded recipes using definitions retained in the Book;
+package rules and replay recorded recipes using definitions retained in the Book;
 the cloud does not execute those definitions or certify that those checks passed.
 When `config/balance-assertions.yaml` is configured, `--dry-run` runs the balance check on the synced data and shows the book
 balance, the observed balance, the difference, the scope and the evidence
@@ -3415,7 +3399,7 @@ stale native source mirror after sync needs a server projection rebuild; seek
 support from the [Discord community](https://discord.gg/wZDsv9gyb9).
 
 ```bash
-iris seal [--dry-run] [--json] <fiscal-year> [book-path]
+iris seal [--dry-run] [--json] [book-path]
 ```
 
 `--json` prints one object with `dryRun` and `periodKey`. A preview adds
@@ -3429,16 +3413,17 @@ cloud copy. Local MCP's `seal` tool does the same for the selected book.
 
 ### iris reopen
 
-Unlock a sealed fiscal year for amendment. The seal is unlocked on the server
+Unlock the book's sealed fiscal year for amendment; like `iris seal`, it takes
+no year. The seal is unlocked on the server
 (the year’s journals and `config/`, `assets/`, `filings/`, `compiled/` are
 locked until this runs; edits to that scope after reopening are permanently
 flagged as post-seal edits). `raw/` and `notes/` remain writable throughout.
 Sealing locks the year; it does not remove files. The year's files are still
 in your working tree, so there is nothing to restore: edit them directly, run `iris sync` to push
-your edits, and `iris seal <fiscal-year>` to close the year again.
+your edits, and `iris seal` to close the year again.
 
 ```bash
-iris reopen [--json] <fiscal-year> [path]
+iris reopen [--json] [path]
 ```
 
 `--json` prints `status` (`reopened`), `fiscalYear` and the reopened `sealId`.
@@ -3448,18 +3433,18 @@ iris reopen [--json] <fiscal-year> [path]
 ### iris validate
 
 Validate a book's structure and entries: YAML, double-entry balance, account
-existence, date consistency, status values, and the rules of the overlays the
+existence, date consistency, status values, and the rules of the packages the
 book selected.
 
 ```bash
 iris validate [--v] [--json] [--apply] [path]
 ```
 
-`--apply` records the values the selected overlays derive for you — reported as
+`--apply` records the values the selected packages derive for you — reported as
 hints, such as a tax amount a package computes for a line — into the files,
 then validates again.
 
-Overlay checks share input, execution and output limits across the entire Book.
+Package checks share input, execution and output limits across the entire Book.
 If a limit is reached, `overlay.checks-incomplete` is an error and `--apply`
 writes no proposals, including hints collected earlier. Core accounting checks
 continue. Validation checks the recorded candidate; it does not run a preparation
@@ -3485,19 +3470,17 @@ and hints affect neither `ok` nor the exit code.
 
 Preview completion of an existing journal, draft or posted, using the
 completions of the book's selected packages. Leave an amount you want
-calculated as `null`; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each package
+calculated as `null`; the [package docs](https://irisbooks.io/docs/en/overlays/) describe what each package
 completes.
 
 ```bash
-iris journal complete [--book-path PATH] [--view NAME] [--completion ID] [--apply] [--revision HASH] <journal>
+iris journal complete [--book-path PATH] [--completion ID] [--apply] [--revision HASH] <journal>
 iris journal complete journals/2026-10/2026-10-21-sale.md
 iris journal complete --apply --revision <preview-revision> journals/2026-10/2026-10-21-sale.md
 iris journal complete --completion <completion-id> journals/2026-10/2026-10-21-sale.md
 ```
 
-The path is relative to the book. Omitted `--book-path` finds the current book;
-omitted `--view` uses its default view. A selected view receives its own lines,
-leaving shared lines and other views intact.
+The path is relative to the book. Omitted `--book-path` finds the current book.
 
 The result has these keys (as JSON with `--json`):
 
@@ -3575,7 +3558,7 @@ creation, editing, deletion and recovery are unavailable. Make corrections in a
 local client under the owner's posting policy.
 Validates each file is non-empty and balanced first. A journal dated inside a
 sealed fiscal year is refused (*"FY \<n\> is sealed (closed period) — run
-`iris reopen <n>` to amend it, then re-seal"*).
+`iris reopen` to amend it, then re-seal"*).
 
 ```bash
 iris post [--dry-run] [--local] [--json] <file>...
@@ -3627,7 +3610,7 @@ For assistants: results carry account, date and fiscal year,
 measure/unit/scale, posted or explicit posted-and-drafts scope, normal
 direction, exact decimal strings for actual/expected/difference,
 and evidence status. Local MCP `reconcile` uses the same checker in single-book
-and parent mode. A pass does not certify Overlay policy or the authenticity of
+and parent mode. A pass does not certify package policy or the authenticity of
 the source evidence.
 
 ### iris allocation
@@ -3653,17 +3636,23 @@ See [the complete allocation example](https://irisbooks.io/docs/en/book-format-r
 Fixed-asset depreciation and reporting.
 
 ```bash
-iris asset schedule [--year YYYY] [--json] [path]  # print each asset's depreciation schedule
-iris asset depreciate --month YYYY-MM [--json] [path]  # generate that month's entries (status: draft)
-iris asset depreciate --year YYYY [--json] [path]    # one FY-total entry per asset, dated the FY's last day
+iris asset schedule [--json] [path]  # each asset's depreciation in the book's fiscal year
+iris asset depreciate [--apply] [--json] [path]                  # one FY-total entry per asset, dated the FY's last day
+iris asset depreciate --month YYYY-MM [--apply] [--json] [path]  # or that month's entries (status: draft)
 ```
+
+`depreciate` is a calculation: without `--apply` it previews the drafts it
+would write and changes nothing; `--apply` writes them. It never posts or
+syncs.
 
 With `--json`, `schedule` prints `asOf`, `currency` and `assets` (each with
 cost, opening, period and closing book values and accumulated depreciation as
-decimal strings), plus `fiscalYear` and `periodStart` with `--year`.
-`depreciate` prints `cadence`, `fiscalYear`, `date`, `currency`, the drafts
-`written` (`path`, `asset`, `amount`), those `skipped` because they already
-exist, the `noActivity` count and any `failed` assets.
+decimal strings) for the book's fiscal year, from `periodStart` to `asOf`, plus
+`fiscalYear`.
+`depreciate` prints `cadence`, `fiscalYear`, `date`, `currency`, `applied`
+(whether the drafts were written), the `proposals` (`path`, `asset`, `amount`),
+those `skipped` because they already exist, the `noActivity` count and any
+`failed` assets.
 
 Pick one cadence per fiscal year: `depreciate` refuses to write annual entries
 into a year that already has monthly ones, and vice versa (mixing them would
@@ -3678,49 +3667,10 @@ record a separate private-use reclassification; see
 Native work is bounded; an invalid or excessive asset schedule is an error.
 See [schedule limits](https://irisbooks.io/docs/en/book-format-reference/#schedule-recording-the-table-instead-of-computing-it).
 
-### iris financial
-
-Calculate a named accounting view, keep the result in the book and accept it.
-`prepare` first calculates without writing; review the statements and the
-generation ID in its result, then run it again with `--apply` to retain that
-exact generation:
-
-```sh
-iris financial prepare --view management ./my-book
-iris financial prepare --view management --apply --revision GENERATION_ID ./my-book
-iris financial accept --generation GENERATION_ID ./my-book
-iris report pl --view management --from 2026-01-01 --to 2026-12-31 ./my-book
-```
-
-`prepare` defaults to the declared default view. A generation is kept under `calculations/financial/`. It holds the original
-source documents, the hashes of the typed evidence under `raw/`, the
-calculated entries, and the version and state of the native engine.
-Acceptance applies to that exact generation ID; posting the source journals
-is a separate step. Sources are never rewritten. Source membership, content, view definitions and evidence changes invalidate current acceptance. Historical generations remain available for native replay.
-
-When human posting approval is enabled, retain and sync the draft, then use **Book settings → Accounting view acceptance** in Web. Only a current Owner/Bookkeeper browser session can accept there. Local acceptance records a local action, not an authenticated reviewer identity. Local MCP offers `preview_financial_ledger`, `retain_financial_ledger` (reviewed `revision`) and `accept_financial_ledger` (`generation`); parent mode also requires `book`.
-
-Local/cloud approved reports select one accepted view; comparison composition remains local and unapproved. Report exports include view, generation, horizon and unfinished-source scope. Net Worth/analytics use each Book's accepted default. Closing a year requires every declared view to be final at the same source
-revision, and pins the accepted cloud versions. The year's SQLite archive
-(schema 2) stores each view and its original generation separately, with the
-default view's figures in the ordinary tables. Reopening permits corrections; it does not alter an existing archive.
-
-This contract runs fixed native inventory/current-year depreciation calculations. It does not evaluate regional Overlay recipes or establish filing eligibility. Selected-view opening replay/rollover, exceptional operations, periodic allocation and chart/rule variants remain unsupported. The limits are below. Exceeding one refuses complete acceptance; inputs are never truncated.
-
-| Item | Limit |
-| --- | --- |
-| Source/reference paths | 1,024 |
-| Source text | 512 KiB |
-| Assets | 64 |
-| Selected lines | 8,192 |
-| Evidence | 16 MiB per file, 128 MiB in total |
-| Generation | 1 MiB |
-| History | 1,024 generations, 64 MiB |
-
 ### iris context
 
-Show what the book's selected accounting packages provide. An accounting
-package bundles the fields, checks, calculations and guidance your book uses.
+Show what the book's selected packages provide. A package bundles the fields,
+checks, calculations and guidance your book uses.
 Run it bare for a compact task index, then request only the task and record
 you need:
 
@@ -3730,15 +3680,14 @@ iris context --task <task-id> --record journals/2026-10/entry.md [path]
 ```
 
 Prints text; `--json` prints JSON. `--help` lists every
-supported flag, including repeatable `--view` and the explicit `--book-path` selector.
+supported flag, including the explicit `--book-path` selector.
 
 The task must exist in the exact selected Book package. Older releases report
 limited discovery instead of receiving metadata from a newer release. The
 response separates package sources, inputs, diagnostics, supported operations
 and remaining judgment. It is reference data, not permission to change or post.
-Local MCP `get_book_context(task?, record?, view?)` returns the same context;
-parent mode also requires `book`. `--view` selects the existing accounting view
-and may be repeated for explicit composition. Context inspects asset and journal
+Local MCP `get_book_context(task?, record?)` returns the same context;
+parent mode also requires `book`. Context inspects asset and journal
 records, or Book settings when no record is needed. It never downloads, installs, edits or posts.
 
 Remote MCP `get_book_context(book_id, package?, task?, field?, guide?, example?)`
@@ -3747,25 +3696,26 @@ selection/settings, declared field/task metadata, accepted hashes and the checke
 Book revision/time. An exact package source is required for a guide; an example
 also requires its declaring task. Package and `book:<hash>` sources are read
 without compiling their expressions. Compatibility, applicability, requiredness
-conditions, view resolution, execution plans, validation and replay remain
+conditions, execution plans, validation and replay remain
 unevaluated. Missing tax settings stay missing. Unsynced local changes are excluded;
 references do not authorize actions. Current grant/token checks apply to each read.
 
 ### iris overlay
 
-Accounting rule packages (overlays) provide versioned common and regional
-rules, calculations and derived values — pinned by `overlay:` or `overlays:` in
-`config/book.yaml`, extended by the book's own `config/overlays/` when present.
+Manage the book's packages: versioned common and regional rules, calculations
+and derived values. The command, like the `overlay:` or `overlays:` key in
+`config/book.yaml` that pins them, uses their technical name "overlay". The
+book's own `config/overlays/` extends them when present.
 
 ```bash
-iris overlay install [--pin id@version ...] [path]                  # copy exact definitions into the Book; selection unchanged
+iris overlay install [--pin id@version ...] [path]                  # copy exact definitions into the Book; selection unchanged; may download
 iris overlay select --pin id@version [--pin ...] [--dry-run] [--json] [--revision HASH] [path]  # complete enabled set; --off disables optional packages
 iris overlay example <task> <file#case> [path]                      # read a task's actual executable example
-iris overlay list [--json] [path]                                   # the overlay in effect: pin, layers, rules, recipes, derivations
+iris overlay list [--json] [path]                                   # the packages in effect: pins, layers, rules, recipes, derivations
 iris overlay guide <id[#section]> [path]                                     # read a pinned package workflow guide
 iris overlay recipe <id> --set name=value ... [--out <path> --apply] [path]  # run a recipe; --apply records it with provenance
 iris overlay test [--json] [path]                                   # run the golden tests of every layer in effect
-iris overlay test --dir <overlay-dir> [--json]                      # run one published overlay's golden tests, outside any book
+iris overlay test --dir <overlay-dir> [--json]                      # run one published package's golden tests, outside any book
 iris overlay fetch [path]                                           # download + verify the version the book pins, if this iris lacks it
 iris overlay upgrade [--to <id>@<version>] [--dry-run] [--json] [--revision HASH] [path]                   # move the pin to the newest published version (or --to)
 iris overlay trust [--source book:HASH] [path]                       # trust the current layer or one exact retained local source on this machine
@@ -3819,7 +3769,7 @@ compatible set explicitly. No dependency is downloaded or enabled automatically.
 prepared journal fields whose recorded providers would become inactive. Each
 entry identifies its path, zero-based journal line (`-1` for whole records),
 field and any raw `sourceView` declaration. This is a provenance inventory,
-not a resolved accounting view or a calculation. `retained` means verified
+not a calculation. `retained` means verified
 source bytes are present; `will-retain` means apply will preserve the current
 local definition with its original parent pins. A source being available, being trusted on this machine, and replaying
 successfully are three separate things. Missing historical sources produce a warning;
@@ -3841,8 +3791,8 @@ Archives and known sealed settings refuse changes. Seal observations are cached;
 an available local write is not proof of current cloud permission or seal state.
 Preview creates no runtime/cache files and never connects to a service.
 
-The current writer refuses unresolved configuration views and YAML aliases or
-merges that would alter other settings. Preview also refuses incomplete input. The limits are:
+The current writer refuses YAML aliases or merges that would alter other
+settings. Preview also refuses incomplete input. The limits are:
 
 | Item | Limit |
 | --- | --- |
@@ -3895,7 +3845,7 @@ retains old versions and local-layer content with its original parent pins.
 Disabling does not remove stored fields or recorded results. Clone/sync carry
 the Book copies; ordinary reads never install them. Cloud stores definitions
 and results as data, runs host integrity/security guards, and does not compile
-Overlay expressions or replay Overlay recipes at close.
+package expressions or replay package recipes at close.
 
 #### Trust retained historical definitions
 
@@ -3997,17 +3947,18 @@ iris report bs [--as-of YYYY-MM-DD] [--compare prior-year] [path]  # balance she
 iris report trend [--from D] [--to D] [path]             # monthly trend
 iris report cf [--from D] [--to D] [path]                # cash flow statement
 iris report ledger --account PATH [--from D] [--as-of D] [path] # general ledger for one account
-iris report sum --by KEY[,KEY...] [--from D] [--to D] [--year YYYY] [path]
+iris report sum --by KEY[,KEY...] [--from D] [--to D] [path]
                                                          # group-by sums over journal lines
 ```
 
-Every report command and `iris balance` accepts `--include-drafts` to preview
-draft entries. This selects read-only comparison mode when `--mode` is omitted;
-for example, `iris report pl --include-drafts`. The result identifies the effective
-mode and whether draft sources are included. Without the flag, drafts are excluded.
-Explicit `--mode approved --include-drafts` is rejected. Comparison mode also
-calculates inventory and depreciation without writing files; approved named-view
-reports use the current accepted financial generation.
+Every report command and `iris balance` accepts `--mode approved|comparison`
+and `--include-drafts`. Approved mode, the default, reports posted journals.
+Comparison mode is read-only: it calculates inventory and depreciation without
+writing files. `--include-drafts` adds draft entries and selects comparison mode
+when `--mode` is omitted; for example, `iris report pl --include-drafts`. The
+result identifies the effective mode and whether draft sources are included.
+Without the flag, drafts are excluded. Explicit `--mode approved
+--include-drafts` is rejected.
 
 Reports print as text: the statement's figures in order, its rows as tables
 with amounts aligned on the right, account names in any script lined up. With
@@ -4016,12 +3967,11 @@ form to read when you process the figures. Cloud responses may include
 additional revision or freshness metadata.
 
 `report sum` groups posted journal lines by the keys you choose — `account`,
-`unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one an
-overlay or your book's layer defines) — and returns debit/credit/net totals plus
-a line count per group (e.g. `--by sales.channel,month --year 2026`). Lines
+`unit`, `payee`, `month`, or a dotted line field such as `sales.channel` (one a
+package or your book's layer defines) — and returns debit/credit/net totals plus
+a line count per group (e.g. `--by sales.channel,month`). Lines
 missing a key form an explicit empty-keys group, so unclassified lines are
-visible rather than dropped. `--year` uses the fiscal year (begins-in
-convention); `--from/--to` take arbitrary inclusive dates.
+visible rather than dropped. `--from/--to` take arbitrary inclusive dates.
 
 **Default dates.** A date you leave out comes from the book's fiscal year
 (`fiscal_year` — a book is one year). Balances (`balance`, `tb`, `bs`,
@@ -4034,8 +3984,10 @@ Give only `--to` and the range starts on
 the first day of that date's fiscal year; give only `--from` and it runs
 through today. An entry dated after today stays out until its date arrives.
 The JSON always states the dates it used, and the web app, the MCP tools and
-the remote connector use the same defaults. For filing figures, name the
-period (`--year`, or `--from`/`--to`).
+the remote connector use the same defaults. No command takes a year: the
+book's own fiscal year is the default, and once it is over the default covers
+all of it. To file while the year is still open, name the dates with
+`--from`/`--to`.
 
 **Output shapes.** The statements build on one row type:
 
@@ -4258,13 +4210,17 @@ document — how you spot a receipt booked twice.
 Export journals, trial balance, ledgers, or assets as CSV (UTF-8 with BOM).
 
 ```bash
-iris export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] [path]
-iris export assets [--year YYYY] [--out FILE] [--json] [path]
+iris export [--out DIR] [--as-of YYYY-MM-DD] [--json] [path]
+iris export assets [--out FILE] [--json] [path]
 ```
 
-`--json` prints the files written: `iris export` gives `outDir`, `files`,
-`journalCount` and, with a cutoff, `asOf`; `iris export assets` gives `files`
-and `assetCount`. Paths inside the book are book-relative.
+Both cover the book's fiscal year. `iris export` writes the journals and
+ledgers dated from the year's first day to `--as-of` and the trial balance as
+of that date; `--as-of` defaults to the same date as the reports (today, or the
+year's last day once the year is over). `--json` prints the files written:
+`iris export` gives `outDir`, `files`, `journalCount`, `from` and `asOf`;
+`iris export assets` gives `files` and `assetCount`. Paths inside the book are
+book-relative.
 
 Each `ledger-<account>.csv` is laid out like a paper ledger: `date`, `file`,
 `description`, `counter_account` (the account, or *Various* / *Brought
@@ -4274,7 +4230,7 @@ the lines behind the corresponding account as `account amount; account
 amount`. A monthly total row and a cumulative total row follow each month.
 
 The assets CSV adds one column per extra field your asset files carry, such as a
-field an overlay defines, named by its dotted path (for example `location.room`)
+field a package defines, named by its dotted path (for example `location.room`)
 and sorted after the standard columns. Assets without that field leave the cell
 empty.
 
@@ -4407,7 +4363,7 @@ iris sync issues retry --path <relpath> [path]   # just one file
 
 `code` is the server invariant that refused the file — `UNBALANCED_JOURNAL`,
 `UNKNOWN_ACCOUNT`, `PERIOD_SEALED`, `BULK_DELETE_REFUSED`, and so on.
-`OVERLAY_RULE` means a region-overlay rule refused it (the published overlay's
+`OVERLAY_RULE` means a package rule refused it (a published package's
 or your book's own in `config/overlays/`); each issue's `rule` names the rule,
 which `iris overlay list` shows.
 
@@ -4563,10 +4519,7 @@ configuration for a matching holding takes precedence; otherwise the method
 recorded with the opening inventory carries over. Moving average and specific identification are also supported, with
 explicit lot selection required for specific disposals. Missing acquisition
 history or opening basis remains unknown. `inventory_method` states the
-effective method per position. A Book with named views uses its default view's currently accepted
-generation, and the exported file records the view and generation ID. If that
-generation is unaccepted or its inputs have changed since, the export is
-refused.
+effective method per position.
 
 ## AI assistant integration
 
@@ -4654,7 +4607,7 @@ server approval. `dry_run=true` previews. `local=true` posts without syncing or
 requiring sign-in; otherwise a linked book syncs automatically, including unrelated
 pending changes across the whole book.
 
-Discover the selected overlay with `describe_overlay`. Both modes expose
+Discover the selected packages with `describe_overlay`. Both modes expose
 `list_recipes` and `run_recipe`. Listing returns canonical CLI recipe IDs and
 parameter schemas. Run `run_recipe(recipe=ID_FROM_LIST,
 params={...})` to preview. Add `apply=true, out="assets/2026/equipment.md"` to
@@ -4668,8 +4621,8 @@ For reference lookup, use file tools or CLI `iris references`.
 `open_view` opens the served books in [`iris view`](#iris-view) on the computer
 running the server, in both modes, and never returns the sign-in link.
 
-For assistants: `export_local(kind="journals"|"assets", year?, as_of?,
-out_dir?)` writes CSVs inside the selected book (`as_of` for journals only;
+For assistants: `export_local(kind="journals"|"assets", as_of?, out_dir?)`
+writes CSVs for the book's fiscal year inside the selected book (`as_of` for journals only;
 `out_dir` defaults to `exports/`). `search_journals` filters by date, amount
 (decimal strings in the book currency, e.g. `"98.00"`), payee, status, account
 and tag.
@@ -4740,11 +4693,15 @@ mine immediately syncs; keeping cloud removes the sidecar. `list_conflicts`
 returns JSON `{conflicts: [{path, local}]}`. `list_sync_issues` returns JSON
 `{records: [...]}` with rejection details, and
 `retry_sync_issues` inspect/clear rejection suppression; sync explicitly afterward.
+`references(path)` lists a file's citation links, like `iris references`, and
+`organize(fix?, apply?)` previews the layout repairs of `iris organize`;
+`apply=true` makes them.
 Preview destructive changes and follow the book's policy.
-Use `seal(period="2026", dry_run=true)` to inspect closing without sealing;
-omitting `dry_run` or setting it to false executes closing.
+Use `seal(dry_run=true)` to inspect closing without sealing; omitting `dry_run`
+or setting it to false executes closing. `seal` and `reopen` act on the book's
+own fiscal year and take no year.
 
-`asset_depreciate` creates drafts. Linked-book `fiscal_years`, `history`, `seal`
+`asset_depreciate` previews drafts; `apply=true` writes them. Linked-book `fiscal_years`, `history`, `seal`
 and `reopen` require sign-in and the applicable server permissions. Parent-mode
 `yearend(book=..., next_book=...)` previews by default; `dry_run=false` executes,
 `local=true` skips cloud actions. It may move journals, copy grants and
@@ -5006,20 +4963,12 @@ iris api token revoke <token-id>
 
 ### iris api config
 
-Show or set per-user preferences. Reporting currency controls cross-book
-reports. Default unit scales are a template copied into `config/book.yaml`
-by signed-in `iris init` when available; existing books are unchanged.
-Without default units, new books start with no explicit unit entries.
-Known currencies still use built-in precision; templates can override their
-quantity precision or declare custom units.
-`--remove-unit` removes a unit from the account template, not existing books.
-`iris init --no-user-defaults` skips the template.
+Show or set per-user preferences: the reporting currency, which cross-book
+reports use. A book's units live in its own `config/book.yaml`.
 
 ```bash
 iris api config
 iris api config set --base-currency USD
-iris api config set --set-unit BTC:8,XAU:4
-iris api config set --remove-unit XAG
 ```
 
 ### iris api grants
@@ -5106,20 +5055,19 @@ server's response through unchanged.
 ### iris api export
 
 ```bash
-iris api export [--out DIR] [--year YYYY] [--as-of YYYY-MM-DD] [--json] <book-id>  # CSVs
+iris api export [--out DIR] [--as-of YYYY-MM-DD] [--json] <book-id>  # CSVs
 ```
 
-`--json` prints `outDir`, `year` (0 for every year), `asOf`, `journalCount`
-and the `files` written.
+`--json` prints `outDir`, `year` (the book's fiscal year), `from`, `asOf`,
+`journalCount` and the `files` written.
 
-With `--year`, the export is restricted to journals dated in that fiscal
-year. Sealed years stay in the live tree, so they export like any other
-year.
+Like `iris export`, it covers the cloud book's fiscal year up to `--as-of`.
+Sealing locks a book without removing files, so a sealed book exports like any
+other.
 
 ### iris api price / networth
 
 ```bash
-iris api price add --unit BTC --price 9850000 [--date YYYY-MM-DD] [--source S] [--revision N]
 iris api price list [--unit BTC] [--currency JPY] [--year 2026] [--page] [--limit 500] [--cursor C] [--json]
 iris api networth --book-id <book-id> [--as-of YYYY-MM-DD] [--json]
 ```
@@ -5127,10 +5075,8 @@ iris api networth --book-id <book-id> [--as-of YYYY-MM-DD] [--json]
 `iris api price list` follows every server page by default. `--page` returns
 `{ items, nextCursor, syncCursor, hasMore, userId }`; follow `nextCursor` using
 `--cursor` with the same filters. Page size is 1–1000. Each item includes its
-`revision`. Creation uses revision 0; correcting an existing cell requires
-`add --revision N` from the displayed row. A correction based on a stale revision that sets a different value fails with
-a conflict. Resending the same value and source is not a conflict: it returns
-the accepted row.
+`revision`. To record or correct a price, use `iris price add` and publish it
+with `iris price sync`.
 
 `iris api networth` values one explicitly selected cloud book.
 Cloud cross-book totals, history, movers and inclusion settings were removed
@@ -5157,11 +5103,11 @@ iris docs cli-reference --section iris-sync     # one section + its subsections
 iris docs --json cli-reference --section iris-sync
 ```
 
-The manual is region-agnostic. Regional rules are documented by the overlay
+The manual is region-agnostic. Regional rules are documented by the package
 catalog this executable embeds, listed after the chapters as a separate group:
 `region/<cc>` is a region guide (which of the region's packages to select and
 what they leave to you), and `overlay/<id>` is a package's README and
-English guides. Each such topic starts by saying it is an overlay topic and names
+English guides. Each such topic starts by saying it is a package topic and names
 the exact package version. A Book runs the versions it pins, which may differ;
 read those with `iris overlay guide`.
 
@@ -5171,7 +5117,7 @@ section and its children; `--full` explicitly reads the chapter. These modes
 cannot be combined. Topic/section lists include word counts. JSON includes
 `version`, `source: "bundled"`, `language: "en"`, `words`, and `topics`,
 `sections` or `markdown` according to the request. Each topic has `kind`
-(`manual` or `overlay`); overlay topics add `region` and, for a package, its
+(`manual` or `overlay`); `overlay` topics add `region` and, for a package, its
 `pin`. Unknown selectors
 exit 2 with discovery guidance; they never fall back to the full manual.
 Use `iris <command> --help` for invocation details and current online docs for
@@ -5292,7 +5238,7 @@ your-book/
 │   ├── rules.yaml                # optional categorization hints (may be empty)
 │   ├── balance-assertions.yaml   # optional observed account balances and evidence
 │   ├── prior-year.yaml           # last year's figures, written by `iris yearend`
-│   └── overlays/                 # optional: this book's own overlay layer (rules, recipes)
+│   └── overlays/                 # optional: this book's own package layer (rules, recipes)
 ├── raw/                          # source documents; any structure, type inferred from content
 ├── journals/
 │   └── YYYY-MM/
@@ -5300,7 +5246,7 @@ your-book/
 ├── assets/
 │   └── YYYY/<asset-name>.md       # fixed assets (by acquisition year)
 ├── filings/
-│   └── <recipe>.md                # recorded return figures, written by overlay recipes
+│   └── <recipe>.md                # recorded return figures, written by package recipes
 ├── notes/
 │   ├── workflow.md  decisions.md  open-questions.md  todos.md
 │   └── raw/<mirror of raw/>.md    # parse caches
@@ -5358,7 +5304,7 @@ units:                          # non-currency units (forex, crypto, metals, sha
     scale: 8
     name: "Bitcoin"
 
-# Settings blocks an overlay defines sit at the top level too;
+# Settings blocks a package defines sit at the top level too;
 # `iris overlay list --json` shows their fields.
 ```
 
@@ -5375,13 +5321,12 @@ those use the book's top-level `scale`, which defaults from `currency` when
 omitted. An explicit top-level `scale: 0` remains zero, even for USD.
 Cloud Book amount precision supports 0–6 fractional digits; declared quantity
 unit precision supports 0–18.
-Signed-in `iris init` copies available account unit templates;
-`--no-user-defaults` skips them. Account preferences affect new books only.
-The BTC entry above is an example, not a preinstalled default.
+The BTC entry above is an example; a new book declares no units until you add
+them here.
 
 `scale` is the number of fractional digits the currency uses, and it is
 **immutable** — JPY is `0` (whole yen, no decimals), USD/EUR are `2`, the Gulf
-dinars are `3`. Settings blocks an overlay defines ride along opaquely: the
+dinars are `3`. Settings blocks a package defines ride along opaquely: the
 universal engine ignores them, and the selected packages read them.
 
 `fiscal_year` is the fiscal year the book covers, named by the year it starts
@@ -5391,7 +5336,7 @@ one in the book it creates. It is required: `iris validate` and the cloud
 refuse a `book.yaml` without it, and the cloud refuses a change to it — the
 next year is a new book, not an edit to this one.
 
-`overlay` selects one exact function version;
+The `overlay` key selects one exact package version;
 `overlays` selects several exact versions. Local clients execute only definitions
 stored in the Book at `config/overlay-packages/`. This store is separate from
 `config/overlays/`, the active trusted local layer, and from `.iris/` runtime state.
@@ -5403,7 +5348,7 @@ packages. Core accounting/structural checks remain active. Region never selects 
 you. When the exact copy of a selected version is missing or changed, iris
 reports it and does not substitute another version;
 use `iris overlay install` explicitly to copy selected distribution versions.
-Cloud preserves these files/settings but never evaluates Overlay definitions.
+Cloud preserves these files/settings but never evaluates package definitions.
 
 Copies installed from a binary verify their complete source files against its
 trusted release fingerprints; runtime reads do not need the binary's old package
@@ -5411,12 +5356,12 @@ body. Downloaded copies verify their release signature. The Book's stored bundle
 hash still binds its exact bytes. A fingerprint or signature never supplies a
 missing definition or enables a package by itself.
 
-Bindings are the versioned set of inputs and functions iris passes to overlay
-definitions. Under Bindings v4, overlay definitions cannot read a journal's
+Bindings are the versioned set of inputs and functions iris passes to package
+definitions. Under Bindings v4, package definitions cannot read a journal's
 status or its approval and seal metadata, including inside nested records.
 Definitions that read `journal.status` or target lifecycle fields fail with an
-explicit compatibility error. Domain facts, such as an overlay's own settings,
-remain available. iris itself, not an overlay, decides who can post, which
+explicit compatibility error. Domain facts, such as a package's own settings,
+remain available. iris itself, not a package, decides who can post, which
 years are sealed and which statuses reports include.
 
 Bindings v5 adds explicit concern-field preparation before journal completion.
@@ -5466,7 +5411,7 @@ can also have a `name`. These texts are shown, never written into journals.
 Published packages that use them declare `requires_bindings: 7`; a Book's own
 layer can use them under any bindings.
 
-Local Overlay checks share a budget across the complete validation request,
+Local package checks share a budget across the complete validation request,
 including field guards, private helper bodies, native ledger operations,
 derivation hints and recorded-result replay. The CLI uses one session for the
 whole Book; autocomplete and task-context requests also share their own session.
@@ -5489,7 +5434,7 @@ The limits are:
 Preparation keeps its stricter limits above. Limits are checked before native
 table allocation and unbounded input/result expansion. Exhaustion reports an
 `overlay.checks-incomplete` error; `iris validate --apply` writes no proposals
-when any Overlay check cannot finish. Ordinary type/evaluation warnings remain
+when any package check cannot finish. Ordinary type/evaluation warnings remain
 distinct, and native accounting checks continue.
 
 Analytics artifact schema v5 retains config, asset and journal-line extensions in a
@@ -5567,14 +5512,12 @@ A book written by an earlier iris may hold `carrying_value_minor`,
 amounts and quantities as integers in the smallest unit. Such an entry still
 reads as written; use one form per entry. `iris yearend` writes the decimal form.
 
-Local comparisons and retained financial calculations allocate later disposals
-from these lots, or from the moving-average pool, using the method recorded
-here. They refuse, rather than estimate, in any of these cases:
+Local comparisons allocate later disposals from these lots, or from the
+moving-average pool, using the method recorded here. They refuse, rather than estimate, in any of these cases:
 
 - an opening holding has no entry;
 - its acquisition cost is null;
-- its carrying value differs from its acquisition cost;
-- a view selects a different method.
+- its carrying value differs from its acquisition cost.
 
 A different method needs its own opening state.
 
@@ -5589,7 +5532,7 @@ They never replace acquisition cost or recorded carrying value.
 For assistants: never replace a recorded carrying value or acquisition cost
 with a market price.
 
-## Pin several published overlays
+## Pin several published packages
 
 `overlays` selects an **unordered set of exact versions**. Use it instead of
 `overlay`; the two forms cannot appear together. For example:
@@ -5621,7 +5564,7 @@ book-layer compatibility and settings before showing the proposed pins.
 the latest release of every pinned member together.
 
 The function catalog holds common functions and each region's functions; the
-[overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
+[package docs](https://irisbooks.io/docs/en/overlays/) describe what each does and list its versions and
 dependencies.
 Categories only organize the catalog for browsing and distribution; you cannot
 switch a whole category on or off.
@@ -5699,7 +5642,7 @@ fields:
 
 The stored values stay plain strings, so expressions read them as before. The
 book's checks report a reference the book doesn't define, and
-[`iris view`](https://irisbooks.io/docs/en/iris-view/#plugins) offers the chart or the units instead of a
+[`iris view`](https://irisbooks.io/docs/en/iris-view/#packages) offers the chart or the units instead of a
 text box. Reference types take no `enum`, and a published package that uses
 them declares `requires_bindings: 7`.
 
@@ -5826,7 +5769,7 @@ Why this transaction happened (not a restatement of the lines).
 | `lines` | yes | 2–999; each has `account` + exactly one of `debit`/`credit` |
 | `lines[].memo` | no | Per-line note |
 | `lines[].quantity` + `unit` | no | Physical quantity for a unit from `book.yaml` `units` (always positive; direction comes from debit/credit) |
-| `lines[].<field>` | no | Fields a selected overlay defines on a line — see below |
+| `lines[].<field>` | no | Fields a selected package defines on a line — see below |
 | body | no | Free Markdown after the closing `---` |
 
 **Line count.** A journal takes at most **999 lines**, and you get a warning
@@ -5844,10 +5787,10 @@ $12.00, not $0.12). Internally everything is integer minor units.
 matches an alias); the date matches the filename; status is valid; YAML parses.
 Reports include **only `posted`** entries.
 
-**Overlay fields on a line.** A selected overlay can define fields on journal
+**Package fields on a line.** A selected package can define fields on journal
 lines, such as a tax classification block. iris keeps them on the file, and the
 package's rules check them. `iris overlay list --json` lists each field with its
-accepted values; the package's page under [Overlays](https://irisbooks.io/docs/en/overlays/) explains them.
+accepted values; the package's page under [Packages](https://irisbooks.io/docs/en/overlays/) explains them.
 
 For assistants: `closed` is a derived display status, never written to
 frontmatter. A journal dated in a sealed fiscal year shows as `closed` in the
@@ -5917,7 +5860,7 @@ inventory:
 ```
 
 The account must exist in a strict book's chart. The method may be omitted for
-FIFO; set `method: moving-average` to change it, including in a selected view.
+FIFO; set `method: moving-average` to change it.
 An omitted `accounts.exact` selector covers commodity asset accounts; add it
 to restrict the scope. The optional `commodity` filter restricts the unit.
 In a book that opens with holdings, comparisons start from its
@@ -5930,7 +5873,7 @@ account. Ordinary validation and approved reports use the recorded ledger;
 computed comparisons stay unapproved.
 
 A journal amount left as `null` is filled in only by a selected package's
-completion; the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe what each package completes
+completion; the [package docs](https://irisbooks.io/docs/en/overlays/) describe what each package completes
 and the inputs it needs. Preview and apply a completion with
 [`iris journal complete`](https://irisbooks.io/docs/en/cli-reference/#iris-journal-complete).
 
@@ -5999,34 +5942,12 @@ them. Rollover leaves them in the original Book so old observations are not
 reused next year. Storage alone does not evaluate observations. Cloud close
 previews run this same native check against accepted synced sources, and closing
 is refused for mismatches or unavailable/changed evidence. The check binds accepted
-source versions; it does not fetch an unpinned latest object or run Overlay code.
+source versions; it does not fetch an unpinned latest object or run package code.
 If a preview reports missing/stale source data after sync, the server's projections
 need rebuilding before that Book can close. Financial ZIPs do not automatically
-include raw evidence. Cloud close checks every accepted native view separately. Local root-only reconciliation still refuses unresolved view sources.
+include raw evidence.
 
 ## Chart of accounts — `config/chart-of-accounts.yaml`
-
-If your book doesn't use accounting views (`views`), skip the next three
-paragraphs. A view holds an alternative accounting interpretation of the same
-records under a root `views` key. Config, chart, rule, journal and asset files
-are read after the selected view is resolved; a file whose root `views` is
-still unresolved is refused, including one supplied through a YAML merge. Edit
-the original document so the other views stay. Removing `views` loses the
-alternative interpretations. Replacing a journal through the structured API is
-refused too, because that API cannot preserve stored views.
-
-Cloud storage accepts bounded view-bearing `config/book.yaml`, journal and asset sources
-without executing Overlay code. Declare at most 16 Book views and one default;
-all variants must pass native parsing, balance, account/reference and sealed-period
-checks. Views share Book identity, fiscal bounds, currency, unit precision and host
-integrity settings. Journal lifecycle status belongs to the shared root and cannot
-be overridden in a payload. Sync and clone preserve the unresolved source.
-
-Web displays the default as an **unapproved view preview**. Human posting approves
-the exact shared source version, not its view-specific financial results. Named-view approved reports require separately retained native financial acceptance. See [financial generations](https://irisbooks.io/docs/en/cli-reference/#iris-financial). Close requires every declared view accepted and final; SQLite stores each separately and keeps the default in its ordinary tables.
-Adding declarations or changing the default while journal or asset view payloads exist requires
-a coherent rebuild and is currently refused. Referenced declarations cannot be removed.
-Chart and rule sources with their own `views` remain unsupported in cloud ingestion.
 
 ```yaml
 schema_version: 1
@@ -6198,7 +6119,7 @@ schedule:                          # optional recorded table — see below
     amount: 250000
   - period: 2028-03
     amount: 187500
-schedule_source:                   # present when an overlay recipe wrote the table — see below
+schedule_source:                   # present when a package recipe wrote the table — see below
   overlay: example-declining@2026.10.1   # illustrative package
   recipe: example-declining.schedule
   bindings: 5
@@ -6211,8 +6132,8 @@ disposal:                          # optional, until disposed
 ---
 ```
 
-Fields a selected overlay defines on an asset ride along untouched: iris keeps
-them on the file without interpreting them, and that overlay reads them.
+Fields a selected package defines on an asset ride along untouched: iris keeps
+them on the file without interpreting them, and that package reads them.
 
 Book the purchase of an asset described here to its `asset_account` — an
 `expensed` one included — and let `iris asset depreciate` book the charges.
@@ -6257,7 +6178,7 @@ result gives each row's `amount` and the `total` as decimal strings, with the
 YAML to paste, which reads back as the same amounts. The result reports the
 scale used.
 
-Your AI assistant builds the table for you. When a selected overlay has a
+Your AI assistant builds the table for you. When a selected package has a
 **recipe** for the method (`list_recipes` shows it), it runs that with the
 published rates as inputs and the recipe composes the table and
 writes it, with its provenance, onto the file (`iris overlay recipe`, or the
@@ -6293,7 +6214,7 @@ table.
 
 ### `schedule_source:` — where the table came from, replayed
 
-When a recipe wrote the table, it also recorded its provenance: the overlay
+When a recipe wrote the table, it also recorded its provenance: the package
 version (`<id>@<version>`, or `book:<hash>` for a recipe from your own
 `config/overlays/`), the recipe, the engine versions it ran under, and the
 inputs you gave — the rates from the published table, the useful life, the
@@ -6326,7 +6247,7 @@ the asset was held. The table may then add up to less than
 `iris validate` still replays the rows before the disposal month; the
 disposal-period row is yours.
 
-For assistants: run `iris asset depreciate` for the disposal period first, then
+For assistants: run `iris asset depreciate --apply` for the disposal period first, then
 read the figures rather than computing them: `iris export assets` gives
 `accumulated` and `disposal_nbv`, and `iris asset schedule` shows the same as
 `ACCUMULATED` / `DISPOSAL_NBV`. Draft the disposal journal from them: credit
@@ -6341,7 +6262,7 @@ regime, keep the evidence and record the open treatment in
 ## Filings — `filings/<recipe>.md`
 
 A filing records the figures a return is filed from. A figures recipe of
-a selected overlay sums the posted journals and combines them the way the
+a selected package sums the posted journals and combines them the way the
 return needs; `iris overlay recipe <recipe-id> … --apply --out filings/<name>.md`
 records the result with the same provenance as a schedule. An illustrative
 filing:
@@ -6391,9 +6312,9 @@ After posting a correction, re-run the recipe so the filing follows the
 ledger again. Fill the government form from `figures`; never re-add lines by
 hand.
 
-## Your book's overlay layer — `config/overlays/` (optional)
+## Your book's own package layer — `config/overlays/` (optional)
 
-Published function packages are selected explicitly by `overlay:` or `overlays:`
+Published packages are selected explicitly by `overlay:` or `overlays:`
 in `book.yaml`.
 A book may add its own layer on top:
 
@@ -6442,14 +6363,14 @@ keeps native integrity and access guards without executing the layer.
 Only the book's Owner can change these files. The first time
 a machine meets a version of this layer it shows the files and asks once
 (`iris overlay trust` records the answer); until then only the published
-overlay applies. `iris overlay list` and published MCP recipe tools remain
+packages apply. `iris overlay list` and published MCP recipe tools remain
 available; the CLI and MCP `describe_overlay.issues` report
 `overlay.book-layer-untrusted`. Book-local settings are checked when the layer
 is trusted. A recipe from your layer records `book:<hash>` as its source,
 so a reviewer can see a schedule came from a book-specific recipe.
 
 The published
-overlays are open source (Apache-2.0) in the public
+packages are open source (Apache-2.0) in the public
 [`irisbooks/overlays`](https://github.com/irisbooks/overlays) repository. A layer
 that proves useful beyond one book can be proposed there as a pull request.
 
@@ -6757,8 +6678,8 @@ Expected results:
 | 2026-08-31 | 926,000 | 80,000 | 80,000 | 2026-08-31 | 120,000 | 1,046,000 |
 
 This Book selects inventory calculation, so local P&L uses `--mode comparison`
-and is explicitly unapproved. Retained financial acceptance is not implemented;
-the default approved local report refuses this calculated inventory selection.
+and is explicitly unapproved. The default approved local report refuses this
+calculated inventory selection.
 
 The posted P&L contains income/net JPY 6,000 and no expense. Book net assets
 are JPY 1,006,000. The remaining JPY 40,000 market uplift is management valuation,
@@ -6799,7 +6720,7 @@ value is JPY 1,054,000, with the same quantities and acquisition costs.
 for repeated purchases, tax-advantaged accounts — is regional; a generic FIFO
 or moving-average label is not a tax determination, and a unit symbol, a note
 or a successful validation does not establish an account's tax status. See
-your region's guide under [Overlays](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
+your region's guide under [Packages](https://irisbooks.io/docs/en/overlays/). Tax-return mapping and
 automatic product/regime classification remain outside this management example.
 
 ## Business/private expense allocation
@@ -6809,7 +6730,7 @@ business fraction. It returns exact amounts without changing files or posting
 entries. Confirm the basis and treatment first; an account name cannot establish
 a business percentage. Tax law may require records that distinguish the
 business portion of household-related costs; your region's guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/) says where.
+[Packages](https://irisbooks.io/docs/en/overlays/) says where.
 The 1/4 fraction below is a synthetic owner-reviewed example, not a recommended rate.
 
 Save this request as `raw/allocation-jan.json`:
@@ -6980,14 +6901,14 @@ acquisition_journal: '[[2026-05-01-equipment]]'
 Read the native gross schedule and choose one posting cadence:
 
 ```bash
-iris asset schedule --year 2026
-iris export assets --year 2026 --out raw/assets-2026.csv
-iris asset depreciate --year 2026
+iris asset schedule
+iris export assets --out raw/assets-2026.csv
+iris asset depreciate --apply
 ```
 
 The engine calculates eight May–December charges of JPY 5,001: gross depreciation
-JPY 40,008 and closing carrying value JPY 200,041. `depreciate` writes a draft,
-not a posted journal. Review it under the Book's authority before posting.
+JPY 40,008 and closing carrying value JPY 200,041. `depreciate --apply` writes a
+draft, not a posted journal; without `--apply` it only previews. Review it under the Book's authority before posting.
 Its gross debit to depreciation expense and credit to accumulated depreciation
 must remain exactly once. Reruns preserve existing proposals; monthly and annual
 cadences cannot be mixed. New proposals are refused when the year is known
@@ -7249,7 +7170,7 @@ It does not select a latest ratio or invent proration. Obtain separately
 evidenced charge amounts for each period before calculating; the example does
 not establish a deductible percentage, legal expense allocation or tax-return
 mapping. For your region's evidence requirements, see its guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. To correct an old
+[Packages](https://irisbooks.io/docs/en/overlays/). Reversals must retain the original rounded shares. To correct an old
 source, make a separate correction, review it, and keep the source's original
 identity.
 
@@ -7441,7 +7362,7 @@ counterparty bank movement, premature settlement and a repeated payout.
 Real agreements can assign different rights; do not copy these assumptions
 into a sole-tenant, business, disputed or otherwise different arrangement.
 For your region's model agreements and other reference material, see its
-guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
+guide under [Packages](https://irisbooks.io/docs/en/overlays/).
 
 See also: [Core concepts](https://irisbooks.io/docs/en/concepts/) ·
 [CLI command reference](https://irisbooks.io/docs/en/cli-reference/).
@@ -7468,9 +7389,9 @@ it's the fastest way to learn what's wrong.
 - **Bad status** — `status` must be `draft` or `posted`.
 - **YAML won't parse** — usually indentation or a stray colon in the
   frontmatter. The error names the file.
-- **Overlay rules** — a check from a package your book selected, such as a
+- **Package rules** — a check from a package your book selected, such as a
   field with a value the package doesn't accept. The message names the rule;
-  the package's docs under [Overlays](https://irisbooks.io/docs/en/overlays/) explain its fields.
+  the package's docs under [Packages](https://irisbooks.io/docs/en/overlays/) explain its fields.
 
 Fix and re-run. Your AI assistant can do this loop for you.
 
@@ -7629,17 +7550,17 @@ in its `errorDetail` field.
 ## "I need to change a sealed year"
 
 A sealed fiscal year is **locked**: `iris post` refuses journals dated in it
-("FY \<n\> is sealed (closed period) — run `iris reopen <n>` to amend it, then
+("FY \<n\> is sealed (closed period) — run `iris reopen` to amend it, then
 re-seal"). The server also rejects changes to those journals and to `config/`,
 `assets/`, `filings/`, `compiled/` until reopening. `raw/` and `notes/` remain
 writable. Local files remain editable, but locked changes cannot sync.
 To amend the accounting records, reopen the year first:
 
 ```bash
-iris reopen 2025      # unlocks the seal; the files are already in the working tree
+iris reopen           # unlocks the seal; the files are already in the working tree
 # …make the correction…
 iris sync
-iris seal 2025        # close the year again
+iris seal             # close the year again
 ```
 
 The server records the corrections as **post-seal edits** — visible in the
@@ -7694,7 +7615,7 @@ Almost always a sync gap or a status difference:
   (drafts vs posted) or what sync does.
 - Check the in-book `notes/open-questions.md` — your AI files ambiguous items
   there.
-- For your region's tax rules, see its guide under [Overlays](https://irisbooks.io/docs/en/overlays/);
+- For your region's tax rules, see its guide under [Packages](https://irisbooks.io/docs/en/overlays/);
   your AI verifies volatile values (rates, tables, form layouts) against the
   tax authority's current pages.
 - Still stuck after that? Ask in the

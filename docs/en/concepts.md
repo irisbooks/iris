@@ -122,20 +122,21 @@ With it, you, your accountant or an auditor can go from any entry to its
 evidence and back. For the book's other record-keeping features (correction
 history, search), see [Records, history and year-end](records-and-year-end.md).
 
-## Region rules — the overlay
+## Region rules — packages
 
 The `iris` engine knows double-entry bookkeeping, not any one country's tax
 law. Checks and calculations that differ by region, such as tax and depreciation,
-are distributed as add-ons to a book called **Overlays** (`iris view` shows
-them as plugins; the unit you select is a package). An overlay is versioned
+are distributed as **packages** that a book selects. A package is versioned
 rules and computations (**recipes**) written in a readable form: YAML, and an
 expression language called CEL. Each function is selected
 independently: common functions such as journal balancing, and each region's
 tax and depreciation functions. The public repository holds their sources,
-guides and examples, and the [overlay docs](https://irisbooks.io/docs/en/overlays/) describe each region's
-packages and what they leave to you.
+guides and examples, and the [package docs](https://irisbooks.io/docs/en/overlays/) describe each region's
+packages and what they leave to you. The `iris overlay` command and the
+`overlays:` key use the technical name "overlay".
 
-Your book pins published versions in `config/book.yaml`, for example:
+Your book pins its packages' published versions under `overlays:` in
+`config/book.yaml`, for example:
 
 ```yaml
 overlays:
@@ -151,7 +152,7 @@ contribute improvements to the community.
 - **Rules** check your entries through local `iris validate`. The cloud only stores
   the definitions and results; it does not run the rules.
 - **Recipes** compute region figures — a depreciation schedule, the figures a
-  tax return needs — and record the result together with its source (the overlay version and the
+  tax return needs — and record the result together with its source (the package version and the
   inputs), on the asset file or under `filings/`. `iris validate` re-runs the
   recipe, so a figure that no longer follows from its inputs is caught.
 - **The pin never moves on its own.** A new version can change what is checked
@@ -161,9 +162,9 @@ contribute improvements to the community.
 
 If `overlays` is omitted or empty, no optional function runs. The universal
 checks (balanced entries, known accounts, dates and amounts) still do. Setting
-a book's region never enables an overlay by itself.
+a book's region never enables a package by itself.
 
-The published overlays are open source (Apache-2.0) at
+The published packages are open source (Apache-2.0) at
 [github.com/irisbooks/overlays](https://github.com/irisbooks/overlays), so you
 or your accountant can read the exact rule behind any figure; the tag names
 there are the pins. A book can also add rules of its own in `config/overlays/` — see
@@ -261,8 +262,8 @@ history.
 | Draft / posted | A journal's status. Reports include posted entries only | [Status](#status-the-lifecycle-of-an-entry) |
 | Post | To turn a draft into a posted entry (`iris post`) | [Status](#status-the-lifecycle-of-an-entry) |
 | Source document | A receipt, statement or other file an entry is based on, kept under `raw/` | [Source documents and cross-references](#raw-documents-and-cross-references) |
-| Overlay | A set of checks and calculations added to a book. `iris view` calls it a plugin; the unit you select is a package | [Region rules](#region-rules-the-overlay) |
-| Recipe | A calculation an overlay provides; its result is recorded with its inputs | [Region rules](#region-rules-the-overlay) |
+| Package | A set of checks, calculations and guides a book selects, by exact version. The `iris overlay` command and the `overlays:` key use the technical name "overlay" | [Region rules](#region-rules-packages) |
+| Recipe | A calculation a package provides; its result is recorded with its inputs | [Region rules](#region-rules-packages) |
 | Sync | Bringing the files on your computer and the cloud copy into line (`iris sync`) | [Sync](#sync-the-three-ways-to-work) |
 | Link | Tying a book folder on your computer to a cloud book | [Getting started](getting-started.md) |
 | Seal | Locking a year's records and recording who closed it and when (`iris seal`) | [Seals](#seals-closing-a-year-visibly) |

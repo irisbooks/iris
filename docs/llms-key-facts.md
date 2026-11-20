@@ -2,7 +2,7 @@
 > A book is a folder: accounting records use Markdown with YAML frontmatter,
 > configuration uses standalone YAML, and notes preserve context. Local tools
 > work on the files; the web app works on their optional synced cloud mirror.
-> Community open-source overlays provide regional or specialist checks and
+> Community open-source packages provide regional or specialist checks and
 > calculation helpers.
 
 Key facts for agents:
@@ -41,7 +41,7 @@ Key facts for agents:
   history. IrisBooks holds no third-party certification and makes no claim
   that a book meets any jurisdiction's electronic-bookkeeping standard:
   describe the features, and leave whether a book qualifies to the user and
-  their accountant. Regional rules are documented by the overlays
+  their accountant. Regional rules are documented by the packages
   (`/docs/en/overlays/`), not the manual.
 - Working inside a book folder? Read `AGENTS.md` at the book root first —
   it is the working contract for AI assistants. Read and preserve decisions
@@ -57,12 +57,12 @@ Key facts for agents:
   questions in drafts and `notes/open-questions.md`; personal estimates and
   inferred categories must stay explicit. Validation checks encoded rules,
   not the truth or completeness of the inputs.
-- Users and assistants can choose compatible published overlays, create
+- Users and assistants can choose compatible published packages, create
   their own and contribute at https://github.com/irisbooks/overlays. A book
-  pins versions with `overlay:` or `overlays:` in `config/book.yaml` and can
+  pins package versions with `overlay:` or `overlays:` in `config/book.yaml` and can
   add a book-specific layer. Discover its recipes and declared inputs; run a
   recipe (`iris overlay recipe` or MCP) for its calculation rather than
   doing it yourself. Calculated figures are not a submitted tax return;
   change the pin only with `iris overlay upgrade`, and only when the user
-  asks. A book without selected overlays gets universal checks only; do not
+  asks. A book without selected packages gets universal checks only; do not
   invent missing regional rules.

@@ -287,4 +287,4 @@ settings. Full walk-through in [Using the web app](web-app.md#layout).
 - Review and post on screen → [Your books on this computer](iris-view.md)
 - Learn the web app's screens → [Using the web app](web-app.md)
 - Close the year and prepare returns → [Records, history and year-end](records-and-year-end.md)
-- Your region's tax rules → [Overlays](https://irisbooks.io/docs/en/overlays/)
+- Your region's tax rules → [Packages](https://irisbooks.io/docs/en/overlays/)

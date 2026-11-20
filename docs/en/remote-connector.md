@@ -52,10 +52,8 @@ Nothing you change on the connector affects them.
 ## What you can do from anywhere
 
 - **Read reports** — `get_report` provides trial balance, P&L, balance sheet,
-  account ledger and grouped totals. For an ordinary book the figures come from
-  posted entries. For a book with named views they come from the calculation
-  currently accepted for that view. Responses include
-  the sync watermark `figures_as_of` when available.
+  account ledger and grouped totals. The figures come from posted entries.
+  Responses include the sync watermark `figures_as_of` when available.
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
   investing and financing activity, with opening and closing cash.

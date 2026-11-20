@@ -48,7 +48,7 @@ IrisBooks は、自分の AI アシスタントと使う記帳ツールです。
    スマホから数字・仕訳を確認し、許可があれば領収書も取り込む（クラウド）。
 8. [記録の履歴と年度締め](records-and-year-end.md) — 訂正・削除の履歴と検索、
    申告と地域のルール、年度締め。地域ごとのルールそのものは
-   [オーバーレイ](https://irisbooks.io/docs/ja/overlays/)が説明します。
+   [パッケージ](https://irisbooks.io/docs/ja/overlays/)が説明します。
 9. [CLI コマンドリファレンス](cli-reference.md) — 全コマンドとフラグ。
 10. [帳簿ファイル形式リファレンス](book-format-reference.md) — 帳簿の
     フォルダとファイルの形式。

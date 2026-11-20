@@ -49,7 +49,7 @@ the book folder and of its record from `iris api history --all --json`
 The engine handles the universal, stable parts: double-entry math, the fields
 recorded on each line, totals and data exports. Regional rules — tax
 classifications, depreciation methods, the figures a return needs — come only
-from the [overlays](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
+from the [packages](https://irisbooks.io/docs/en/overlays/) your book selects. Where the catalog has packages
 for your region, its region guide there says which to select and what they
 leave to you; a book whose region has none gets the universal checks only.
 
@@ -72,8 +72,8 @@ closing:
 iris yearend                                      # start the FY2026 book, with its opening balances
 # …closing adjustments and the return happen here, in the FY2025 book…
 iris yearend                                      # after late corrections: refresh FY2026's opening balances
-iris seal --dry-run 2025                          # see exactly what will be sealed (cloud)
-iris seal 2025                                    # seal it (cloud)
+iris seal --dry-run                               # see exactly what will be sealed (cloud)
+iris seal                                         # seal it (cloud)
 ```
 
 - **Next year's book (`iris yearend`).** Creates the FY2026 book beside this
@@ -96,7 +96,7 @@ iris seal 2025                                    # seal it (cloud)
   earlier version.
 
 Run `iris validate` locally before syncing and closing. Local clients check
-Overlay rules and replay recorded recipes using definitions retained in the Book;
+package rules and replay recorded recipes using definitions retained in the Book;
 the cloud does not execute those definitions or certify that those checks passed.
 When `config/balance-assertions.yaml` is configured, `--dry-run` shows the native
 check's exact recorded/observed/difference values, scope and evidence status for
@@ -110,11 +110,11 @@ Need to amend a sealed year? In its book, reopen it, edit, re-sync, and
 re-seal:
 
 ```bash
-iris reopen 2025      # unlock the seal; the year's files are already in the working tree
+iris reopen           # unlock the seal; the year's files are already in the working tree
 # …make corrections…
 iris sync             # push; the server flags these as post-seal edits
 iris yearend          # refresh the FY2026 book's opening balances (while 2026 is still open)
-iris seal 2025        # close the year again (supersedes the old seal)
+iris seal             # close the year again (supersedes the old seal)
 ```
 
 If the *next* year is already sealed too, `iris yearend` does not update its
@@ -136,9 +136,9 @@ and runs the same preview → close → reopen flow — see
 What an auditor, an accountant or a tax authority asks for is already in the
 book:
 
-- **The books.** The book folder itself (plain markdown and YAML), or a
-  fiscal year as CSVs with `iris export --year 2025` (from the cloud copy:
-  `iris api export --year 2025 <book-id>`).
+- **The books.** The book folder itself (plain markdown and YAML), or the
+  year as CSVs with `iris export` in its book (from the cloud copy:
+  `iris api export <book-id>`).
 - **The correction/deletion record**, as a file:
 
   ```bash

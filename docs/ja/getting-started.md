@@ -278,4 +278,4 @@ ID を指定して `iris api books link <book-id>` を実行します。ここ�
 - 画面で確認して記帳する → [このパソコンで帳簿を開く](iris-view.md)
 - Web アプリの画面を知る → [Web アプリを使う](web-app.md)
 - 年度を締めて申告に備える → [記録の履歴と年度締め](records-and-year-end.md)
-- 地域ごとの税のルール → [オーバーレイ](https://irisbooks.io/docs/ja/overlays/)
+- 地域ごとの税のルール → [パッケージ](https://irisbooks.io/docs/ja/overlays/)

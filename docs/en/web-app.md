@@ -197,7 +197,7 @@ book value and show a coverage warning. Missing acquisition basis or disposal
 policy leaves cost blank; book-value revaluations do not become acquisition cost.
 The chart samples weekly and includes the selected endpoint. Expand the date/value
 table for exact displayed observations, or download the DuckDB file for your own
-SQL and pivot analysis. Acquisition cost uses the ordinary posted ledger or a named Book’s accepted default native generation. Additional fields → Accepted financial view shows its identity; regenerating refuses stale acceptance.
+SQL and pivot analysis. Acquisition cost uses the posted ledger.
 
 Expand **Additional fields** to inspect saved journal-line, asset or book-setting
 values in this report. Choose a record type, then use **Find fields** to list
@@ -261,11 +261,6 @@ operations. Web records are read-only except for the reviewed `draft → posted`
 transition. Posting preserves unknown fields, quantities, lots, comments and body.
 To edit drafts and posted entries on screen, open your local folder with
 [`iris view`](iris-view.md); the edits reach this app at your next sync.
-
-Named-view Books label amounts **View preview**, including shared-root entries.
-The detail page identifies the default preview; CSV exports retain the unapproved
-scope. Approval marks the shared source as posted and does not accept its financial
-variations. Use **Book settings → Accounting view acceptance** to review and accept separately prepared calculations. Report selectors choose an accepted view; CSV and ledger drilldowns retain its identity. Stale or unaccepted calculations remain unavailable.
 
 ### History and the "after seal" warning
 
@@ -394,10 +389,10 @@ the period close:
   the screen counts the files amended. Close the year again when you're
   done — the **History** panel keeps every close and reopen on record.
 
-Run `iris validate` locally before syncing and closing. Overlay checks and recipe
+Run `iris validate` locally before syncing and closing. Package checks and recipe
 replay run on local clients using Book-contained definitions; the cloud checks
 native accounting, access, posting, seals and revision consistency. A successful
-cloud preview or close therefore says nothing about Overlay validation or
+cloud preview or close therefore says nothing about package validation or
 recipe replay: those run only on your computer.
 
 If `config/balance-assertions.yaml` is configured, the preview also compares its
@@ -410,11 +405,6 @@ If, after syncing, the preview still reports stale or missing source data, the
 server has to rebuild it; trying to close again will not fix it. Matching
 hashes establish that a source is the same file, not that its figures were
 copied correctly or that it came from the bank.
-
-To close a book with named views, every declared view must be accepted against
-the current inputs, and no source entry may still be a draft. The preview
-lists the calculations the close will pin. Closing locks those calculations
-and the evidence they reference; other incoming raw files can still be added.
 
 Closing never removes anything: the year's files stay in the book.
 

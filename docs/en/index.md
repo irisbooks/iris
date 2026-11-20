@@ -51,7 +51,7 @@ guaranteed.
    journal reads, and optional receipt capture from your phone (cloud).
 8. [Records, history and year-end](records-and-year-end.md) — correction
    history and search, returns and regional rules, year-end close.
-   Regional rules themselves are documented by the [overlays](https://irisbooks.io/docs/en/overlays/).
+   Regional rules themselves are documented by the [packages](https://irisbooks.io/docs/en/overlays/).
 9. [CLI command reference](cli-reference.md) — every command and flag.
 10. [Book file-format reference](book-format-reference.md) — the
     folders and file formats of a book.

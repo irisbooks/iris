@@ -154,7 +154,7 @@ iris validate
 
 This checks every file: YAML parses, debits equal credits, accounts exist in
 your chart, dates are consistent, statuses are valid, and the rules of the
-overlays your book selected pass. Fix any errors — usually
+packages your book selected pass. Fix any errors — usually
 a missing account in the chart, or an unbalanced entry — and re-run. Your AI
 can do this loop for you.
 
@@ -287,14 +287,14 @@ If you own depreciable assets, describe each one in `assets/YYYY/<name>.md`
 
 ```bash
 iris asset schedule                       # see each asset's depreciation plan
-iris asset depreciate --year 2026         # one year-end entry per asset
-iris asset depreciate --month 2026-05     # or that month's entries, if you close monthly
+iris asset depreciate --apply               # one year-end entry per asset
+iris asset depreciate --month 2026-05 --apply  # or that month's entries, if you close monthly
 ```
 
-`iris asset depreciate` writes proposed entries (`status: draft`) you review
-and post like any other. The file format is in the
+Without `--apply`, `iris asset depreciate` only previews. With it, it writes
+proposed entries (`status: draft`) you review and post like any other. The file format is in the
 [Book file-format reference](book-format-reference.md); a region's methods and
-rules are in its guide under [Overlays](https://irisbooks.io/docs/en/overlays/).
+rules are in its guide under [Packages](https://irisbooks.io/docs/en/overlays/).
 
 ### Depreciation your AI can't get wrong
 
@@ -312,7 +312,7 @@ Over the MCP connection your AI has these asset tools for this:
 | `declining_table` | a declining-balance table at a rate you supply |
 | `flat_table` | a fixed charge per period until the asset is written down |
 | `straight_line_table` | a basis split evenly over N periods |
-| `list_recipes` / `run_recipe` | the region overlay's ready-made composition — preferred whenever one exists |
+| `list_recipes` / `run_recipe` | the region package's ready-made composition — preferred whenever one exists |
 
 The steps are the same whether the local MCP server is connected to one book
 or to a parent folder of books. Use `list_recipes` to discover canonical
@@ -324,7 +324,7 @@ preview. Add `apply=true` and a book-relative `out` to record the result;
 The point is that your AI never multiplies a balance forward by hand — that's
 where arithmetic slips happen, and a slip that still adds up to the right total
 is one iris cannot detect. It composes exact tables instead. Better still, when
-a selected overlay has a **recipe** for the method (`list_recipes` shows it),
+a selected package has a **recipe** for the method (`list_recipes` shows it),
 it calls `run_recipe` with that ID: the recipe composes the tables in the prescribed
 order and records where the rows came from, so `iris validate` can replay them
 and catch an error such as a method switch that landed a year late. Composing by hand is the fallback
@@ -335,8 +335,8 @@ for the file format and what iris checks.
 ## Exporting
 
 ```bash
-iris export                 # journals.csv, trial-balance.csv, ledger-*.csv
-iris export --year 2026     # restrict to a fiscal year
+iris export                 # the book's year: journals.csv, trial-balance.csv, ledger-*.csv
+iris export --as-of 2026-06-30   # stop at a date
 iris export assets          # per-asset depreciation schedule
 ```
 
@@ -369,7 +369,7 @@ posted form; create/review drafts and post only within that Book's policy and
 your authority. Tax and reimbursement evidence requirements still apply where
 relevant; per-receipt detail here is a working policy, not a universal legal
 requirement. What your region's law asks for is in its guide under
-[Overlays](https://irisbooks.io/docs/en/overlays/).
+[Packages](https://irisbooks.io/docs/en/overlays/).
 
 ### Keep the receipt and bank row attached to one business payment
 
@@ -746,7 +746,7 @@ its source URL and release tag:
 `https://raw.githubusercontent.com/irisbooks/iris/<release-tag>/docs/llm.md`.
 Where you can, pick the release tag that matches `iris --version`, and search
 only the sections you need. For the rules that apply to a book, check the
-overlays that book selects. Reading reference material does not authorize any
+packages that book selects. Reading reference material does not authorize any
 action.
 
 ## A note on what *not* to do
