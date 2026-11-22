@@ -1006,7 +1006,16 @@ month a year earlier. Each row gains `prior` (in the account's own direction,
 `0` for an account without figures last year) and the statement a `prior`
 block with last year's dates and totals; accounts only last year had appear
 with a zero current figure. Months are whole: the file keeps monthly totals.
-A book without the file gets no `prior` and a note on stderr.
+A book without the file gets no `prior`; `diagnostics` says so.
+
+A statement explains a figure that is empty, zero or likely off in
+`diagnostics`, a list of `{ code, message, accounts? }` (the text output
+prints it after the figures). `PRIOR_YEAR_MISSING`: `--compare prior-year`
+found no `config/prior-year.yaml`. `NO_CASH_ACCOUNTS` (`cf`): no account is
+marked `cash: true`. `UNUSUAL_SIGN` (`tb`, `bs`): an asset with a credit
+balance or a liability with a debit balance, contra accounts aside, named in
+`accounts`; `NO_OPENING_ENTRY` joins it when the book has no opening-balances
+entry. A statement with nothing to explain has no `diagnostics`.
 
 `iris report trend` lays the whole months from `--from`'s to `--to`'s side by
 side. `values` has one number per month in `months`, in the account's own
@@ -1041,7 +1050,8 @@ flows. `netChange` is the sum of the categories and `unclassified`, and
 A chart without sections keeps the plain statement: the categories stay
 empty and `flows` lists every account cash moved against, with its receipts,
 payments and net, so nothing is unclassified.
-A chart with no cash account gets empty sections and a note on stderr.
+A chart with no cash account gets empty sections and the `NO_CASH_ACCOUNTS`
+diagnostic.
 
 `iris report tb --from D` gives the trial balance for the period from `D` to
 `--as-of`: each account's `opening` balance, the period's `debits` and
@@ -1063,15 +1073,16 @@ iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
-The status column shows the **effective** status: a journal dated inside a
-sealed fiscal year displays as `closed` regardless of what its file says, and
-`--status closed` filters on exactly those.
+The status column shows the status the file says (`draft` or `posted`). A
+journal dated inside a sealed fiscal year is also marked `closed` there (and
+`closed: true` in JSON). `--status posted` matches posted entries, sealed or
+not; `--status closed` selects exactly the sealed year's entries.
 
 **Output shape** (`--json`):
 
 ```text
 { currency, currencyScale, count, total,
-  journals[{ path, date, payee, status, amount, lines }] }
+  journals[{ path, date, payee, status, closed?, amount, lines }] }
 ```
 
 `amount` is the entry's debit total as a decimal string in the book currency
@@ -1568,7 +1579,7 @@ Use `seal(dry_run=true)` to inspect closing without sealing; omitting `dry_run`
 or setting it to false executes closing. `seal` and `reopen` act on the book's
 own fiscal year and take no year.
 
-`asset_depreciate` previews drafts; `apply=true` writes them. Linked-book `fiscal_years`, `history`, `seal`
+`asset_depreciate` previews drafts; `apply=true` writes them. Linked-book `get_fiscal_year`, `history`, `seal`
 and `reopen` require sign-in and the applicable server permissions. Parent-mode
 `yearend(book=..., next_book=...)` previews by default; `dry_run=false` executes,
 `local=true` skips cloud actions. It may move journals, copy grants and

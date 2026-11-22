@@ -546,7 +546,9 @@ $12.00, not $0.12). Internally everything is integer minor units.
 
 **Validation:** debits equal credits; every account exists in the chart (or
 matches an alias); the date matches the filename; status is valid; YAML parses.
-Reports include **only `posted`** entries.
+Reports include **only `posted`** entries. A body that names a file under
+`raw/` the entry doesn't list in `attachments` gets a warning: add the file
+there so the entry links its evidence rather than only mentioning it.
 
 **Package fields on a line.** A selected package can define fields on journal
 lines, such as a tax classification block. iris keeps them on the file, and the

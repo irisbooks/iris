@@ -88,11 +88,12 @@ read-only comparison mode without posting anything. The output identifies the
 draft scope. Promote reviewed entries with [`iris post`](cli-reference.md#iris-post)
 or by editing the field.
 
-(You'll also see a `closed` status — that's any entry whose date falls in a
-sealed fiscal year. It's derived, never stored in the file: the web app,
-`iris search`, and the remote connector all display it, and reopening the
-year makes the stored status visible again. The web app additionally shows an
-`incomplete` marker for drafts that aren't ready.)
+(You'll also see entries marked `closed` — that's any entry whose date falls
+in a sealed fiscal year. It's derived, never stored in the file, and it sits
+beside the status rather than replacing it: a sealed entry is still `posted`,
+and the web app, `iris search`, `iris view` and both MCP servers report
+`closed: true` next to that. Reopening the year clears the mark. The web app
+additionally shows an `incomplete` marker for drafts that aren't ready.)
 
 ## Reports are computed, never stored
 
@@ -216,7 +217,7 @@ At year-end you **seal** a fiscal year: the server records who closed it and
 when. The lock covers journals dated in that year and the book's `config/`,
 `assets/`, `filings/`, and `compiled/` files. `iris post` refuses sealed-year
 journals; the server rejects writes in this scope from sync, the web app,
-and the remote connector. Entries display as `closed` everywhere.
+and the remote connector. Entries are marked `closed` everywhere.
 `raw/` evidence and `notes/` remain writable. Local files can still be edited,
 but changes in the locked scope cannot be pushed until you reopen the year.
 

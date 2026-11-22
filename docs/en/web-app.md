@@ -284,6 +284,12 @@ version for inspection; restore through permitted local/CLI operations.
 Every report has date (or as-of) filters and CSV export. The P&L and balance
 sheet also have a "hide zero-balance rows" toggle.
 
+When figures look off for a reason the book can explain, the P&L, balance
+sheet and cash flow show a short notice above them: balances on the unusual
+side (an asset with a credit balance, a liability with a debit balance) with
+the accounts named, a book without an opening-balances entry, or a cloud
+copy of the chart stored before account order and cash marks were kept.
+
 - **General Ledger** — pick an account and see its full ledger for the period
   laid out like a paper ledger: date, description, corresponding account,
   counterparty, debit, credit, Dr/Cr and balance, with an optional opening

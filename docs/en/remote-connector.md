@@ -53,28 +53,37 @@ Nothing you change on the connector affects them.
 
 - **Read reports** — `get_report` provides trial balance, P&L, balance sheet,
   account ledger and grouped totals. The figures come from posted entries.
-  Responses include the sync watermark `figures_as_of` when available.
+  Responses include the sync watermark `figuresAsOf` when available. When a
+  figure is empty, zero or likely off, `diagnostics` says why: no prior-year
+  file for a comparison (`PRIOR_YEAR_MISSING`), no account marked as cash
+  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), no
+  opening-balances entry (`NO_OPENING_ENTRY`), or a cloud copy of the chart
+  stored before account order and cash marks were kept (`CHART_NOT_REPROJECTED`).
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
   investing and financing activity, with opening and closing cash.
-- **Inspect asset movements** — `get_report(report="cashflow")` is the legacy
-  name for monthly gross asset increases/decreases, including receivables and
-  fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
+- **Inspect asset movements** — `get_report(report="asset-movements")` gives
+  monthly gross asset increases/decreases, including receivables and fixed
+  assets. Transfers can count on both sides. It is not a cash-flow statement.
 - **Browse journals and accounts** — `list_accounts`, `search_journals` and
   `get_journal`. Search filters combine with AND. Amounts, including the bounds,
   are decimal strings in the book currency, as journal files write them
-  (`"98.00"`); follow `nextCursor` using the same filters. `journal_path`
-  from search selects a journal. Sealed-year entries appear as `closed`.
+  (`"98.00"`); follow `nextCursor` using the same filters. Pass a result's
+  `journalPath` to `get_journal` as `journal_path`. `status` is what the file
+  says; sealed-year entries also carry `closed: true`, in search and in
+  `get_journal`.
 - **Read Net Worth, holdings and prices** — `get_networth`, `get_holdings` and
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,
   `year`, `limit` and `cursor`; follow `nextCursor` until empty. Prices belong
   to the signed-in user, not to a book. When `as_of` is omitted, Net Worth uses
   the reporting date of its aggregation, and holdings use today.
-- **Read package references** — `get_book_context` returns stored selections,
-  task/field metadata, settings, guide sections and declared examples. It checks
-  access and Book revision, but does not execute CEL, validate records or run recipes.
-- **Check the fiscal year** — `fiscal_years` reports open/closed/reopened state,
-  entry counts and drafts that block closing.
+- **Look up what the book's packages define** — `get_book_context` lists the
+  packages the book selects, with their tasks, fields, guides and examples; pass
+  a package and a task, field, guide or example to read one. It is reference
+  data: it does not check whether a package applies, run its rules or validate
+  records. The local server does that.
+- **Check the fiscal year** — `get_fiscal_year` reports whether the book's year
+  is open, closed or reopened, its entry counts and the drafts that block closing.
 - **Capture raw evidence** — with upload permission and Owner/Bookkeeper access,
   `create_upload_link(book_id=...)` creates a one-time image/PDF link (15 minutes,
   up to 10 MB). Scanned files land under `raw/uploads/`. It accepts no
@@ -96,7 +105,7 @@ Select a cloud book with a `book_id` from `list_books`. The arguments
 | Cash flow statement (`cash-flow-statement`) | `from`, `to` |
 | Ledger | `account`, with `from`/`to` or `as_of` |
 | Grouped totals | `by`, with `from`/`to` or `year` |
-| Asset movements (`cashflow`) | `year` |
+| Asset movements (`asset-movements`) | `year` |
 
 An argument the report does not use, a value of the wrong type, an unknown
 argument or a reversed date range returns an error; none is silently ignored.
@@ -104,10 +113,12 @@ argument or a reversed date range returns an error; none is silently ignored.
 Net Worth uses the same aggregation as the web's cross-book reports. It runs
 automatically **once per user per UTC day**. Changing the dates, the book
 selection or the currency does not refresh the data that run captured.
-`snapshot.generatedAt` is when it ran and `snapshot.nextRefreshAt` is when the
-next automatic run is due. To pick up synced changes sooner, choose **Run
-aggregation** on the web Dashboard or Net Worth. The connector reads the
-updated result but cannot start that run itself.
+`snapshot.generatedAt` is when it ran. Nothing runs on a timer: the first read
+after `snapshot.refreshableAfter` starts the next run in the background and
+still answers from the previous one, marked `snapshot.status: "refreshing"`.
+To pick up synced changes sooner, choose **Run aggregation** on the web
+Dashboard or Net Worth. The connector reads the updated result but cannot start
+that run itself.
 
 ## What it deliberately can't do
 

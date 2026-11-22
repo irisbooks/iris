@@ -958,7 +958,15 @@ JSON を出します。ただし、絞り込みによって残高ゼロの行そ
 月末残高です。各行に `prior`（科目の通常残高の向き。前期に数字がない科目は `0`）、
 レポートに前期の日付と合計を持つ `prior` が付きます。前期にしかない科目は当期 `0`
 で現れます。比較は月単位です（ファイルは月ごとの合計を持つため）。このファイルの
-ない帳簿では `prior` が付かず、標準エラーに注記が出ます。
+ない帳簿では `prior` が付かず、`diagnostics` でその旨を示します。
+
+数字が空・ゼロ・不自然なときは、レポートの `diagnostics`（`{ code, message, accounts? }`
+の一覧。テキスト出力では数字のあとに表示）が理由を示します。`PRIOR_YEAR_MISSING` は
+`--compare prior-year` で `config/prior-year.yaml` が見つからなかったこと、
+`NO_CASH_ACCOUNTS`（`cf`）は `cash: true` の科目がないことです。`UNUSUAL_SIGN`
+（`tb`・`bs`）は、貸方残高の資産や借方残高の負債（評価勘定を除く）があることで、
+`accounts` にその科目が入ります。帳簿に期首残高の仕訳がないときは `NO_OPENING_ENTRY` も
+付きます。説明することがないレポートには `diagnostics` は付きません。
 
 `iris report trend` は `--from` の月から `--to` の月までを月ごとに並べた月次推移表です。
 `values` は `months` の各月に1つずつで、科目の通常残高の向きです。収益・費用の科目は
@@ -983,7 +991,7 @@ JSON を出します。ただし、絞り込みによって残高ゼロの行そ
 期首の現金と `netChange` の合計が `closingCash` と一致すれば `balanced` が true です。
 区分を使わない勘定科目表では、区分のない計算書になります。各区分は空のままで、`flows` に
 現金が動いた相手の科目を収入・支出・`net` とともに並べるので、`unclassified` は出ません。
-現金の科目がない勘定科目表では、各区分は空になり、標準エラー出力にその旨を表示します。
+現金の科目がない勘定科目表では、各区分は空になり、`NO_CASH_ACCOUNTS` の診断が付きます。
 
 `iris report tb --from D` は `D` から `--as-of` までの期間の試算表です。科目ごとに
 期首の残高 `opening`、期間の借方 `debits`・貸方 `credits`、期末の残高 `closing` を
@@ -1001,15 +1009,16 @@ iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
-ステータス列には**実効**ステータスが表示されます。日付が締め済み会計年度に
-入っている仕訳は、ファイルの記載にかかわらず `closed` と表示され、
-`--status closed` はまさにそれらを絞り込みます。
+ステータス列には、ファイルに書かれたステータス（`draft` か `posted`）が表示されます。
+日付が締め済み会計年度に入っている仕訳には、そこに `closed` の印も付きます
+（JSON では `closed: true`）。`--status posted` は締め済みかどうかにかかわらず
+記帳済の仕訳を、`--status closed` は締め済み年度の仕訳だけを絞り込みます。
 
 **出力形**（`--json`）:
 
 ```text
 { currency, currencyScale, count, total,
-  journals[{ path, date, payee, status, amount, lines }] }
+  journals[{ path, date, payee, status, closed?, amount, lines }] }
 ```
 
 `amount` はその仕訳の借方合計で、帳簿通貨の10進数の文字列（`"54.99"`）です。
@@ -1497,7 +1506,7 @@ cloud を残すとサイドカーを削除します。`list_conflicts` は JSON 
 プレビューします。`apply=true` で修正を実行します。削除のように取り消しにくい変更は、
 先にプレビューで確認し、帳簿の方針に従って行います。
 
-`asset_depreciate` は下書きをプレビューし、`apply=true` で書き出します。クラウド接続済み帳簿の `fiscal_years`・`history`・
+`asset_depreciate` は下書きをプレビューし、`apply=true` で書き出します。クラウド接続済み帳簿の `get_fiscal_year`・`history`・
 `seal`・`reopen` には認証と対応するサーバー権限が必要です。
 `seal(dry_run=true)` は締めずに確認し、`dry_run` の省略または false は締めを実行します。`seal` と `reopen` は
 帳簿自身の会計年度を対象にし、年度の引数はありません。親モードの

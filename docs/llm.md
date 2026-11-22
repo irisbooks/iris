@@ -583,11 +583,12 @@ read-only comparison mode without posting anything. The output identifies the
 draft scope. Promote reviewed entries with [`iris post`](https://irisbooks.io/docs/en/cli-reference/#iris-post)
 or by editing the field.
 
-(You'll also see a `closed` status — that's any entry whose date falls in a
-sealed fiscal year. It's derived, never stored in the file: the web app,
-`iris search`, and the remote connector all display it, and reopening the
-year makes the stored status visible again. The web app additionally shows an
-`incomplete` marker for drafts that aren't ready.)
+(You'll also see entries marked `closed` — that's any entry whose date falls
+in a sealed fiscal year. It's derived, never stored in the file, and it sits
+beside the status rather than replacing it: a sealed entry is still `posted`,
+and the web app, `iris search`, `iris view` and both MCP servers report
+`closed: true` next to that. Reopening the year clears the mark. The web app
+additionally shows an `incomplete` marker for drafts that aren't ready.)
 
 ## Reports are computed, never stored
 
@@ -711,7 +712,7 @@ At year-end you **seal** a fiscal year: the server records who closed it and
 when. The lock covers journals dated in that year and the book's `config/`,
 `assets/`, `filings/`, and `compiled/` files. `iris post` refuses sealed-year
 journals; the server rejects writes in this scope from sync, the web app,
-and the remote connector. Entries display as `closed` everywhere.
+and the remote connector. Entries are marked `closed` everywhere.
 `raw/` evidence and `notes/` remain writable. Local files can still be edited,
 but changes in the locked scope cannot be pushed until you reopen the year.
 
@@ -2361,6 +2362,12 @@ version for inspection; restore through permitted local/CLI operations.
 Every report has date (or as-of) filters and CSV export. The P&L and balance
 sheet also have a "hide zero-balance rows" toggle.
 
+When figures look off for a reason the book can explain, the P&L, balance
+sheet and cash flow show a short notice above them: balances on the unusual
+side (an asset with a credit balance, a liability with a debit balance) with
+the accounts named, a book without an opening-balances entry, or a cloud
+copy of the chart stored before account order and cash marks were kept.
+
 - **General Ledger** — pick an account and see its full ledger for the period
   laid out like a paper ledger: date, description, corresponding account,
   counterparty, debit, credit, Dr/Cr and balance, with an optional opening
@@ -2831,28 +2838,37 @@ Nothing you change on the connector affects them.
 
 - **Read reports** — `get_report` provides trial balance, P&L, balance sheet,
   account ledger and grouped totals. The figures come from posted entries.
-  Responses include the sync watermark `figures_as_of` when available.
+  Responses include the sync watermark `figuresAsOf` when available. When a
+  figure is empty, zero or likely off, `diagnostics` says why: no prior-year
+  file for a comparison (`PRIOR_YEAR_MISSING`), no account marked as cash
+  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), no
+  opening-balances entry (`NO_OPENING_ENTRY`), or a cloud copy of the chart
+  stored before account order and cash marks were kept (`CHART_NOT_REPROJECTED`).
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
   investing and financing activity, with opening and closing cash.
-- **Inspect asset movements** — `get_report(report="cashflow")` is the legacy
-  name for monthly gross asset increases/decreases, including receivables and
-  fixed assets. Transfers can count on both sides. It is not a cash-flow statement.
+- **Inspect asset movements** — `get_report(report="asset-movements")` gives
+  monthly gross asset increases/decreases, including receivables and fixed
+  assets. Transfers can count on both sides. It is not a cash-flow statement.
 - **Browse journals and accounts** — `list_accounts`, `search_journals` and
   `get_journal`. Search filters combine with AND. Amounts, including the bounds,
   are decimal strings in the book currency, as journal files write them
-  (`"98.00"`); follow `nextCursor` using the same filters. `journal_path`
-  from search selects a journal. Sealed-year entries appear as `closed`.
+  (`"98.00"`); follow `nextCursor` using the same filters. Pass a result's
+  `journalPath` to `get_journal` as `journal_path`. `status` is what the file
+  says; sealed-year entries also carry `closed: true`, in search and in
+  `get_journal`.
 - **Read Net Worth, holdings and prices** — `get_networth`, `get_holdings` and
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,
   `year`, `limit` and `cursor`; follow `nextCursor` until empty. Prices belong
   to the signed-in user, not to a book. When `as_of` is omitted, Net Worth uses
   the reporting date of its aggregation, and holdings use today.
-- **Read package references** — `get_book_context` returns stored selections,
-  task/field metadata, settings, guide sections and declared examples. It checks
-  access and Book revision, but does not execute CEL, validate records or run recipes.
-- **Check the fiscal year** — `fiscal_years` reports open/closed/reopened state,
-  entry counts and drafts that block closing.
+- **Look up what the book's packages define** — `get_book_context` lists the
+  packages the book selects, with their tasks, fields, guides and examples; pass
+  a package and a task, field, guide or example to read one. It is reference
+  data: it does not check whether a package applies, run its rules or validate
+  records. The local server does that.
+- **Check the fiscal year** — `get_fiscal_year` reports whether the book's year
+  is open, closed or reopened, its entry counts and the drafts that block closing.
 - **Capture raw evidence** — with upload permission and Owner/Bookkeeper access,
   `create_upload_link(book_id=...)` creates a one-time image/PDF link (15 minutes,
   up to 10 MB). Scanned files land under `raw/uploads/`. It accepts no
@@ -2874,7 +2890,7 @@ Select a cloud book with a `book_id` from `list_books`. The arguments
 | Cash flow statement (`cash-flow-statement`) | `from`, `to` |
 | Ledger | `account`, with `from`/`to` or `as_of` |
 | Grouped totals | `by`, with `from`/`to` or `year` |
-| Asset movements (`cashflow`) | `year` |
+| Asset movements (`asset-movements`) | `year` |
 
 An argument the report does not use, a value of the wrong type, an unknown
 argument or a reversed date range returns an error; none is silently ignored.
@@ -2882,10 +2898,12 @@ argument or a reversed date range returns an error; none is silently ignored.
 Net Worth uses the same aggregation as the web's cross-book reports. It runs
 automatically **once per user per UTC day**. Changing the dates, the book
 selection or the currency does not refresh the data that run captured.
-`snapshot.generatedAt` is when it ran and `snapshot.nextRefreshAt` is when the
-next automatic run is due. To pick up synced changes sooner, choose **Run
-aggregation** on the web Dashboard or Net Worth. The connector reads the
-updated result but cannot start that run itself.
+`snapshot.generatedAt` is when it ran. Nothing runs on a timer: the first read
+after `snapshot.refreshableAfter` starts the next run in the background and
+still answers from the previous one, marked `snapshot.status: "refreshing"`.
+To pick up synced changes sooner, choose **Run aggregation** on the web
+Dashboard or Net Worth. The connector reads the updated result but cannot start
+that run itself.
 
 ## What it deliberately can't do
 
@@ -4108,7 +4126,16 @@ month a year earlier. Each row gains `prior` (in the account's own direction,
 `0` for an account without figures last year) and the statement a `prior`
 block with last year's dates and totals; accounts only last year had appear
 with a zero current figure. Months are whole: the file keeps monthly totals.
-A book without the file gets no `prior` and a note on stderr.
+A book without the file gets no `prior`; `diagnostics` says so.
+
+A statement explains a figure that is empty, zero or likely off in
+`diagnostics`, a list of `{ code, message, accounts? }` (the text output
+prints it after the figures). `PRIOR_YEAR_MISSING`: `--compare prior-year`
+found no `config/prior-year.yaml`. `NO_CASH_ACCOUNTS` (`cf`): no account is
+marked `cash: true`. `UNUSUAL_SIGN` (`tb`, `bs`): an asset with a credit
+balance or a liability with a debit balance, contra accounts aside, named in
+`accounts`; `NO_OPENING_ENTRY` joins it when the book has no opening-balances
+entry. A statement with nothing to explain has no `diagnostics`.
 
 `iris report trend` lays the whole months from `--from`'s to `--to`'s side by
 side. `values` has one number per month in `months`, in the account's own
@@ -4143,7 +4170,8 @@ flows. `netChange` is the sum of the categories and `unclassified`, and
 A chart without sections keeps the plain statement: the categories stay
 empty and `flows` lists every account cash moved against, with its receipts,
 payments and net, so nothing is unclassified.
-A chart with no cash account gets empty sections and a note on stderr.
+A chart with no cash account gets empty sections and the `NO_CASH_ACCOUNTS`
+diagnostic.
 
 `iris report tb --from D` gives the trial balance for the period from `D` to
 `--as-of`: each account's `opening` balance, the period's `debits` and
@@ -4165,15 +4193,16 @@ iris search [--from D] [--to D] [--min AMOUNT] [--max AMOUNT] [--payee S] \
   [--status draft,posted,closed] [--account S] [--tag S] [--json] [path]
 ```
 
-The status column shows the **effective** status: a journal dated inside a
-sealed fiscal year displays as `closed` regardless of what its file says, and
-`--status closed` filters on exactly those.
+The status column shows the status the file says (`draft` or `posted`). A
+journal dated inside a sealed fiscal year is also marked `closed` there (and
+`closed: true` in JSON). `--status posted` matches posted entries, sealed or
+not; `--status closed` selects exactly the sealed year's entries.
 
 **Output shape** (`--json`):
 
 ```text
 { currency, currencyScale, count, total,
-  journals[{ path, date, payee, status, amount, lines }] }
+  journals[{ path, date, payee, status, closed?, amount, lines }] }
 ```
 
 `amount` is the entry's debit total as a decimal string in the book currency
@@ -4701,7 +4730,7 @@ Use `seal(dry_run=true)` to inspect closing without sealing; omitting `dry_run`
 or setting it to false executes closing. `seal` and `reopen` act on the book's
 own fiscal year and take no year.
 
-`asset_depreciate` previews drafts; `apply=true` writes them. Linked-book `fiscal_years`, `history`, `seal`
+`asset_depreciate` previews drafts; `apply=true` writes them. Linked-book `get_fiscal_year`, `history`, `seal`
 and `reopen` require sign-in and the applicable server permissions. Parent-mode
 `yearend(book=..., next_book=...)` previews by default; `dry_run=false` executes,
 `local=true` skips cloud actions. It may move journals, copy grants and
@@ -5785,18 +5814,21 @@ $12.00, not $0.12). Internally everything is integer minor units.
 
 **Validation:** debits equal credits; every account exists in the chart (or
 matches an alias); the date matches the filename; status is valid; YAML parses.
-Reports include **only `posted`** entries.
+Reports include **only `posted`** entries. A body that names a file under
+`raw/` the entry doesn't list in `attachments` gets a warning: add the file
+there so the entry links its evidence rather than only mentioning it.
 
 **Package fields on a line.** A selected package can define fields on journal
 lines, such as a tax classification block. iris keeps them on the file, and the
 package's rules check them. `iris overlay list --json` lists each field with its
 accepted values; the package's page under [Packages](https://irisbooks.io/docs/en/overlays/) explains them.
 
-For assistants: `closed` is a derived display status, never written to
-frontmatter. A journal dated in a sealed fiscal year shows as `closed` in the
-web app, in `iris search` (which also accepts `--status closed`) and in the
-remote connector, where `get_journal` returns `closed: true`. Reopening the
-year shows the stored status again. Posting rewrites the status while keeping
+For assistants: `closed` is derived, never written to frontmatter, and never
+a value of `status`. A journal dated in a sealed fiscal year keeps its stored
+status (`posted`) and carries `closed: true` beside it in `iris search --json`,
+both MCP servers' `search_journals`, the remote `get_journal`, and the web
+app's API; `--status closed` (or `status=closed`) selects those entries, and
+`posted` matches them too. Reopening the year clears the flag. Posting rewrites the status while keeping
 other fields, quantities, attachments, annotations and Markdown; YAML
 indentation may change, so edit parsed YAML rather than relying on
 formatting-dependent text replacements.
