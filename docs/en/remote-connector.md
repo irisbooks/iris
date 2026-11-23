@@ -76,7 +76,9 @@ Nothing you change on the connector affects them.
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,
   `year`, `limit` and `cursor`; follow `nextCursor` until empty. Prices belong
   to the signed-in user, not to a book. When `as_of` is omitted, Net Worth uses
-  the reporting date of its aggregation, and holdings use today.
+  the reporting date of its aggregation, and holdings use today. Net Worth's
+  `diagnostics` name positions on the unusual side (`UNUSUAL_SIGN`), contra
+  accounts aside.
 - **Look up what the book's packages define** — `get_book_context` lists the
   packages the book selects, with their tasks, fields, guides and examples; pass
   a package and a task, field, guide or example to read one. It is reference

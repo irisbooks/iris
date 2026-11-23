@@ -2362,11 +2362,13 @@ version for inspection; restore through permitted local/CLI operations.
 Every report has date (or as-of) filters and CSV export. The P&L and balance
 sheet also have a "hide zero-balance rows" toggle.
 
-When figures look off for a reason the book can explain, the P&L, balance
-sheet and cash flow show a short notice above them: balances on the unusual
-side (an asset with a credit balance, a liability with a debit balance) with
-the accounts named, a book without an opening-balances entry, or a cloud
-copy of the chart stored before account order and cash marks were kept.
+When figures look off for a reason the book can explain, the trial balance,
+P&L, balance sheet and cash flow show a short notice above them: balances on
+the unusual side (an asset with a credit balance, a liability with a debit
+balance, contra accounts aside) with the accounts named, a book without an
+opening-balances entry, or a cloud copy of the chart stored before account
+order and cash marks were kept. Net Worth shows the same notice for balances
+on the unusual side.
 
 - **General Ledger** — pick an account and see its full ledger for the period
   laid out like a paper ledger: date, description, corresponding account,
@@ -2861,7 +2863,9 @@ Nothing you change on the connector affects them.
   `list_prices` read synced cloud data. Price listing accepts `unit`, `currency`,
   `year`, `limit` and `cursor`; follow `nextCursor` until empty. Prices belong
   to the signed-in user, not to a book. When `as_of` is omitted, Net Worth uses
-  the reporting date of its aggregation, and holdings use today.
+  the reporting date of its aggregation, and holdings use today. Net Worth's
+  `diagnostics` name positions on the unusual side (`UNUSUAL_SIGN`), contra
+  accounts aside.
 - **Look up what the book's packages define** — `get_book_context` lists the
   packages the book selects, with their tasks, fields, guides and examples; pass
   a package and a task, field, guide or example to read one. It is reference
@@ -4166,7 +4170,8 @@ all share one category, or when its cash lines stand alone on their side.
 Otherwise the whole entry goes in `unclassified`, never apportioned, as does
 a line on an account with no section. Moves between cash accounts are not
 flows. `netChange` is the sum of the categories and `unclassified`, and
-`balanced` is true when opening cash plus `netChange` equals `closingCash`.
+`balanced` is true when opening cash plus `netChange` equals `closingCash`,
+and absent when the chart has no cash account (there is nothing to check).
 A chart without sections keeps the plain statement: the categories stay
 empty and `flows` lists every account cash moved against, with its receipts,
 payments and net, so nothing is unclassified.

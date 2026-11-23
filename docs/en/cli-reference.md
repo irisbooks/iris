@@ -1046,7 +1046,8 @@ all share one category, or when its cash lines stand alone on their side.
 Otherwise the whole entry goes in `unclassified`, never apportioned, as does
 a line on an account with no section. Moves between cash accounts are not
 flows. `netChange` is the sum of the categories and `unclassified`, and
-`balanced` is true when opening cash plus `netChange` equals `closingCash`.
+`balanced` is true when opening cash plus `netChange` equals `closingCash`,
+and absent when the chart has no cash account (there is nothing to check).
 A chart without sections keeps the plain statement: the categories stay
 empty and `flows` lists every account cash moved against, with its receipts,
 payments and net, so nothing is unclassified.
