@@ -33,11 +33,11 @@ import sys
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
-# The 23-file engine distribution of release-artifacts.py, unchanged; the
+# The 22-file engine distribution of release-artifacts.py, unchanged; the
 # unsigned candidate is everything except the signature over checksums.txt.
 _PLATFORMS = [(system, arch) for system in ("darwin", "linux", "windows") for arch in ("amd64", "arm64")]
 _BINARIES = {f"iris_{system}_{arch}{'.exe' if system == 'windows' else ''}" for system, arch in _PLATFORMS}
-ENGINE_SIGNED = frozenset(_BINARIES | {name + ".gz" for name in _BINARIES} | {"iris_view_duckdb.wasm.gz"}
+ENGINE_SIGNED = frozenset(_BINARIES | {name + ".gz" for name in _BINARIES}
                           | {f"iris_{system}_{arch}.mcpb" for system, arch in _PLATFORMS} | {"version.txt", "release.json"})
 ENGINE_FILES = ENGINE_SIGNED | {"checksums.txt"}
 ENGINE_SIGNATURES = frozenset({"checksums.txt.minisig"})
