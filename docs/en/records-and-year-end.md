@@ -88,9 +88,12 @@ iris seal                                         # seal it (cloud)
   refreshes the new book's opening balances. See
   [iris yearend](cli-reference.md#iris-yearend).
 - **Seal.** Marks the fiscal year as closed — by whom and when — and **locks**
-  its dated journals and `config/`, `assets/`, `filings/`, `compiled/`. The
-  server rejects changes to that scope until reopening. `raw/` and `notes/`
-  remain writable. Its entries display as `closed`.
+  the whole book: every journal, whatever its date, and `config/`, `assets/`,
+  `filings/`, `compiled/`. The server rejects changes to that scope until
+  reopening. `raw/`, `notes/`, and `AGENTS.md` remain writable. Its entries
+  display as `closed`. Sealing is refused while the book still holds entries
+  dated after the year, so run `iris yearend` once more before sealing to move
+  any that arrived since.
 - **Nothing is removed.** Sealing and reopening never delete a file: the
   year's files stay in your working tree and on the server, with every
   earlier version.

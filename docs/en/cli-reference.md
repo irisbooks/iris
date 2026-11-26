@@ -237,7 +237,8 @@ standalone copy, in a new folder beside this one (`acme-2025` →
 Entries already dated in the new year **move** to the new book, with the raw
 files they cite. Earlier journals, `compiled/`, `filings/`, parse caches and
 disposed assets stay here. `--carry notes,raw` copies all of `notes/` or
-`raw/` as well.
+`raw/` as well. Run `iris yearend` once more just before `iris seal`: sealing is
+refused while this book still holds entries dated in the new year.
 
 If this book is linked to the cloud, the same run creates the new book's
 cloud copy — everyone with access to this book gets the same access, and
@@ -279,18 +280,19 @@ book needs `--yes`.
 ### iris seal
 
 Close the linked cloud book's fiscal year (a period seal). A book covers one
-fiscal year, so the command takes no year. The server locks
-journals dated in the year or earlier (an earlier entry still changes the
-year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
-`raw/` and `notes/` remain writable. Local files can still be edited, but locked
+fiscal year, so the command takes no year. The server locks the whole book
+except `raw/`, `notes/`, and `AGENTS.md`: every journal, whatever its date, and
+`config/`, `assets/`, `filings/`, `compiled/`. Local files can still be edited, but locked
 changes cannot sync; the year's files stay in your working tree. To amend a sealed year, run `iris reopen`. While the year is
 reopened, changes to the locked scope are flagged in the audit trail
 (`iris api history`). When you are done, run `iris seal` again to close the
 year; the new seal replaces the old one, and the old one stays in the history.
 `--dry-run` lists the files the seal would lock, without sealing. Sealing is
 **refused** while the year still contains drafts — a sealed year must be fully
-resolved. Post each draft if it belongs in the year, delete it if abandoned, or
-change its date into an open year; `--dry-run` lists the blockers.
+resolved — and while the book holds entries dated after the year. Post each
+draft if it belongs in the year, or delete it if abandoned. Move entries dated
+after the year into the next year's book with `iris yearend`, or fix their
+dates. `--dry-run` lists the blockers.
 
 Run `iris validate` locally before syncing and closing. Local clients check
 package rules and replay recorded recipes using definitions retained in the Book;
@@ -320,9 +322,10 @@ cloud copy. Local MCP's `seal` tool does the same for the selected book.
 
 Unlock the book's sealed fiscal year for amendment; like `iris seal`, it takes
 no year. The seal is unlocked on the server
-(the year’s journals and `config/`, `assets/`, `filings/`, `compiled/` are
+(the book's journals and `config/`, `assets/`, `filings/`, `compiled/` are
 locked until this runs; edits to that scope after reopening are permanently
-flagged as post-seal edits). `raw/` and `notes/` remain writable throughout.
+flagged as post-seal edits). `raw/`, `notes/`, and `AGENTS.md` remain writable
+throughout.
 Sealing locks the year; it does not remove files. The year's files are still
 in your working tree, so there is nothing to restore: edit them directly, run `iris sync` to push
 your edits, and `iris seal` to close the year again.
@@ -1014,8 +1017,10 @@ prints it after the figures). `PRIOR_YEAR_MISSING`: `--compare prior-year`
 found no `config/prior-year.yaml`. `NO_CASH_ACCOUNTS` (`cf`): no account is
 marked `cash: true`. `UNUSUAL_SIGN` (`tb`, `bs`): an asset with a credit
 balance or a liability with a debit balance, contra accounts aside, named in
-`accounts`; `NO_OPENING_ENTRY` joins it when the book has no opening-balances
-entry. A statement with nothing to explain has no `diagnostics`.
+`accounts` (an account deducted from another, such as accumulated
+depreciation, needs `contra:` in the chart to stand on the other side);
+`NO_OPENING_ENTRY` joins it and names those of the accounts that no
+opening-balances entry has a line for. A statement with nothing to explain has no `diagnostics`.
 
 `iris report trend` lays the whole months from `--from`'s to `--to`'s side by
 side. `values` has one number per month in `months`, in the account's own
@@ -1296,6 +1301,11 @@ continuous position history; the next year's opening
 balances must reconcile with the previous year's closing position and then
 replace it, so nothing is counted twice. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
+`diagnostics` explains likely-off figures as the reports do (`UNUSUAL_SIGN`,
+`NO_OPENING_ENTRY`), and `ACQUISITION_COST_UNKNOWN` names the holdings whose
+acquisition cost is unknown, which leaves the acquisition cost and the
+unrealized gain blank: record the cost of units held before the book began
+under `opening_inventory` in `config/book.yaml`.
 Prints text; `--json` prints JSON. Cloud inclusion settings do not apply.
 
 ### iris price

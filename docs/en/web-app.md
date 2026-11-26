@@ -387,11 +387,13 @@ who closed it, when. It's where a book **owner** runs
 the period close:
 
 - **Close a year.** A preview shows which files the close will lock and
-  lists any remaining drafts. A year cannot close while
-  drafts remain — post, delete, or redate them first (each listed draft
-  links to its entry). Closing locks the year’s journals and accounting dependencies
-  (`config/`, `assets/`, `filings/`, `compiled/`) until reopening; `raw/` and
-  `notes/` remain writable.
+  lists what blocks it. A year cannot close while drafts remain — post or
+  delete them first — or while the book holds entries dated after the year:
+  run `iris yearend` in the book's folder to move those into the next year's
+  book, or fix their dates. Each listed entry links to it. Closing locks the
+  whole book until reopening — every journal and the accounting dependencies
+  (`config/`, `assets/`, `filings/`, `compiled/`); `raw/`, `notes/`, and
+  `AGENTS.md` remain writable.
 - **Reopen a year.** Unlocks it for amendments. Every change to the locked scope made while
   reopened is permanently flagged "after seal" in the audit trail, and
   the screen counts the files amended. Close the year again when you're
@@ -580,7 +582,7 @@ Use the web app to organize your review across clients:
 - **My Books** is your client directory — each book (one per client per
   fiscal year) with its year, draft count, last activity, and a **Year-end**
   column showing that year's close state: closed, reopened, **ready to
-  close**, or "N drafts" still blocking it. At year-end this column is your
+  close**, or what still blocks it ("N drafts", "N entries after the year"). At year-end this column is your
   worklist — each badge links straight into that book's Year-end screen.
 - Switch into a client book to review and approve entries, check the
   **Activity** log for what staff did, and run reports.

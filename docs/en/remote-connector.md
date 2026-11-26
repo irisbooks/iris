@@ -8,8 +8,9 @@ For bookkeeping the connector is **read-only**. Creating or changing a record
 means checking it against the book's accounting rules, and those run only on
 your computer. Make changes with the local CLI or local MCP setup, then sync,
 and the connector sees them. There is one exception, and it is optional: you
-can allow the connector to upload source documents such as a photo of a
-receipt. An upload saves a file and touches no record.
+can allow the connector to save source documents, such as a photo of a
+receipt or a written note of what you paid. Saving one adds a file and
+touches no record.
 
 The connector speaks MCP and supports **Claude** (mobile, web, desktop and
 Claude Code) and **ChatGPT**. It recognises supported apps through their Client
@@ -29,7 +30,7 @@ cannot widen the connector's read-only access.
 
    In Claude: Settings → Connectors → Add custom connector.
 2. Sign in through the browser and approve **Viewer — read-only** access.
-   To upload source documents, also allow **raw document uploads**. There is
+   To save source documents, also allow **raw document uploads**. There is
    no permission for writing drafts. If the AI app runs on the same computer
    as your browser, the page shows a warning about localhost. Approve it only
    if you started the connection yourself a moment ago.
@@ -39,10 +40,10 @@ cannot widen the connector's read-only access.
 What a connection is allowed to do:
 
 - A new connection gets Viewer access. If you also allowed uploads, it gets
-  the `evidence:upload` permission, which lets it issue upload links for
-  source documents.
+  the `evidence:upload` permission, which lets it issue upload links and
+  save written notes as source documents.
 - A connection approved earlier with Bookkeeper access is now limited to
-  reading and uploading as well.
+  reading and saving source documents as well.
 - Renewing a connection keeps the combination you approved.
 - On the general REST API, a connector's token has Viewer access only.
 
@@ -56,8 +57,8 @@ Nothing you change on the connector affects them.
   Responses include the sync watermark `figuresAsOf` when available. When a
   figure is empty, zero or likely off, `diagnostics` says why: no prior-year
   file for a comparison (`PRIOR_YEAR_MISSING`), no account marked as cash
-  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), no
-  opening-balances entry (`NO_OPENING_ENTRY`), or a cloud copy of the chart
+  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), accounts
+  the opening-balances entry leaves out (`NO_OPENING_ENTRY`), or a cloud copy of the chart
   stored before account order and cash marks were kept (`CHART_NOT_REPROJECTED`).
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
@@ -85,13 +86,23 @@ Nothing you change on the connector affects them.
   data: it does not check whether a package applies, run its rules or validate
   records. The local server does that.
 - **Check the fiscal year** — `get_fiscal_year` reports whether the book's year
-  is open, closed or reopened, its entry counts and the drafts that block closing.
+  is open, closed or reopened, its entry counts, and the drafts and entries
+  dated after the year that block closing.
 - **Capture raw evidence** — with upload permission and Owner/Bookkeeper access,
   `create_upload_link(book_id=...)` creates a one-time image/PDF link (15 minutes,
   up to 10 MB). Scanned files land under `raw/uploads/`. It accepts no
   `journal_path` and never edits or attaches to a journal. Wait until the upload
   page confirms that the file arrived. Linking it to a journal is done later,
   in the local workflow.
+- **Save what you tell it** — with the same permission and access,
+  `save_raw_text(book_id=..., text=...)` saves the assistant's written account
+  of a transaction as a Markdown file under `raw/text/`, so the journal can be
+  drafted from it later at your computer. The assistant is asked to write
+  down everything that drafting needs, because whoever drafts it sees only the
+  file: the date, each amount and its currency, the other party, how it was
+  paid, the purpose, and anything still uncertain. IrisBooks adds a header
+  with the time the note arrived, in the book's time zone, and the app that
+  sent it. Like an upload, it never creates or changes a journal.
 - **Look up an existing receiving address** — `get_inbox_address` reads address
   metadata only. It does not send email or create upload links.
 
@@ -132,9 +143,9 @@ The connector cannot:
 - post or approve entries;
 - seal or reopen a year.
 
-Earlier versions could write drafts; the connector no longer can. Uploading
-source documents is available only when you allowed it, and an upload never
-creates or changes an accounting record. Make bookkeeping changes with the
+Earlier versions could write drafts; the connector no longer can. Saving
+source documents, as an upload or a written note, is available only when you
+allowed it, and never creates or changes an accounting record. Make bookkeeping changes with the
 local CLI or local MCP server, so that the book's accounting rules and
 validation run before the change is synced.
 
@@ -143,7 +154,7 @@ validation run before the change is synced.
 | You are… | Use | What it provides |
 | --- | --- | --- |
 | At your computer | the [local setup](cli-and-llm.md) | live files and the author → validate → post → sync workflow |
-| Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence upload |
+| Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence capture |
 
 You can set up both. An assistant that can use both is told to prefer the
 local one, because it also sees edits you have not synced yet. When the

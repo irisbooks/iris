@@ -214,12 +214,16 @@ need to keep can be deleted on its own.
 ## Seals — closing a year, visibly
 
 At year-end you **seal** a fiscal year: the server records who closed it and
-when. The lock covers journals dated in that year and the book's `config/`,
+when. The lock covers the whole book except `raw/` evidence, `notes/`, and
+`AGENTS.md`: every journal, whatever its date, and the book's `config/`,
 `assets/`, `filings/`, and `compiled/` files. `iris post` refuses sealed-year
 journals; the server rejects writes in this scope from sync, the web app,
 and the remote connector. Entries are marked `closed` everywhere.
-`raw/` evidence and `notes/` remain writable. Local files can still be edited,
-but changes in the locked scope cannot be pushed until you reopen the year.
+`raw/` evidence, `notes/`, and `AGENTS.md` remain writable. Local files can
+still be edited, but changes in the locked scope cannot be pushed until you
+reopen the year. A year cannot be sealed while it has drafts, or while the book
+still holds entries dated after the year — `iris yearend` moves those into the
+next year's book.
 
 To amend a sealed year, use [`iris reopen`](cli-reference.md#iris-reopen).
 Changes in the locked scope made after reopening are permanently flagged as

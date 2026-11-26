@@ -709,12 +709,16 @@ need to keep can be deleted on its own.
 ## Seals — closing a year, visibly
 
 At year-end you **seal** a fiscal year: the server records who closed it and
-when. The lock covers journals dated in that year and the book's `config/`,
+when. The lock covers the whole book except `raw/` evidence, `notes/`, and
+`AGENTS.md`: every journal, whatever its date, and the book's `config/`,
 `assets/`, `filings/`, and `compiled/` files. `iris post` refuses sealed-year
 journals; the server rejects writes in this scope from sync, the web app,
 and the remote connector. Entries are marked `closed` everywhere.
-`raw/` evidence and `notes/` remain writable. Local files can still be edited,
-but changes in the locked scope cannot be pushed until you reopen the year.
+`raw/` evidence, `notes/`, and `AGENTS.md` remain writable. Local files can
+still be edited, but changes in the locked scope cannot be pushed until you
+reopen the year. A year cannot be sealed while it has drafts, or while the book
+still holds entries dated after the year — `iris yearend` moves those into the
+next year's book.
 
 To amend a sealed year, use [`iris reopen`](https://irisbooks.io/docs/en/cli-reference/#iris-reopen).
 Changes in the locked scope made after reopening are permanently flagged as
@@ -2465,11 +2469,13 @@ who closed it, when. It's where a book **owner** runs
 the period close:
 
 - **Close a year.** A preview shows which files the close will lock and
-  lists any remaining drafts. A year cannot close while
-  drafts remain — post, delete, or redate them first (each listed draft
-  links to its entry). Closing locks the year’s journals and accounting dependencies
-  (`config/`, `assets/`, `filings/`, `compiled/`) until reopening; `raw/` and
-  `notes/` remain writable.
+  lists what blocks it. A year cannot close while drafts remain — post or
+  delete them first — or while the book holds entries dated after the year:
+  run `iris yearend` in the book's folder to move those into the next year's
+  book, or fix their dates. Each listed entry links to it. Closing locks the
+  whole book until reopening — every journal and the accounting dependencies
+  (`config/`, `assets/`, `filings/`, `compiled/`); `raw/`, `notes/`, and
+  `AGENTS.md` remain writable.
 - **Reopen a year.** Unlocks it for amendments. Every change to the locked scope made while
   reopened is permanently flagged "after seal" in the audit trail, and
   the screen counts the files amended. Close the year again when you're
@@ -2661,7 +2667,7 @@ Use the web app to organize your review across clients:
 - **My Books** is your client directory — each book (one per client per
   fiscal year) with its year, draft count, last activity, and a **Year-end**
   column showing that year's close state: closed, reopened, **ready to
-  close**, or "N drafts" still blocking it. At year-end this column is your
+  close**, or what still blocks it ("N drafts", "N entries after the year"). At year-end this column is your
   worklist — each badge links straight into that book's Year-end screen.
 - Switch into a client book to review and approve entries, check the
   **Activity** log for what staff did, and run reports.
@@ -2795,8 +2801,9 @@ For bookkeeping the connector is **read-only**. Creating or changing a record
 means checking it against the book's accounting rules, and those run only on
 your computer. Make changes with the local CLI or local MCP setup, then sync,
 and the connector sees them. There is one exception, and it is optional: you
-can allow the connector to upload source documents such as a photo of a
-receipt. An upload saves a file and touches no record.
+can allow the connector to save source documents, such as a photo of a
+receipt or a written note of what you paid. Saving one adds a file and
+touches no record.
 
 The connector speaks MCP and supports **Claude** (mobile, web, desktop and
 Claude Code) and **ChatGPT**. It recognises supported apps through their Client
@@ -2816,7 +2823,7 @@ cannot widen the connector's read-only access.
 
    In Claude: Settings → Connectors → Add custom connector.
 2. Sign in through the browser and approve **Viewer — read-only** access.
-   To upload source documents, also allow **raw document uploads**. There is
+   To save source documents, also allow **raw document uploads**. There is
    no permission for writing drafts. If the AI app runs on the same computer
    as your browser, the page shows a warning about localhost. Approve it only
    if you started the connection yourself a moment ago.
@@ -2826,10 +2833,10 @@ cannot widen the connector's read-only access.
 What a connection is allowed to do:
 
 - A new connection gets Viewer access. If you also allowed uploads, it gets
-  the `evidence:upload` permission, which lets it issue upload links for
-  source documents.
+  the `evidence:upload` permission, which lets it issue upload links and
+  save written notes as source documents.
 - A connection approved earlier with Bookkeeper access is now limited to
-  reading and uploading as well.
+  reading and saving source documents as well.
 - Renewing a connection keeps the combination you approved.
 - On the general REST API, a connector's token has Viewer access only.
 
@@ -2843,8 +2850,8 @@ Nothing you change on the connector affects them.
   Responses include the sync watermark `figuresAsOf` when available. When a
   figure is empty, zero or likely off, `diagnostics` says why: no prior-year
   file for a comparison (`PRIOR_YEAR_MISSING`), no account marked as cash
-  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), no
-  opening-balances entry (`NO_OPENING_ENTRY`), or a cloud copy of the chart
+  (`NO_CASH_ACCOUNTS`), balances on the unusual side (`UNUSUAL_SIGN`), accounts
+  the opening-balances entry leaves out (`NO_OPENING_ENTRY`), or a cloud copy of the chart
   stored before account order and cash marks were kept (`CHART_NOT_REPROJECTED`).
 - **Read the cash flow statement** — `get_report(report="cash-flow-statement")`
   gives the movements of the accounts the chart marks as cash, by operating,
@@ -2872,13 +2879,23 @@ Nothing you change on the connector affects them.
   data: it does not check whether a package applies, run its rules or validate
   records. The local server does that.
 - **Check the fiscal year** — `get_fiscal_year` reports whether the book's year
-  is open, closed or reopened, its entry counts and the drafts that block closing.
+  is open, closed or reopened, its entry counts, and the drafts and entries
+  dated after the year that block closing.
 - **Capture raw evidence** — with upload permission and Owner/Bookkeeper access,
   `create_upload_link(book_id=...)` creates a one-time image/PDF link (15 minutes,
   up to 10 MB). Scanned files land under `raw/uploads/`. It accepts no
   `journal_path` and never edits or attaches to a journal. Wait until the upload
   page confirms that the file arrived. Linking it to a journal is done later,
   in the local workflow.
+- **Save what you tell it** — with the same permission and access,
+  `save_raw_text(book_id=..., text=...)` saves the assistant's written account
+  of a transaction as a Markdown file under `raw/text/`, so the journal can be
+  drafted from it later at your computer. The assistant is asked to write
+  down everything that drafting needs, because whoever drafts it sees only the
+  file: the date, each amount and its currency, the other party, how it was
+  paid, the purpose, and anything still uncertain. IrisBooks adds a header
+  with the time the note arrived, in the book's time zone, and the app that
+  sent it. Like an upload, it never creates or changes a journal.
 - **Look up an existing receiving address** — `get_inbox_address` reads address
   metadata only. It does not send email or create upload links.
 
@@ -2919,14 +2936,15 @@ The connector cannot:
 - post or approve entries;
 - seal or reopen a year.
 
-Earlier versions could write drafts; the connector no longer can. Uploading
-source documents is available only when you allowed it, and an upload never
-creates or changes an accounting record. Make bookkeeping changes with the
+Earlier versions could write drafts; the connector no longer can. Saving
+source documents, as an upload or a written note, is available only when you
+allowed it, and never creates or changes an accounting record. Make bookkeeping changes with the
 local CLI or local MCP server, so that the book's accounting rules and
 validation run before the change is synced.
 
 For assistants: connector sign-in defaults to `role:viewer`; optional
-`evidence:upload` permits raw capture only. Remote accounting stays read-only
+`evidence:upload` permits raw capture only (`create_upload_link`,
+`save_raw_text`). Remote accounting stays read-only
 for every credential and book role, so propose changes for the user to make
 locally rather than looking for a write path.
 
@@ -2935,7 +2953,7 @@ locally rather than looking for a write path.
 | You are… | Use | What it provides |
 | --- | --- | --- |
 | At your computer | the [local setup](https://irisbooks.io/docs/en/cli-and-llm/) | live files and the author → validate → post → sync workflow |
-| Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence upload |
+| Away from it | the remote connector | cloud reports, journals and stored references, plus optional raw evidence capture |
 
 You can set up both. An assistant that can use both is told to prefer the
 local one, because it also sees edits you have not synced yet. When the
@@ -3042,9 +3060,12 @@ iris seal                                         # seal it (cloud)
   refreshes the new book's opening balances. See
   [iris yearend](https://irisbooks.io/docs/en/cli-reference/#iris-yearend).
 - **Seal.** Marks the fiscal year as closed — by whom and when — and **locks**
-  its dated journals and `config/`, `assets/`, `filings/`, `compiled/`. The
-  server rejects changes to that scope until reopening. `raw/` and `notes/`
-  remain writable. Its entries display as `closed`.
+  the whole book: every journal, whatever its date, and `config/`, `assets/`,
+  `filings/`, `compiled/`. The server rejects changes to that scope until
+  reopening. `raw/`, `notes/`, and `AGENTS.md` remain writable. Its entries
+  display as `closed`. Sealing is refused while the book still holds entries
+  dated after the year, so run `iris yearend` once more before sealing to move
+  any that arrived since.
 - **Nothing is removed.** Sealing and reopening never delete a file: the
   year's files stay in your working tree and on the server, with every
   earlier version.
@@ -3354,7 +3375,8 @@ standalone copy, in a new folder beside this one (`acme-2025` →
 Entries already dated in the new year **move** to the new book, with the raw
 files they cite. Earlier journals, `compiled/`, `filings/`, parse caches and
 disposed assets stay here. `--carry notes,raw` copies all of `notes/` or
-`raw/` as well.
+`raw/` as well. Run `iris yearend` once more just before `iris seal`: sealing is
+refused while this book still holds entries dated in the new year.
 
 If this book is linked to the cloud, the same run creates the new book's
 cloud copy — everyone with access to this book gets the same access, and
@@ -3396,18 +3418,19 @@ book needs `--yes`.
 ### iris seal
 
 Close the linked cloud book's fiscal year (a period seal). A book covers one
-fiscal year, so the command takes no year. The server locks
-journals dated in the year or earlier (an earlier entry still changes the
-year's balance sheet) and `config/`, `assets/`, `filings/`, `compiled/`.
-`raw/` and `notes/` remain writable. Local files can still be edited, but locked
+fiscal year, so the command takes no year. The server locks the whole book
+except `raw/`, `notes/`, and `AGENTS.md`: every journal, whatever its date, and
+`config/`, `assets/`, `filings/`, `compiled/`. Local files can still be edited, but locked
 changes cannot sync; the year's files stay in your working tree. To amend a sealed year, run `iris reopen`. While the year is
 reopened, changes to the locked scope are flagged in the audit trail
 (`iris api history`). When you are done, run `iris seal` again to close the
 year; the new seal replaces the old one, and the old one stays in the history.
 `--dry-run` lists the files the seal would lock, without sealing. Sealing is
 **refused** while the year still contains drafts — a sealed year must be fully
-resolved. Post each draft if it belongs in the year, delete it if abandoned, or
-change its date into an open year; `--dry-run` lists the blockers.
+resolved — and while the book holds entries dated after the year. Post each
+draft if it belongs in the year, or delete it if abandoned. Move entries dated
+after the year into the next year's book with `iris yearend`, or fix their
+dates. `--dry-run` lists the blockers.
 
 Run `iris validate` locally before syncing and closing. Local clients check
 package rules and replay recorded recipes using definitions retained in the Book;
@@ -3437,9 +3460,10 @@ cloud copy. Local MCP's `seal` tool does the same for the selected book.
 
 Unlock the book's sealed fiscal year for amendment; like `iris seal`, it takes
 no year. The seal is unlocked on the server
-(the year’s journals and `config/`, `assets/`, `filings/`, `compiled/` are
+(the book's journals and `config/`, `assets/`, `filings/`, `compiled/` are
 locked until this runs; edits to that scope after reopening are permanently
-flagged as post-seal edits). `raw/` and `notes/` remain writable throughout.
+flagged as post-seal edits). `raw/`, `notes/`, and `AGENTS.md` remain writable
+throughout.
 Sealing locks the year; it does not remove files. The year's files are still
 in your working tree, so there is nothing to restore: edit them directly, run `iris sync` to push
 your edits, and `iris seal` to close the year again.
@@ -4138,8 +4162,10 @@ prints it after the figures). `PRIOR_YEAR_MISSING`: `--compare prior-year`
 found no `config/prior-year.yaml`. `NO_CASH_ACCOUNTS` (`cf`): no account is
 marked `cash: true`. `UNUSUAL_SIGN` (`tb`, `bs`): an asset with a credit
 balance or a liability with a debit balance, contra accounts aside, named in
-`accounts`; `NO_OPENING_ENTRY` joins it when the book has no opening-balances
-entry. A statement with nothing to explain has no `diagnostics`.
+`accounts` (an account deducted from another, such as accumulated
+depreciation, needs `contra:` in the chart to stand on the other side);
+`NO_OPENING_ENTRY` joins it and names those of the accounts that no
+opening-balances entry has a line for. A statement with nothing to explain has no `diagnostics`.
 
 `iris report trend` lays the whole months from `--from`'s to `--to`'s side by
 side. `values` has one number per month in `months`, in the account's own
@@ -4420,6 +4446,11 @@ continuous position history; the next year's opening
 balances must reconcile with the previous year's closing position and then
 replace it, so nothing is counted twice. Without a successor the last known holdings carry forward. Drafts are excluded. Missing prices use book value and appear in `unpriced`.
 Duplicate folders/book identities are refused to avoid counting copies twice.
+`diagnostics` explains likely-off figures as the reports do (`UNUSUAL_SIGN`,
+`NO_OPENING_ENTRY`), and `ACQUISITION_COST_UNKNOWN` names the holdings whose
+acquisition cost is unknown, which leaves the acquisition cost and the
+unrealized gain blank: record the cost of units held before the book began
+under `opening_inventory` in `config/book.yaml`.
 Prints text; `--json` prints JSON. Cloud inclusion settings do not apply.
 
 ### iris price
